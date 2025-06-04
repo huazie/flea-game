@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数独游戏</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>数独游戏</h1>
+        
+        <!-- 游戏控制区域 -->
+        <div class="game-controls">
+            <select id="difficulty">
+                <option value="easy">简单</option>
+                <option value="medium">中等</option>
+                <option value="hard">困难</option>
+                <option value="expert">专家</option>
+            </select>
+            <button id="newGame">新游戏</button>
+            <button id="saveGame">保存</button>
+            <button id="loadGame">读取</button>
+        </div>
+
+        <!-- 数独棋盘 -->
+        <div id="sudokuBoard" class="board"></div>
+
+        <!-- 数字选择器 -->
+        <div id="numberSelector" class="number-selector">
+            <div class="number-selector-grid">
+                <button class="number" data-number="1">1</button>
+                <button class="number" data-number="2">2</button>
+                <button class="number" data-number="3">3</button>
+                <button class="number" data-number="4">4</button>
+                <button class="number" data-number="5">5</button>
+                <button class="number" data-number="6">6</button>
+                <button class="number" data-number="7">7</button>
+                <button class="number" data-number="8">8</button>
+                <button class="number" data-number="9">9</button>
+            </div>
+            <button id="eraser" class="eraser">清除</button>
+        </div>
+    </div>
+
+    <!-- JavaScript 文件 -->
+    <script src="js/sudoku.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/game.js"></script>
+    <script>
+        // 初始化游戏
+        document.addEventListener('DOMContentLoaded', () => {
+            window.game = new Game();
+        });
+    </script>
+</body>
+</html>

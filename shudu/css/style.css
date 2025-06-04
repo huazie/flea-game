@@ -1,0 +1,479 @@
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f5f6fa;
+    transition: background-color 0.3s ease;
+}
+
+.container {
+    max-width: 800px;
+    padding: 30px;
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 20px;
+    color: #2c3e50;
+    font-size: 2.5em;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 游戏控制区域 */
+.game-controls {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.game-controls select,
+.game-controls button {
+    margin: 0 5px;
+    padding: 10px 20px;
+    font-size: 14px;
+    border: none;
+    border-radius: 6px;
+    background-color: #3498db;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.game-controls select {
+    background-color: #2980b9;
+}
+
+.game-controls button:hover,
+.game-controls select:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.game-controls button:active,
+.game-controls select:active {
+    transform: translateY(0);
+}
+
+/* 数独棋盘 */
+.board {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 2px;
+    background-color: #34495e;
+    border: 3px solid #34495e;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto 20px;
+    aspect-ratio: 1;
+    padding: 3px;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+/* 单元格样式 */
+.cell {
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    user-select: none;
+    transition: all 0.2s ease;
+    aspect-ratio: 1;
+    cursor: pointer;
+    font-size: 32px;
+    font-weight: 500;
+}
+
+.cell:hover:not(.fixed) {
+    background-color: #f8f9fa;
+}
+
+/* 数字显示样式 */
+.number-display {
+    font-size: inherit;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: all 0.2s ease;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 删除按钮样式 */
+.delete-button {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e74c3c;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    border-radius: 50%;
+    background-color: rgba(231, 76, 60, 0.1);
+    transform: scale(0.8);
+}
+
+.cell:hover .delete-button {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.delete-button:hover {
+    background-color: #e74c3c;
+    color: white;
+    transform: scale(1.1);
+}
+
+/* 默认数字和用户输入数字的视觉区分 */
+.cell.fixed .number-display {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.cell.filled .number-display {
+    color: #3498db;
+}
+
+/* 选中状态优化 */
+.cell.selected {
+    background-color: #ebf5fb;
+    box-shadow: inset 0 0 0 2px #3498db;
+}
+
+.cell.selected .number-display {
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+/* 3x3宫格边框 */
+.cell:nth-child(9n+1),
+.cell:nth-child(9n+2),
+.cell:nth-child(9n+3),
+.cell:nth-child(9n+4),
+.cell:nth-child(9n+5),
+.cell:nth-child(9n+6),
+.cell:nth-child(9n+7),
+.cell:nth-child(9n+8),
+.cell:nth-child(9n+9) {
+    border-right: 1px solid #bdc3c7;
+}
+
+.cell:nth-child(9n+3),
+.cell:nth-child(9n+6) {
+    border-right: 3px solid #34495e;
+}
+
+.cell:nth-child(-n+81) {
+    border-bottom: 1px solid #bdc3c7;
+}
+
+.cell:nth-child(n+19):nth-child(-n+27),
+.cell:nth-child(n+46):nth-child(-n+54) {
+    border-bottom: 3px solid #34495e;
+}
+
+/* 单元格状态 */
+.cell.selected {
+    background-color: #ebf5fb;
+    box-shadow: inset 0 0 0 2px #3498db;
+    animation: select-pulse 2s infinite;
+}
+
+/* 默认数字样式（初始数字） */
+.cell.fixed .number-display {
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+.cell.fixed {
+    background-color: #f8f9f9;
+    cursor: not-allowed;
+}
+
+/* 玩家填写的数字样式 */
+.cell.filled .number-display {
+    color: #3498db;
+    font-weight: 400;
+    animation: number-appear 0.3s ease-out;
+}
+
+/* 错误状态 */
+.cell.error .number-display {
+    color: #e74c3c;
+    animation: shake 0.5s;
+}
+
+/* 相关单元格高亮 */
+.cell.related {
+    background-color: #f7f9fa;
+    animation: related-fade 0.3s ease-in;
+}
+
+/* 弹出式数字选择器 */
+.number-selector {
+    position: fixed;
+    display: none;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    padding: 8px;
+    z-index: 1000;
+    animation: popup 0.2s ease-out;
+}
+
+.number-selector.active {
+    display: block;
+}
+
+.number-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.number-selector button {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    border: none;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    color: #2c3e50;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.number-selector button:hover {
+    background-color: #3498db;
+    color: white;
+    transform: scale(1.05);
+}
+
+@keyframes popup {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 动画效果 */
+@keyframes shake {
+    0%, 100% { transform: translate(-50%, -50%); }
+    25% { transform: translate(-55%, -50%); }
+    75% { transform: translate(-45%, -50%); }
+}
+
+@keyframes select-pulse {
+    0% { box-shadow: inset 0 0 0 2px #3498db; }
+    50% { box-shadow: inset 0 0 0 2px #2980b9; }
+    100% { box-shadow: inset 0 0 0 2px #3498db; }
+}
+
+@keyframes number-appear {
+    from {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes related-fade {
+    from { background-color: #ebf5fb; }
+    to { background-color: #f7f9fa; }
+}
+
+@keyframes victory {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+    
+    .board {
+        max-width: 100%;
+    }
+    
+    .cell {
+        font-size: 28px;
+    }
+
+    .delete-button {
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+    }
+
+    .game-controls button,
+    .game-controls select {
+        margin: 3px;
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+
+    h1 {
+        font-size: 2em;
+        margin-bottom: 15px;
+    }
+
+    .number-selector button {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+    }
+
+    .cell {
+        font-size: 24px;
+    }
+
+    .delete-button {
+        width: 16px;
+        height: 16px;
+        font-size: 10px;
+    }
+
+    .game-controls button,
+    .game-controls select {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    h1 {
+        font-size: 1.8em;
+        margin-bottom: 12px;
+    }
+
+    .number-selector button {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+}
+
+/* 暗色主题支持 */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1a1a1a;
+    }
+
+    h1 {
+        color: #ecf0f1;
+    }
+
+    .board {
+        background-color: #2c3e50;
+        border-color: #2c3e50;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    }
+
+    .cell {
+        background-color: #2d3436;
+    }
+
+    .cell:hover:not(.fixed) {
+        background-color: #353b48;
+    }
+
+    .cell.fixed {
+        background-color: #2f3640;
+    }
+
+    .cell.fixed .number-display {
+        color: #ecf0f1;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+    .cell.filled .number-display {
+        color: #74b9ff;
+    }
+
+    .cell.selected {
+        background-color: #2980b9;
+        box-shadow: inset 0 0 0 2px #74b9ff;
+    }
+
+    .cell.selected .number-display {
+        color: #fff;
+    }
+
+    .cell.related {
+        background-color: #353b48;
+    }
+
+    .number-selector {
+        background-color: #2d3436;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .number-selector button {
+        background-color: #353b48;
+        color: #ecf0f1;
+    }
+
+    .number-selector button:hover {
+        background-color: #3498db;
+        color: #fff;
+    }
+
+    .delete-button {
+        background-color: rgba(231, 76, 60, 0.2);
+        color: #ff7675;
+    }
+
+    .delete-button:hover {
+        background-color: #e74c3c;
+        color: #fff;
+    }
+
+    .game-controls button,
+    .game-controls select {
+        background-color: #3498db;
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .game-controls button:hover,
+    .game-controls select:hover {
+        background-color: #2980b9;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+}
