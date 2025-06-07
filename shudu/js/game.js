@@ -1,11 +1,18 @@
 class Game {
     constructor() {
+        console.log('Game constructor initializing...');
         this.sudoku = new Sudoku();
         this.boardElement = document.getElementById('sudokuBoard');
         this.numberSelector = document.getElementById('numberSelector');
         this.selectedCell = null;
         this.gameStarted = false;
         this.difficulty = 'easy';
+        
+        // 计时器相关属性
+        this.timerElement = document.getElementById('timer');
+        this.startTime = 0;
+        this.elapsedTime = 0;
+        this.timerInterval = null;
 
         // 设置事件监听器
         this.setupEventListeners();
@@ -26,6 +33,10 @@ class Game {
                 return;
             }
         }
+
+        // 如果没有加载保存的游戏，自动开始新游戏
+        console.log('Starting new game automatically...');
+        this.startNewGame();
     }
 
     startNewGame() {
@@ -34,6 +45,89 @@ class Game {
         this.sudoku.generate(this.difficulty);
         this.sudoku.initialBoard = this.createInitialBoardSnapshot(this.sudoku.board);
         this.updateBoard();
+        
+        // 重置并启动计时器
+        this.resetTimer();
+        this.startTimer();
+    }
+    
+    // 计时器相关方法
+    startTimer() {
+        // 确保计时器元素存在
+        if (!this.timerElement) {
+            this.timerElement = document.getElementById('timer');
+            if (!this.timerElement) {
+                console.error('Timer element not found');
+                return;
+            }
+        }
+
+        // 清除现有计时器
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        
+        // 设置开始时间，考虑已经过的时间
+        this.startTime = Date.now() - (this.elapsedTime || 0);
+        
+        // 立即更新一次显示
+        this.updateTimer();
+        
+        // 设置定时器，每秒更新一次
+        this.timerInterval = setInterval(() => {
+            this.updateTimer();
+        }, 1000);
+    }
+    
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+            // 保存停止时的已用时间
+            const currentTime = Date.now();
+            this.elapsedTime = currentTime - this.startTime;
+        }
+    }
+    
+    resetTimer() {
+        this.stopTimer();
+        this.startTime = 0;
+        this.elapsedTime = 0;
+        if (this.timerElement) {
+            this.timerElement.textContent = '00:00';
+        }
+    }
+    
+    updateTimer() {
+        if (!this.startTime || !this.timerElement) return;
+        
+        const currentTime = Date.now();
+        this.elapsedTime = currentTime - this.startTime;
+        
+        // 使用formatTime方法来格式化时间显示
+        const formattedTime = this.formatTime(this.elapsedTime);
+        
+        // 更新显示
+        this.timerElement.textContent = formattedTime;
+    }
+    
+    formatTime(milliseconds) {
+        const totalSeconds = Math.floor(milliseconds / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        // 根据时间长度自动格式化
+        if (hours > 0) {
+            return `${this.padZero(hours)}:${this.padZero(minutes)}:${this.padZero(seconds)}`;
+        } else {
+            return `${this.padZero(minutes)}:${this.padZero(seconds)}`;
+        }
+    }
+    
+    padZero(num) {
+        return num.toString().padStart(2, '0');
     }
 
     updateBoard() {
@@ -254,13 +348,16 @@ class Game {
     }
 
     handleGameComplete() {
+        // 停止计时器
+        this.stopTimer();
+        
         // 移除所有高亮效果
         document.querySelectorAll('.cell').forEach(cell => {
             cell.classList.remove('selected', 'related');
         });
 
         setTimeout(() => {
-            alert('恭喜！你完成了这局游戏！');
+            alert(`恭喜！你完成了这局游戏！用时: ${this.formatTime(this.elapsedTime)}`);
             // 添加胜利动画效果
             document.querySelectorAll('.cell').forEach((cell, index) => {
                 setTimeout(() => {
@@ -282,7 +379,8 @@ class Game {
                 board: this.sudoku.board,
                 solution: this.sudoku.solution,
                 initialBoard: this.sudoku.initialBoard,
-                difficulty: this.difficulty
+                difficulty: this.difficulty,
+                elapsedTime: this.elapsedTime
             };
 
             if (GameStorage.saveGame(gameState)) {
@@ -309,7 +407,20 @@ class Game {
             this.sudoku.initialBoard = savedGame.initialBoard;
             this.difficulty = savedGame.difficulty;
             this.gameStarted = true;
-
+            
+            // 恢复计时器状态
+            if (savedGame.elapsedTime) {
+                this.elapsedTime = savedGame.elapsedTime;
+                // 确保计时器元素存在
+                this.timerElement = document.getElementById('timer');
+                // 立即更新显示
+                this.timerElement.textContent = this.formatTime(this.elapsedTime);
+            } else {
+                this.resetTimer();
+            }
+            // 启动计时器
+            this.startTimer();
+            // 更新数独棋盘
             this.updateBoard();
         } catch (error) {
             console.error('Failed to load game:', error);

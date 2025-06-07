@@ -15,7 +15,8 @@ class GameStorage {
                 board: gameState.board,
                 solution: gameState.solution,
                 initialBoard: gameState.initialBoard,
-                difficulty: gameState.difficulty
+                difficulty: gameState.difficulty,
+                elapsedTime: gameState.elapsedTime
             };
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(saveData));
             return true;

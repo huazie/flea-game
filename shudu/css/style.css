@@ -93,10 +93,20 @@ body {
 }
 
 h1 {
-    margin-bottom: min(20px, 3vh);
+    margin-bottom: min(2px, 1.5vh);
     color: var(--text-primary);
     font-size: clamp(1.8rem, 5vw, 2.8rem);
     text-shadow: 1px 1px 2px var(--shadow-color);
+}
+
+/* 计时器样式 */
+.timer {
+    color: var(--text-secondary);
+    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    margin-bottom: min(5px, 3vh);
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 1px 1px var(--shadow-color);
+    transition: all 0.3s ease;
 }
 
 /* 棋盘和控件容器 */
@@ -111,12 +121,12 @@ h1 {
 /* 游戏控制区域 */
 .game-controls {
     width: min(85vw, 85vh, 600px); /* 与棋盘宽度一致 */
-    margin: min(20px, 3vh) auto;
+    margin: min(5px, 3vh) auto;
     display: flex;
     justify-content: space-between; /* 均匀分布控件 */
     align-items: center;
     gap: min(12px, 2vw);
-    padding: min(10px, 1.5vw);
+    padding: min(5px, 1.5vw);
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
