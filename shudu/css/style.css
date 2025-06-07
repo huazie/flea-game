@@ -1,4 +1,65 @@
 /* 全局样式 */
+:root {
+    /* Layout */
+    --cell-size: min(9vw, 9vh);
+
+    /* Colors - Light Theme */
+    --bg-primary: #f0f2f5;
+    --text-primary: #1a202c;
+    --text-secondary: #2c3e50;
+    --primary-color: #4299e1;
+    --primary-dark: #3182ce;
+    --primary-light: #63b3ed;
+    --primary-shadow: rgba(99, 179, 237, 0.2);
+    --error-color: #f56565;
+    --error-light: rgba(231, 76, 60, 0.1);
+    --cell-bg: #fff;
+    --cell-bg-hover: #f8f9fa;
+    --cell-bg-selected: #ebf5fb;
+    --cell-bg-fixed: #f8f9f9;
+    --cell-bg-related: #e6f2ff;
+    --cell-border: #bdc3c7;
+    --cell-border-dark: #34495e;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --shadow-color-hover: rgba(0, 0, 0, 0.15);
+    --delete-color: #e74c3c;
+    --delete-bg: rgba(231, 76, 60, 0.1);
+    --number-filled: #3182ce;
+    --text-light: #ffffff;
+    --gradient-light: rgba(255, 255, 255, 0.1);
+    --gradient-dark: rgba(255, 255, 255, 0);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Colors - Dark Theme */
+        --bg-primary: #1a202c;
+        --text-primary: #e2e8f0;
+        --text-secondary: #a0aec0;
+        --primary-color: #4299e1;
+        --primary-dark: #3182ce;
+        --primary-light: #63b3ed;
+        --primary-shadow: rgba(99, 179, 237, 0.3);
+        --error-color: #fc8181;
+        --error-light: rgba(245, 101, 101, 0.2);
+        --cell-bg: #2d3748;
+        --cell-bg-hover: #3a4a63;
+        --cell-bg-selected: #4299e1;
+        --cell-bg-fixed: #2d3748;
+        --cell-bg-related: #2c3e50;
+        --cell-border: #4a5568;
+        --cell-border-dark: #2d3748;
+        --shadow-color: rgba(0, 0, 0, 0.3);
+        --shadow-color-hover: rgba(0, 0, 0, 0.4);
+        --delete-color: #fc8181;
+        --delete-bg: rgba(245, 101, 101, 0.2);
+        --number-filled: #63b3ed;
+        --text-light: #ffffff;
+        --gradient-light: rgba(255, 255, 255, 0.05);
+        --gradient-dark: rgba(255, 255, 255, 0);
+    }
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -11,54 +72,94 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #f5f6fa;
+    background-color: var(--bg-primary);
     transition: background-color 0.3s ease;
 }
 
+/* 主容器样式 */
 .container {
-    max-width: 800px;
-    padding: 30px;
+    width: 100%;
+    max-width: min(95vw, 800px);
+    margin: 0 auto;
+    padding: min(20px, 3vh);
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: min(20px, 3vh);
+    min-height: 100vh;
+    box-sizing: border-box;
 }
 
 h1 {
-    margin-bottom: 20px;
-    color: #2c3e50;
-    font-size: 2.5em;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    margin-bottom: min(20px, 3vh);
+    color: var(--text-primary);
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    text-shadow: 1px 1px 2px var(--shadow-color);
+}
+
+/* 棋盘和控件容器 */
+.game-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: min(20px, 3vh);
 }
 
 /* 游戏控制区域 */
 .game-controls {
-    margin-bottom: 20px;
+    width: min(85vw, 85vh, 600px); /* 与棋盘宽度一致 */
+    margin: min(20px, 3vh) auto;
     display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    justify-content: space-between; /* 均匀分布控件 */
+    align-items: center;
+    gap: min(12px, 2vw);
+    padding: min(10px, 1.5vw);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
 }
 
+.game-controls::-webkit-scrollbar {
+    display: none;
+}
+
+/* 确保所有控件在一行显示 */
+.game-controls > * {
+    flex: 1 1 auto;
+    min-width: max-content;
+}
+
+/* 更新控件样式 */
 .game-controls select,
 .game-controls button {
-    margin: 0 5px;
-    padding: 10px 20px;
-    font-size: 14px;
+    margin: 0;
+    font-size: clamp(14px, 1.8vw, 16px);
     border: none;
-    border-radius: 6px;
-    background-color: #3498db;
-    color: white;
+    border-radius: 8px;
+    background-color: var(--primary-color);
+    color: var(--text-light);
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 5px var(--shadow-color);
+    min-height: 45px;
+    white-space: nowrap;
+    text-align: center;
+    text-align-last: center; /* 确保下拉选项也居中 */
+    -moz-text-align-last: center; /* Firefox支持 */
 }
 
 .game-controls select {
-    background-color: #2980b9;
+    background-color: var(--primary-dark);
 }
 
 .game-controls button:hover,
 .game-controls select:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 8px var(--shadow-color-hover);
+    background-image: linear-gradient(to bottom, var(--gradient-light), var(--gradient-dark));
 }
 
 .game-controls button:active,
@@ -70,35 +171,39 @@ h1 {
 .board {
     display: grid;
     grid-template-columns: repeat(9, 1fr);
-    gap: 2px;
-    background-color: #34495e;
-    border: 3px solid #34495e;
-    width: 100%;
-    max-width: 700px;
-    margin: 0 auto 20px;
+    gap: 1px;
+    background-color: var(--cell-border-dark);
+    border: 2px solid var(--cell-border);
+    width: min(85vw, 85vh, 600px);
+    margin: 0 auto min(15px, 2vh);
     aspect-ratio: 1;
-    padding: 3px;
-    border-radius: 8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    padding: 4px;
+    border-radius: 6px;
+    box-shadow: 0 4px 15px var(--shadow-color);
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 /* 单元格样式 */
 .cell {
-    background-color: #fff;
+    min-height: 30px;
     display: flex;
     justify-content: center;
     align-items: center;
     position: relative;
+    background-color: var(--cell-bg);
+    font-size: clamp(16px, min(4vw, 4vh), 32px);
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
     user-select: none;
     transition: all 0.2s ease;
     aspect-ratio: 1;
-    cursor: pointer;
-    font-size: 32px;
-    font-weight: 500;
 }
 
 .cell:hover:not(.fixed) {
-    background-color: #f8f9fa;
+    background-color: var(--cell-bg-hover);
+    transition: all 0.2s ease;
 }
 
 /* 数字显示样式 */
@@ -119,52 +224,35 @@ h1 {
 /* 删除按钮样式 */
 .delete-button {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
+    top: calc(var(--cell-size) * 0.05);
+    right: calc(var(--cell-size) * 0.05);
+    width: calc(var(--cell-size) * 0.2);
+    height: calc(var(--cell-size) * 0.2);
+    font-size: calc(var(--cell-size) * 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #e74c3c;
+    color: var(--delete-color);
     cursor: pointer;
-    opacity: 0;
+    opacity: 0; /* 默认隐藏 */
     transition: all 0.2s ease;
     border-radius: 50%;
-    background-color: rgba(231, 76, 60, 0.1);
+    background-color: var(--delete-bg);
     transform: scale(0.8);
+    pointer-events: auto; /* 确保即使隐藏也可点击 */
 }
 
+/* 只在鼠标悬停时显示删除按钮 */
 .cell:hover .delete-button {
     opacity: 1;
     transform: scale(1);
 }
 
+/* 删除按钮悬停效果 */
 .delete-button:hover {
-    background-color: #e74c3c;
-    color: white;
+    background-color: var(--delete-color);
+    color: var(--text-light);
     transform: scale(1.1);
-}
-
-/* 默认数字和用户输入数字的视觉区分 */
-.cell.fixed .number-display {
-    color: #2c3e50;
-    font-weight: 600;
-}
-
-.cell.filled .number-display {
-    color: #3498db;
-}
-
-/* 选中状态优化 */
-.cell.selected {
-    background-color: #ebf5fb;
-    box-shadow: inset 0 0 0 2px #3498db;
-}
-
-.cell.selected .number-display {
-    transform: translate(-50%, -50%) scale(1.05);
 }
 
 /* 3x3宫格边框 */
@@ -177,57 +265,67 @@ h1 {
 .cell:nth-child(9n+7),
 .cell:nth-child(9n+8),
 .cell:nth-child(9n+9) {
-    border-right: 1px solid #bdc3c7;
+    border-right: 1px solid var(--cell-border);
 }
 
 .cell:nth-child(9n+3),
 .cell:nth-child(9n+6) {
-    border-right: 3px solid #34495e;
+    border-right: 3px solid var(--cell-border);
 }
 
 .cell:nth-child(-n+81) {
-    border-bottom: 1px solid #bdc3c7;
+    border-bottom: 1px solid var(--cell-border);
 }
 
 .cell:nth-child(n+19):nth-child(-n+27),
 .cell:nth-child(n+46):nth-child(-n+54) {
-    border-bottom: 3px solid #34495e;
+    border-bottom: 3px solid var(--cell-border);
 }
 
 /* 单元格状态 */
 .cell.selected {
-    background-color: #ebf5fb;
-    box-shadow: inset 0 0 0 2px #3498db;
+    background-color: var(--cell-bg-selected);
+    box-shadow: inset 0 0 0 2px var(--primary-color);
     animation: select-pulse 2s infinite;
+    transition: all 0.3s ease;
+}
+
+.cell.selected .number-display {
+    color: var(--text-primary);
+    text-shadow: 0 1px 3px var(--shadow-color);
+    transform: translate(-50%, -50%) scale(1.05);
 }
 
 /* 默认数字样式（初始数字） */
 .cell.fixed .number-display {
-    color: #2c3e50;
+    color: var(--text-secondary);
+    text-shadow: 0 1px 2px var(--shadow-color);
     font-weight: 700;
 }
 
 .cell.fixed {
-    background-color: #f8f9f9;
+    background-color: var(--cell-bg-fixed);
     cursor: not-allowed;
 }
 
 /* 玩家填写的数字样式 */
 .cell.filled .number-display {
-    color: #3498db;
+    color: var(--number-filled);
+    text-shadow: 0 0 2px var(--primary-shadow);
     font-weight: 400;
     animation: number-appear 0.3s ease-out;
 }
 
 /* 错误状态 */
 .cell.error .number-display {
-    color: #e74c3c;
+    color: var(--error-color);
     animation: shake 0.5s;
+    text-shadow: 0 0 3px var(--error-light);
 }
 
 /* 相关单元格高亮 */
 .cell.related {
-    background-color: #f7f9fa;
+    background-color: var(--cell-bg-related);
     animation: related-fade 0.3s ease-in;
 }
 
@@ -235,12 +333,15 @@ h1 {
 .number-selector {
     position: fixed;
     display: none;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    padding: 8px;
+    background: var(--cell-bg);
+    border-radius: min(12px, 3vw);
+    box-shadow: 0 4px 20px var(--shadow-color);
+    border: 1px solid var(--cell-border);
+    padding: min(8px, 2vw);
     z-index: 1000;
     animation: popup 0.2s ease-out;
+    max-width: 90vw;
+    margin: auto;
 }
 
 .number-selector.active {
@@ -249,26 +350,49 @@ h1 {
 
 .number-selector-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
+    grid-template-columns: repeat(3, var(--cell-size));
+    gap: 1px;
+    justify-content: center;
 }
 
-.number-selector button {
-    width: 40px;
-    height: 40px;
-    font-size: 18px;
+/* 数字选择器-数字样式*/
+.number-selector .number {
+    width: var(--cell-size);
+    height: var(--cell-size);
+    font-size: calc(var(--cell-size) * 0.35);
     border: none;
     border-radius: 8px;
-    background-color: #f8f9fa;
-    color: #2c3e50;
+    background-color: var(--cell-bg-hover);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.number-selector button:hover {
-    background-color: #3498db;
-    color: white;
+.number-selector .number:hover {
+    background-color: var(--primary-color);
+    color: var(--text-light);
     transform: scale(1.05);
+}
+
+/* 数字选择器-清除按钮样式 */
+.number-selector .number-clear-btn {
+    width: calc(var(--cell-size) * 3);
+    height: var(--cell-size);
+    font-size: calc(var(--cell-size) * 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--cell-bg-hover);
+    color: var(--delete-color);
+    border: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.number-selector .number-clear-btn:hover {
+    background-color: var(--delete-color);
+    color: var(--text-light);
+    transform: scale(1.02);
 }
 
 @keyframes popup {
@@ -285,195 +409,146 @@ h1 {
 /* 动画效果 */
 @keyframes shake {
     0%, 100% { transform: translate(-50%, -50%); }
-    25% { transform: translate(-55%, -50%); }
-    75% { transform: translate(-45%, -50%); }
+    25% { transform: translate(-53%, -50%); }
+    75% { transform: translate(-47%, -50%); }
 }
 
 @keyframes select-pulse {
-    0% { box-shadow: inset 0 0 0 2px #3498db; }
-    50% { box-shadow: inset 0 0 0 2px #2980b9; }
-    100% { box-shadow: inset 0 0 0 2px #3498db; }
+    0%, 100% { 
+        box-shadow: inset 0 0 0 2px var(--primary-color);
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: inset 0 0 0 2px var(--primary-dark);
+        transform: scale(1.02);
+    }
 }
 
 @keyframes number-appear {
-    from {
+    0% { 
         transform: translate(-50%, -50%) scale(0.5);
         opacity: 0;
     }
-    to {
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% { 
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
     }
 }
 
 @keyframes related-fade {
-    from { background-color: #ebf5fb; }
-    to { background-color: #f7f9fa; }
-}
-
-@keyframes victory {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% { 
+        background-color: var(--cell-bg-selected);
+        transform: scale(1.02);
+    }
+    100% { 
+        background-color: var(--cell-bg-related);
+        transform: scale(1);
+    }
 }
 
 /* 响应式设计 */
+/* 平板和中等屏幕 */
 @media (max-width: 768px) {
     .container {
-        padding: 20px;
+        padding: min(20px, 3vw);
     }
     
     .board {
-        max-width: 100%;
+        width: 92vw;
+        height: 92vw;
+        padding: 3px;
+        border-width: 2px;
     }
     
     .cell {
-        font-size: 28px;
+        min-height: 28px;
+        font-size: clamp(16px, 4.5vw, 20px);
     }
-
-    .delete-button {
-        width: 18px;
-        height: 18px;
-        font-size: 12px;
-    }
-
-    .game-controls button,
-    .game-controls select {
-        margin: 3px;
-        padding: 8px 15px;
-        font-size: 14px;
-    }
-
-    h1 {
-        font-size: 2em;
-        margin-bottom: 15px;
-    }
-
-    .number-selector button {
-        width: 36px;
-        height: 36px;
-        font-size: 16px;
-    }
-}
-
-@media (max-width: 480px) {
-    .container {
-        padding: 15px;
-    }
-
-    .cell {
-        font-size: 24px;
-    }
-
-    .delete-button {
-        width: 16px;
-        height: 16px;
-        font-size: 10px;
-    }
-
-    .game-controls button,
-    .game-controls select {
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-
-    h1 {
-        font-size: 1.8em;
-        margin-bottom: 12px;
-    }
-
-    .number-selector button {
-        width: 32px;
-        height: 32px;
-        font-size: 14px;
-    }
-}
-
-/* 暗色主题支持 */
-@media (prefers-color-scheme: dark) {
-    body {
-        background-color: #1a1a1a;
-    }
-
-    h1 {
-        color: #ecf0f1;
-    }
-
-    .board {
-        background-color: #2c3e50;
-        border-color: #2c3e50;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    }
-
-    .cell {
-        background-color: #2d3436;
-    }
-
-    .cell:hover:not(.fixed) {
-        background-color: #353b48;
-    }
-
-    .cell.fixed {
-        background-color: #2f3640;
-    }
-
-    .cell.fixed .number-display {
-        color: #ecf0f1;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    }
-
-    .cell.filled .number-display {
-        color: #74b9ff;
-    }
-
-    .cell.selected {
-        background-color: #2980b9;
-        box-shadow: inset 0 0 0 2px #74b9ff;
-    }
-
-    .cell.selected .number-display {
-        color: #fff;
-    }
-
-    .cell.related {
-        background-color: #353b48;
+    
+    .game-controls {
+        width: 92vw;
+        gap: min(8px, 1.5vw);
     }
 
     .number-selector {
-        background-color: #2d3436;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        padding: min(6px, 1.5vw);
     }
+}
 
-    .number-selector button {
-        background-color: #353b48;
-        color: #ecf0f1;
+/* 手机端 */
+@media (max-width: 480px) {
+    .container {
+        max-width: 100vw;
+        padding: min(10px, 2vh);
+        justify-content: flex-start;
+        min-height: auto;
     }
-
-    .number-selector button:hover {
-        background-color: #3498db;
-        color: #fff;
+    
+    h1 {
+        font-size: clamp(24px, 6vw, 28px);
+        margin-bottom: min(10px, 2vh);
     }
-
+    
+    .game-container {
+        width: 100%;
+        padding: 0 min(10px, 2vw);
+    }
+    
+    .board {
+        width: 96vw;
+        height: 96vw;
+        gap: 0.5px;
+        border-width: 1px;
+        border-radius: 4px;
+        max-width: none;
+        margin: 0 auto;
+    }
+    
+    .cell {
+        min-height: 26px;
+        font-size: clamp(18px, 5.5vw, 22px);
+    }
+    
+    .game-controls {
+        width: 96vw;
+        gap: min(6px, 1.2vw);
+        max-width: none;
+    }
+    
+    /* 在小屏幕上始终显示删除按钮 */
     .delete-button {
-        background-color: rgba(231, 76, 60, 0.2);
-        color: #ff7675;
+        opacity: 1;
+        transform: scale(1);
     }
+}
 
-    .delete-button:hover {
-        background-color: #e74c3c;
-        color: #fff;
+/* 超小屏幕优化 */
+@media (max-width: 360px) {
+    .cell {
+        font-size: clamp(14px, 4.5vw, 18px);
     }
-
+    
     .game-controls button,
     .game-controls select {
-        background-color: #3498db;
-        color: #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        font-size: clamp(10px, 3vw, 14px);
+    }
+}
+
+/* 横屏模式优化 */
+@media (orientation: landscape) and (max-height: 600px) {
+    .container {
+        padding: min(10px, 2vh);
     }
 
-    .game-controls button:hover,
-    .game-controls select:hover {
-        background-color: #2980b9;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    .board {
+        width: min(80vh, 90vw);
+    }
+
+    h1 {
+        font-size: clamp(1.2rem, 3vh, 2rem);
+        margin-bottom: min(10px, 2vh);
     }
 }
