@@ -93,9 +93,9 @@ body {
 }
 
 h1 {
-    margin-bottom: min(2px, 1.5vh);
     color: var(--text-primary);
     font-size: clamp(1.8rem, 5vw, 2.8rem);
+    margin-bottom: min(2px, 1.5vh);
     text-shadow: 1px 1px 2px var(--shadow-color);
 }
 
@@ -103,7 +103,7 @@ h1 {
 .timer {
     color: var(--text-secondary);
     font-size: clamp(1.2rem, 3vw, 1.6rem);
-    margin-bottom: min(5px, 3vh);
+    margin-bottom: min(2px, 3vh);
     font-family: 'Courier New', monospace;
     text-shadow: 0 1px 1px var(--shadow-color);
     transition: all 0.3s ease;
@@ -499,7 +499,6 @@ h1 {
     
     h1 {
         font-size: clamp(24px, 6vw, 28px);
-        margin-bottom: min(10px, 2vh);
     }
     
     .game-container {
@@ -544,21 +543,5 @@ h1 {
     .game-controls button,
     .game-controls select {
         font-size: clamp(10px, 3vw, 14px);
-    }
-}
-
-/* 横屏模式优化 */
-@media (orientation: landscape) and (max-height: 600px) {
-    .container {
-        padding: min(10px, 2vh);
-    }
-
-    .board {
-        width: min(80vh, 90vw);
-    }
-
-    h1 {
-        font-size: clamp(1.2rem, 3vh, 2rem);
-        margin-bottom: min(10px, 2vh);
     }
 }

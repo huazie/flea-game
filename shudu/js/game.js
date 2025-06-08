@@ -25,10 +25,16 @@ class Game {
             }
         });
 
+        // 初始化游戏（异步操作）
+        this.init();
+    }
+    
+    async init() {
         // 检查是否有保存的游戏
         const savedGame = GameStorage.loadGame();
         if (savedGame) {
-            if (confirm('发现保存的游戏，是否继续？')) {
+            const shouldContinue = await Dialog.confirm('发现保存的游戏，是否继续？');
+            if (shouldContinue) {
                 this.loadGame();
                 return;
             }
@@ -49,6 +55,8 @@ class Game {
         // 重置并启动计时器
         this.resetTimer();
         this.startTimer();
+
+        Toast.success('新游戏已加载');
     }
     
     // 计时器相关方法
@@ -357,7 +365,7 @@ class Game {
         });
 
         setTimeout(() => {
-            alert(`恭喜！你完成了这局游戏！用时: ${this.formatTime(this.elapsedTime)}`);
+            Toast.success(`恭喜！你完成了这局游戏！用时: ${this.formatTime(this.elapsedTime)}`);
             // 添加胜利动画效果
             document.querySelectorAll('.cell').forEach((cell, index) => {
                 setTimeout(() => {
@@ -384,13 +392,13 @@ class Game {
             };
 
             if (GameStorage.saveGame(gameState)) {
-                alert('游戏已保存');
+                Toast.success('游戏已保存');
             } else {
-                alert('保存游戏失败');
+                Toast.error('保存游戏失败');
             }
         } catch (error) {
             console.error('Failed to save game:', error);
-            alert('保存游戏失败');
+            Toast.error('保存游戏失败');
         }
     }
 
@@ -398,7 +406,7 @@ class Game {
         try {
             const savedGame = GameStorage.loadGame();
             if (!savedGame) {
-                alert('没有找到保存的游戏');
+                Toast.warning('没有找到保存的游戏');
                 return;
             }
 
@@ -422,9 +430,10 @@ class Game {
             this.startTimer();
             // 更新数独棋盘
             this.updateBoard();
+            Toast.success('暂存游戏已加载');
         } catch (error) {
             console.error('Failed to load game:', error);
-            alert('加载游戏失败');
+            Toast.error('加载游戏失败');
             GameStorage.clearSavedGame();
         }
     }
@@ -493,11 +502,10 @@ class Game {
         });
 
         // 处理游戏控制按钮
-        document.getElementById('newGame').addEventListener('click', () => {
-            if (this.gameStarted && !confirm('确定要开始新游戏吗？当前进度将丢失。')) {
-                return;
+        document.getElementById('newGame').addEventListener('click', async () => {
+            if (!this.gameStarted || await Dialog.confirm('确定要开始新游戏吗？当前进度将丢失。')) {
+                this.startNewGame();
             }
-            this.startNewGame();
         });
 
         document.getElementById('saveGame').addEventListener('click', () => {
@@ -506,8 +514,8 @@ class Game {
             }
         });
 
-        document.getElementById('loadGame').addEventListener('click', () => {
-            if (!this.gameStarted || confirm('确定要加载保存的游戏吗？当前进度将丢失。')) {
+        document.getElementById('loadGame').addEventListener('click', async () => {
+            if (!this.gameStarted || await Dialog.confirm('确定要加载保存的游戏吗？当前进度将丢失。')) {
                 this.loadGame();
             }
         });
