@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>趣味AI合成小游戏</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle">
+        <i class="fas fa-sun"></i>
+        <span>切换主题</span>
+    </button>
+    
+    <header class="header">
+        <div class="container">
+            <h1>趣味AI合成小游戏</h1>
+            <p>选择你喜欢的游戏开始玩吧！</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="games-grid">
+            <!-- 数独游戏卡片 -->
+            <div class="game-card">
+                <img src="assets/images/sudoku.png" alt="数独" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23666\'%3E数独%3C/text%3E%3C/svg%3E'">
+                <h3>数独</h3>
+                <p>经典数独游戏，锻炼你的逻辑思维能力！</p>
+                <a href="shudu/index.html" class="play-button">开始游戏</a>
+            </div>
+
+            <!-- 2048游戏卡片 -->
+            <div class="game-card">
+                <img src="assets/images/2048.png" alt="2048" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23666\'%3E2048%3C/text%3E%3C/svg%3E'">
+                <h3>2048</h3>
+                <p>数字合并游戏，看看你能达到多高的分数！</p>
+                <a href="#" class="play-button" style="background-color: #999;">即将推出</a>
+            </div>
+
+            <!-- 贪吃蛇游戏卡片 -->
+            <div class="game-card">
+                <img src="assets/images/snake.png" alt="贪吃蛇" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23666\'%3E贪吃蛇%3C/text%3E%3C/svg%3E'">
+                <h3>贪吃蛇</h3>
+                <p>经典贪吃蛇游戏，考验你的反应能力！</p>
+                <a href="#" class="play-button" style="background-color: #999;">即将推出</a>
+            </div>
+
+            <!-- 记忆翻牌游戏卡片 -->
+            <div class="game-card">
+                <img src="assets/images/memory.png" alt="记忆翻牌" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23666\'%3E记忆翻牌%3C/text%3E%3C/svg%3E'">
+                <h3>记忆翻牌</h3>
+                <p>考验记忆力的翻牌游戏，找出所有配对！</p>
+                <a href="#" class="play-button" style="background-color: #999;">即将推出</a>
+            </div>
+
+            <!-- 扫雷游戏卡片 -->
+            <div class="game-card">
+                <img src="assets/images/minesweeper.png" alt="扫雷" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23666\'%3E扫雷%3C/text%3E%3C/svg%3E'">
+                <h3>扫雷</h3>
+                <p>经典的逻辑推理游戏，小心地雷！</p>
+                <a href="#" class="play-button" style="background-color: #999;">即将推出</a>
+            </div>
+
+            <!-- 俄罗斯方块游戏卡片 -->
+            <div class="game-card">
+                <img src="assets/images/tetris.png" alt="俄罗斯方块" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23666\'%3E俄罗斯方块%3C/text%3E%3C/svg%3E'">
+                <h3>俄罗斯方块</h3>
+                <p>经典的方块堆叠游戏，挑战你的空间思维！</p>
+                <a href="#" class="play-button" style="background-color: #999;">即将推出</a>
+            </div>
+
+            <!-- 五子棋游戏卡片 -->
+            <div class="game-card">
+                <img src="assets/images/gomoku.png" alt="五子棋" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\' viewBox=\'0 0 200 200\'%3E%3Crect width=\'200\' height=\'200\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'Arial\' font-size=\'16\' fill=\'%23666\'%3E五子棋%3C/text%3E%3C/svg%3E'">
+                <h3>五子棋</h3>
+                <p>经典的策略对战游戏，五子连珠获胜！</p>
+                <a href="#" class="play-button" style="background-color: #999;">即将推出</a>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/main.js"></script>
+</body>
+</html>
