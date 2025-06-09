@@ -110,12 +110,11 @@ function markGameAsUnavailable(link) {
 function initTheme() {
     const themeToggle = document.getElementById('themeToggle');
     const themeIcon = themeToggle.querySelector('i');
-    const themeText = themeToggle.querySelector('span');
     
     // 从localStorage获取保存的主题
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
-    updateThemeUI(savedTheme, themeIcon, themeText);
+    updateThemeUI(savedTheme, themeIcon);
 
     // 切换主题
     themeToggle.addEventListener('click', () => {
@@ -124,18 +123,16 @@ function initTheme() {
         
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-        updateThemeUI(newTheme, themeIcon, themeText);
+        updateThemeUI(newTheme, themeIcon);
     });
 }
 
 // 更新主题UI元素
-function updateThemeUI(theme, icon, text) {
+function updateThemeUI(theme, icon) {
     if (theme === 'dark') {
         icon.className = 'fas fa-moon';
-        text.textContent = '浅色模式';
     } else {
         icon.className = 'fas fa-sun';
-        text.textContent = '深色模式';
     }
 }
 

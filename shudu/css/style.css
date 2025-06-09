@@ -7,6 +7,7 @@
     --bg-primary: #f0f2f5;
     --text-primary: #1a202c;
     --text-secondary: #2c3e50;
+    --theme-toggle-color: #ffa500;
     --primary-color: #4299e1;
     --primary-dark: #3182ce;
     --primary-light: #63b3ed;
@@ -30,33 +31,69 @@
     --gradient-dark: rgba(255, 255, 255, 0);
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        /* Colors - Dark Theme */
-        --bg-primary: #1a202c;
-        --text-primary: #e2e8f0;
-        --text-secondary: #a0aec0;
-        --primary-color: #4299e1;
-        --primary-dark: #3182ce;
-        --primary-light: #63b3ed;
-        --primary-shadow: rgba(99, 179, 237, 0.3);
-        --error-color: #fc8181;
-        --error-light: rgba(245, 101, 101, 0.2);
-        --cell-bg: #2d3748;
-        --cell-bg-hover: #3a4a63;
-        --cell-bg-selected: #4299e1;
-        --cell-bg-fixed: #2d3748;
-        --cell-bg-related: #2c3e50;
-        --cell-border: #4a5568;
-        --cell-border-dark: #2d3748;
-        --shadow-color: rgba(0, 0, 0, 0.3);
-        --shadow-color-hover: rgba(0, 0, 0, 0.4);
-        --delete-color: #fc8181;
-        --delete-bg: rgba(245, 101, 101, 0.2);
-        --number-filled: #63b3ed;
-        --text-light: #ffffff;
-        --gradient-light: rgba(255, 255, 255, 0.05);
-        --gradient-dark: rgba(255, 255, 255, 0);
+/* 深色主题 */
+[data-theme="dark"] {
+    /* Colors - Dark Theme */
+    --bg-primary: #1a202c;
+    --text-primary: #e2e8f0;
+    --text-secondary: #a0aec0;
+    --primary-color: #4299e1;
+    --primary-dark: #3182ce;
+    --primary-light: #63b3ed;
+    --primary-shadow: rgba(99, 179, 237, 0.3);
+    --error-color: #fc8181;
+    --error-light: rgba(245, 101, 101, 0.2);
+    --cell-bg: #2d3748;
+    --cell-bg-hover: #3a4a63;
+    --cell-bg-selected: #4299e1;
+    --cell-bg-fixed: #2d3748;
+    --cell-bg-related: #2c3e50;
+    --cell-border: #4a5568;
+    --cell-border-dark: #2d3748;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --shadow-color-hover: rgba(0, 0, 0, 0.4);
+    --delete-color: #fc8181;
+    --delete-bg: rgba(245, 101, 101, 0.2);
+    --number-filled: #63b3ed;
+    --text-light: #ffffff;
+    --gradient-light: rgba(255, 255, 255, 0.05);
+    --gradient-dark: rgba(255, 255, 255, 0);
+}
+
+/* 主题切换按钮 */
+#themeToggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--cell-bg);
+    color: var(--theme-toggle-color);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.theme-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--card-hover-shadow);
+}
+
+.theme-toggle i {
+    font-size: 0.9rem;
+}
+
+/* 手机端样式 */
+@media screen and (max-width: 768px) {
+    .theme-toggle i {
+        font-size: 1rem;
     }
 }
 
@@ -81,20 +118,20 @@ body {
     width: 100%;
     max-width: min(95vw, 800px);
     margin: 0 auto;
-    padding: min(20px, 3vh);
+    padding: 5px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: min(20px, 3vh);
+    gap: 5px;
     min-height: 100vh;
     box-sizing: border-box;
 }
 
 h1 {
     color: var(--text-primary);
-    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    font-size: clamp(1.6rem, 5vw, 2.6rem);
     margin-bottom: min(2px, 1.5vh);
     text-shadow: 1px 1px 2px var(--shadow-color);
 }
@@ -102,7 +139,7 @@ h1 {
 /* 计时器样式 */
 .timer {
     color: var(--text-secondary);
-    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    font-size: clamp(1.0rem, 3vw, 1.4rem);
     margin-bottom: min(2px, 3vh);
     font-family: 'Courier New', monospace;
     text-shadow: 0 1px 1px var(--shadow-color);
@@ -120,8 +157,8 @@ h1 {
 
 /* 游戏控制区域 */
 .game-controls {
-    width: min(85vw, 85vh, 600px); /* 与棋盘宽度一致 */
-    margin: min(5px, 3vh) auto;
+    width: min(80vw, 80vh, 500px); /* 与棋盘宽度一致 */
+    margin: min(2px, 3vh) auto;
     display: flex;
     justify-content: space-between; /* 均匀分布控件 */
     align-items: center;
@@ -146,7 +183,7 @@ h1 {
 .game-controls select,
 .game-controls button {
     margin: 0;
-    font-size: clamp(14px, 1.8vw, 16px);
+    font-size: clamp(12px, 1.8vw, 14px);
     border: none;
     border-radius: 8px;
     background-color: var(--primary-color);
@@ -184,7 +221,7 @@ h1 {
     gap: 1px;
     background-color: var(--cell-border-dark);
     border: 2px solid var(--cell-border);
-    width: min(85vw, 85vh, 600px);
+    width: min(80vw, 80vh, 500px);
     margin: 0 auto min(15px, 2vh);
     aspect-ratio: 1;
     padding: 4px;
@@ -278,6 +315,10 @@ h1 {
     border-right: 1px solid var(--cell-border);
 }
 
+.cell:nth-child(9n+1) {
+    border-left: 1px solid var(--cell-border);
+}
+
 .cell:nth-child(9n+3),
 .cell:nth-child(9n+6) {
     border-right: 3px solid var(--cell-border);
@@ -285,6 +326,10 @@ h1 {
 
 .cell:nth-child(-n+81) {
     border-bottom: 1px solid var(--cell-border);
+}
+
+.cell:nth-child(n+1):nth-child(-n+9) {
+    border-top: 1px solid var(--cell-border);
 }
 
 .cell:nth-child(n+19):nth-child(-n+27),
@@ -462,25 +507,31 @@ h1 {
 /* 响应式设计 */
 /* 平板和中等屏幕 */
 @media (max-width: 768px) {
+    h1 {
+        font-size: clamp(30px, 6vw, 36px);
+    }
+
     .container {
-        padding: min(20px, 3vw);
+        gap: min(20px, 3vh);
+        padding: min(8px, 3vw);
+    }
+
+    .game-container {
+        padding: 0 min(10px, 2vw);
+    }
+
+    .game-controls {
+        width: 100%; 
     }
     
     .board {
-        width: 92vw;
-        height: 92vw;
-        padding: 3px;
+        padding: 2px;
         border-width: 2px;
     }
     
     .cell {
         min-height: 28px;
         font-size: clamp(16px, 4.5vw, 20px);
-    }
-    
-    .game-controls {
-        width: 92vw;
-        gap: min(8px, 1.5vw);
     }
 
     .number-selector {
@@ -490,41 +541,22 @@ h1 {
 
 /* 手机端 */
 @media (max-width: 480px) {
-    .container {
-        max-width: 100vw;
-        padding: min(10px, 2vh);
-        justify-content: flex-start;
-        min-height: auto;
-    }
-    
-    h1 {
-        font-size: clamp(24px, 6vw, 28px);
-    }
-    
     .game-container {
-        width: 100%;
-        padding: 0 min(10px, 2vw);
+        padding: 0 min(5px, 2vw);
     }
     
     .board {
-        width: 96vw;
-        height: 96vw;
         gap: 0.5px;
         border-width: 1px;
         border-radius: 4px;
         max-width: none;
+        width: 100%;
         margin: 0 auto;
     }
     
     .cell {
         min-height: 26px;
         font-size: clamp(18px, 5.5vw, 22px);
-    }
-    
-    .game-controls {
-        width: 96vw;
-        gap: min(6px, 1.2vw);
-        max-width: none;
     }
     
     /* 在小屏幕上始终显示删除按钮 */
