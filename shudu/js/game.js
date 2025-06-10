@@ -239,6 +239,12 @@ class Game {
 
     showNumberSelector(cell) {
         const rect = cell.getBoundingClientRect();
+        
+        // 先临时显示选择器以获取正确的尺寸
+        this.numberSelector.style.visibility = 'hidden';
+        this.numberSelector.classList.add('active');
+        
+        // 获取选择器的尺寸
         const selectorRect = this.numberSelector.getBoundingClientRect();
         
         // 计算最佳位置
@@ -256,10 +262,12 @@ class Game {
             left = window.innerWidth - selectorRect.width;
         }
 
-        // 设置位置并显示
+        // 设置位置
         this.numberSelector.style.left = `${left}px`;
         this.numberSelector.style.top = `${top}px`;
-        this.numberSelector.classList.add('active');
+        
+        // 恢复可见性并确保选择器显示
+        this.numberSelector.style.visibility = 'visible';
     }
 
     hideNumberSelector() {
