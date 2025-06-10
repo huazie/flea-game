@@ -628,7 +628,7 @@ class Game {
     // 初始化主题
     initTheme() {
         // 从本地存储中获取主题设置，如果没有则默认为浅色主题
-        const savedTheme = localStorage.getItem('theme') || 'light';
+        const savedTheme = localStorage.getItem('color_scheme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);
         
         // 更新主题切换按钮图标
@@ -644,7 +644,7 @@ class Game {
         document.documentElement.setAttribute('data-theme', newTheme);
         
         // 保存主题设置到本地存储
-        localStorage.setItem('theme', newTheme);
+        localStorage.setItem('color_scheme', newTheme);
         
         // 更新主题切换按钮图标
         this.updateThemeIcon(newTheme);

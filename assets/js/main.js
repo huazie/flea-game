@@ -112,7 +112,7 @@ function initTheme() {
     const themeIcon = themeToggle.querySelector('i');
     
     // 从localStorage获取保存的主题
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedTheme = localStorage.getItem('color_scheme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeUI(savedTheme, themeIcon);
 
@@ -122,7 +122,7 @@ function initTheme() {
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         
         document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
+        localStorage.setItem('color_scheme', newTheme);
         updateThemeUI(newTheme, themeIcon);
     });
 }
