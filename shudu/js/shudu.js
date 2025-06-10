@@ -1,4 +1,4 @@
-class Sudoku {
+class Shudu {
     constructor() {
         this.board = Array(9).fill().map(() => Array(9).fill(0));
         this.solution = Array(9).fill().map(() => Array(9).fill(0));

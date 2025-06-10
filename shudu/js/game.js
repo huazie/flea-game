@@ -1,8 +1,8 @@
 class Game {
     constructor() {
         console.log('Game constructor initializing...');
-        this.sudoku = new Sudoku();
-        this.boardElement = document.getElementById('sudokuBoard');
+        this.sudoku = new Shudu();
+        this.boardElement = document.getElementById('shuduBoard');
         this.numberSelector = document.getElementById('numberSelector');
         this.selectedCell = null;
         this.gameStarted = false;

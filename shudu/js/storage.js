@@ -1,5 +1,5 @@
 class GameStorage {
-    static STORAGE_KEY = 'sudoku_game';
+    static STORAGE_KEY = 'shudu_game';
 
     // 保存当前游戏状态
     static saveGame(gameState) {
