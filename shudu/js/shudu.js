@@ -43,7 +43,7 @@ class Shudu {
         }
         
         // 填充剩余的单元格
-        this.solveSudoku(this.solution);
+        this.solveShudu(this.solution);
     }
 
     // 填充3x3的方块
@@ -100,7 +100,7 @@ class Shudu {
     }
 
     // 求解数独
-    solveSudoku(board) {
+    solveShudu(board) {
         for (let row = 0; row < 9; row++) {
             for (let col = 0; col < 9; col++) {
                 if (board[row][col] === 0) {
@@ -111,7 +111,7 @@ class Shudu {
                         if (this.isValid(board, row, col, num)) {
                             board[row][col] = num;
                             
-                            if (this.solveSudoku(board)) {
+                            if (this.solveShudu(board)) {
                                 return true;
                             }
                             

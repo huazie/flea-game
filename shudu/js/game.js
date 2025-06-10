@@ -1,7 +1,7 @@
 class Game {
     constructor() {
         console.log('Game constructor initializing...');
-        this.sudoku = new Shudu();
+        this.shudu = new Shudu();
         this.boardElement = document.getElementById('shuduBoard');
         this.numberSelector = document.getElementById('numberSelector');
         this.selectedCell = null;
@@ -55,8 +55,8 @@ class Game {
     startNewGame() {
         this.gameStarted = true;
         this.difficulty = document.getElementById('difficulty').value;
-        this.sudoku.generate(this.difficulty);
-        this.sudoku.initialBoard = this.createInitialBoardSnapshot(this.sudoku.board);
+        this.shudu.generate(this.difficulty);
+        this.shudu.initialBoard = this.createInitialBoardSnapshot(this.shudu.board);
         this.updateBoard();
         
         // 重置并启动计时器
@@ -148,8 +148,8 @@ class Game {
     updateBoard() {
         this.boardElement.innerHTML = '';
         
-        if (!this.sudoku.initialBoard) {
-            this.sudoku.initialBoard = this.createInitialBoardSnapshot(this.sudoku.board);
+        if (!this.shudu.initialBoard) {
+            this.shudu.initialBoard = this.createInitialBoardSnapshot(this.shudu.board);
         }
         
         for (let i = 0; i < 9; i++) {
@@ -159,7 +159,7 @@ class Game {
                 cell.dataset.row = i;
                 cell.dataset.col = j;
 
-                const value = this.sudoku.board[i][j];
+                const value = this.shudu.board[i][j];
                 if (value !== 0) {
                     // 创建数字元素
                     const numberElement = document.createElement('span');
@@ -167,7 +167,7 @@ class Game {
                     numberElement.textContent = value;
                     cell.appendChild(numberElement);
                     
-                    if (this.sudoku.initialBoard[i][j] !== 0) {
+                    if (this.shudu.initialBoard[i][j] !== 0) {
                         cell.classList.add('fixed');
                     } else {
                         cell.classList.add('filled');
@@ -285,7 +285,7 @@ class Game {
         const col = parseInt(this.selectedCell.dataset.col);
 
         // 检查是否是初始固定数字
-        if (this.sudoku.initialBoard[row][col] !== 0) return;
+        if (this.shudu.initialBoard[row][col] !== 0) return;
 
         // 清除数字
         if (number === 0) {
@@ -295,7 +295,7 @@ class Game {
         }
 
         // 填入数字
-        this.sudoku.board[row][col] = number;
+        this.shudu.board[row][col] = number;
         
         // 更新单元格显示
         this.selectedCell.innerHTML = '';
@@ -315,7 +315,7 @@ class Game {
         this.selectedCell.appendChild(deleteButton);
         
         // 检查是否正确
-        if (this.sudoku.hasConflict(row, col, number)) {
+        if (this.shudu.hasConflict(row, col, number)) {
             this.selectedCell.classList.add('error');
             this.selectedCell.classList.remove('filled');
             
@@ -323,7 +323,7 @@ class Game {
             this.selectedCell.classList.add('shake');
             this.selectedCell.addEventListener('animationend', () => {
                 this.selectedCell.classList.remove('error', 'shake');
-                if (this.sudoku.board[row][col] !== 0) {
+                if (this.shudu.board[row][col] !== 0) {
                     this.selectedCell.classList.add('filled');
                 }
             }, { once: true });
@@ -336,7 +336,7 @@ class Game {
             this.selectedCell.addEventListener('animationend', () => {
                 this.selectedCell.classList.remove('pop');
                 // 检查是否完成
-                if (this.sudoku.isComplete()) {
+                if (this.shudu.isComplete()) {
                     this.handleGameComplete();
                 }
             }, { once: true });
@@ -347,7 +347,7 @@ class Game {
     }
 
     clearCell(row, col) {
-        this.sudoku.board[row][col] = 0;
+        this.shudu.board[row][col] = 0;
         const cell = this.getCellElement(row, col);
         if (cell) {
             cell.innerHTML = '';
@@ -394,14 +394,14 @@ class Game {
         if (!this.gameStarted) return;
 
         try {
-            if (!this.sudoku.initialBoard || !Array.isArray(this.sudoku.initialBoard)) {
-                this.sudoku.initialBoard = this.createInitialBoardSnapshot(this.sudoku.board);
+            if (!this.shudu.initialBoard || !Array.isArray(this.shudu.initialBoard)) {
+                this.shudu.initialBoard = this.createInitialBoardSnapshot(this.shudu.board);
             }
 
             const gameState = {
-                board: this.sudoku.board,
-                solution: this.sudoku.solution,
-                initialBoard: this.sudoku.initialBoard,
+                board: this.shudu.board,
+                solution: this.shudu.solution,
+                initialBoard: this.shudu.initialBoard,
                 difficulty: this.difficulty,
                 elapsedTime: this.elapsedTime
             };
@@ -425,9 +425,9 @@ class Game {
                 return;
             }
 
-            this.sudoku.board = savedGame.board;
-            this.sudoku.solution = savedGame.solution;
-            this.sudoku.initialBoard = savedGame.initialBoard;
+            this.shudu.board = savedGame.board;
+            this.shudu.solution = savedGame.solution;
+            this.shudu.initialBoard = savedGame.initialBoard;
             this.difficulty = savedGame.difficulty;
             this.gameStarted = true;
             
@@ -458,7 +458,7 @@ class Game {
         
         for (let i = 0; i < 9; i++) {
             for (let j = 0; j < 9; j++) {
-                if (board[i][j] !== 0 && board[i][j] === this.sudoku.solution[i][j]) {
+                if (board[i][j] !== 0 && board[i][j] === this.shudu.solution[i][j]) {
                     initialBoard[i][j] = board[i][j];
                 }
             }
