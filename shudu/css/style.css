@@ -60,6 +60,36 @@
     --gradient-dark: rgba(255, 255, 255, 0);
 }
 
+/* 返回按钮 */
+#backButton {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--cell-bg);
+    color: var(--primary-color);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.back-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow-color-hover);
+}
+
+.back-button i {
+    font-size: 0.9rem;
+}
+
 /* 主题切换按钮 */
 #themeToggle {
     position: fixed;
@@ -83,7 +113,7 @@
 
 .theme-toggle:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px var(--card-hover-shadow);
+    box-shadow: 0 4px 8px var(--shadow-color-hover);
 }
 
 .theme-toggle i {

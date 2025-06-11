@@ -468,6 +468,16 @@ class Game {
     }
 
     setupEventListeners() {
+        // 处理返回按钮点击
+        document.getElementById('backButton').addEventListener('click', async () => {
+            if (!this.gameStarted || await Dialog.confirm('确定要返回游戏入口页面吗？当前进度将丢失。')) {
+                // 停止计时器
+                this.stopTimer();
+                // 导航到游戏入口页面
+                window.location.href = '../';
+            }
+        });
+
         // 处理单元格点击
         this.boardElement.addEventListener('click', (e) => {
             // 处理删除按钮点击
