@@ -23,7 +23,7 @@ function initTheme() {
     const themeIcon = themeToggle.querySelector('i'); // 修改：直接从按钮中获取图标元素
     
     // 从localStorage获取主题设置
-    const currentTheme = localStorage.getItem('theme') || 'light';
+    const currentTheme = localStorage.getItem('color_scheme') || 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
     updateThemeIcon(themeIcon, currentTheme);
     
@@ -34,7 +34,7 @@ function initTheme() {
         
         // 更新主题
         document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
+        localStorage.setItem('color_scheme', newTheme);
         updateThemeIcon(themeIcon, newTheme);
         
         // 重新生成游戏卡片（不重新加载配置）
