@@ -166,6 +166,37 @@ body {
     }
 }
 
+/* 即将推出的游戏按钮样式 */
+.play-button.coming-soon {
+    background-color: #888;
+    cursor: not-allowed;
+}
+
+.play-button.coming-soon:hover {
+    background-color: #777;
+}
+
+/* 提示消息样式 */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.toast.show {
+    opacity: 1;
+    visibility: visible;
+}
+
 /* 响应式布局调整 */
 @media (max-width: 768px) {
     .container {
