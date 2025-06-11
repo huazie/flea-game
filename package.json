@@ -1,0 +1,33 @@
+{
+  "name": "flea-game",
+  "version": "1.0.0",
+  "description": "纯前端小游戏合集(AI合成项目)",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -o",
+    "dev": "npx http-server -o -c-1"
+  },
+  "keywords": [
+    "game",
+    "web-game",
+    "ai-synthesis",
+    "codebuddy"
+  ],
+  "author": "huazie",
+  "license": "MIT",
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^6.4.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/huazie/flea-game.git"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
