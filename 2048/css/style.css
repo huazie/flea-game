@@ -22,7 +22,7 @@ body {
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 10px;
 }
 
 /* 标题和分数区域 */
@@ -74,6 +74,25 @@ h1 {
 .game-intro p {
     margin-bottom: 10px;
     line-height: 1.5;
+}
+
+/* 默认隐藏所有指南 */
+.pc-instruction, .mobile-instruction {
+    display: none;
+}
+
+/* 媒体查询：在PC端显示PC指南 */
+@media (hover: hover) and (pointer: fine) {
+    .pc-instruction {
+        display: block;
+    }
+}
+
+/* 媒体查询：在移动端显示移动端指南 */
+@media (hover: none) and (pointer: coarse) {
+    .mobile-instruction {
+        display: block;
+    }
 }
 
 /* 控制按钮 */
@@ -240,33 +259,6 @@ h1 {
     background: rgba(238, 228, 218, 0.73);
     color: #776e65;
     display: flex;
-}
-
-/* 页脚 */
-.footer {
-    text-align: center;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    width: 100%;
-}
-
-.back-link {
-    color: #776e65;
-    text-decoration: none;
-    font-weight: bold;
-    margin-bottom: 10px;
-    display: inline-block;
-}
-
-.back-link:hover {
-    color: #8f7a66;
-    text-decoration: underline;
-}
-
-.copyright {
-    font-size: 14px;
-    color: #bbada0;
-    margin-top: 10px;
 }
 
 /* 响应式设计 */
