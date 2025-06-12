@@ -15,8 +15,8 @@
       "id": "2048",
       "name": "2048",
       "description": "数字合并游戏，看看你能达到多高的分数！",
-      "link": "#",
-      "status": "coming_soon",
+      "link": "2048/",
+      "status": "active",
       "images": {
         "light": "assets/images/2048.png",
         "dark": "assets/images/2048-dark.png"

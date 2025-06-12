@@ -83,7 +83,7 @@ function refreshGameCards() {
 
 // 生成游戏卡片
 function generateGameCards(games) {
-    const container = document.querySelector('.games-grid'); // 修改：使用正确的容器选择器
+    const container = document.querySelector('.games-grid');
     if (!container) return;
     
     container.innerHTML = ''; // 清空容器
