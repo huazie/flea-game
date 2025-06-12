@@ -4,6 +4,9 @@
     top: 20px;
     right: 20px;
     z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .toast {
@@ -11,21 +14,46 @@
     color: #fff;
     padding: 12px 24px;
     border-radius: 4px;
-    margin-bottom: 10px;
     min-width: 250px;
     max-width: 350px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    animation: slideIn 0.3s ease-out;
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .toast.show {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
+}
+
+.toast.fade-out {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+/* 不同类型的提示样式 */
+.toast.info {
+    background-color: #2196F3;
+    border-left: 4px solid #0d47a1;
+}
+
+.toast.success {
+    background-color: #4CAF50;
+    border-left: 4px solid #1b5e20;
+}
+
+.toast.warning {
+    background-color: #FF9800;
+    border-left: 4px solid #e65100;
+}
+
+.toast.error {
+    background-color: #F44336;
+    border-left: 4px solid #b71c1c;
 }
 
 .toast.success {

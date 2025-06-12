@@ -136,7 +136,14 @@ function setupGameCardEvents() {
                 playButton.classList.add('coming-soon');
                 playButton.addEventListener('click', (e) => {
                     e.preventDefault();
-                    showToast('该游戏即将推出，敬请期待！');
+                    // 连续显示多个提示以测试效果
+                    showToast(`《${game.name}》即将推出，敬请期待！`);
+                    setTimeout(() => {
+                        showToast(`开发团队正在努力开发《${game.name}》中...`, 'info');
+                    }, 300);
+                    setTimeout(() => {
+                        showToast(`预计《${game.name}》将在下个版本发布`, 'success');
+                    }, 600);
                 });
             }
         }
@@ -145,22 +152,5 @@ function setupGameCardEvents() {
 
 // 显示提示消息
 function showToast(message, duration = 3000) {
-    // 检查是否已存在toast元素
-    let toast = document.querySelector('.toast');
-    
-    // 如果不存在，创建一个
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.className = 'toast';
-        document.body.appendChild(toast);
-    }
-    
-    // 设置消息并显示
-    toast.textContent = message;
-    toast.classList.add('show');
-    
-    // 设置定时器，自动隐藏
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, duration);
+    Toast.info(message, duration);
 }

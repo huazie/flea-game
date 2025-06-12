@@ -19,7 +19,7 @@ class Toast {
         }
     }
 
-    static async processQueue() {
+    static processQueue() {
         if (this.queue.length === 0) {
             this.isProcessing = false;
             return;
@@ -35,26 +35,36 @@ class Toast {
             <button class="toast-close">&times;</button>
         `;
 
+        // 添加到容器中（容器使用flex-direction: column，从上到下堆叠）
         this.container.appendChild(toast);
         
-        // 强制重绘
-        toast.offsetHeight;
-        toast.classList.add('show');
+        // 强制重绘并显示
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
 
         const closeToast = () => {
-            toast.classList.remove('show');
+            toast.classList.add('fade-out');
             setTimeout(() => {
                 if (toast.parentNode) {
                     toast.parentNode.removeChild(toast);
                 }
-                this.processQueue();
             }, 300);
         };
 
         toast.querySelector('.toast-close').addEventListener('click', closeToast);
 
-        await new Promise(resolve => setTimeout(resolve, duration));
-        closeToast();
+        // 设置自动关闭定时器
+        setTimeout(closeToast, duration);
+
+        // 立即处理队列中的下一个提示
+        if (this.queue.length > 0) {
+            setTimeout(() => this.processQueue(), 100);
+        } else {
+            setTimeout(() => {
+                this.isProcessing = false;
+            }, 300);
+        }
     }
 
     static success(message, duration) {
