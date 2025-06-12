@@ -44,7 +44,7 @@ function initTheme() {
 
 // 更新主题图标
 function updateThemeIcon(iconElement, theme) {
-    iconElement.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
+    iconElement.className = theme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
 // 加载游戏配置
