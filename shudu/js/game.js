@@ -478,6 +478,11 @@ class Game {
             }
         });
 
+        // 处理主题切换按钮点击
+        this.themeToggle.addEventListener('click', () => {
+            this.toggleTheme();
+        });
+
         // 处理单元格点击
         this.boardElement.addEventListener('click', (e) => {
             // 处理删除按钮点击
@@ -543,11 +548,6 @@ class Game {
             if (!this.gameStarted || await Dialog.confirm('确定要加载保存的游戏吗？当前进度将丢失。')) {
                 this.loadGame();
             }
-        });
-
-        // 处理主题切换按钮点击
-        this.themeToggle.addEventListener('click', () => {
-            this.toggleTheme();
         });
     }
 

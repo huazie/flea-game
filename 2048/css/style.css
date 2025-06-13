@@ -31,6 +31,71 @@
     --tile-super: #3c3a32;
 }
 
+/* 深色模式颜色变量 */
+[data-theme="dark"] {
+    /* 背景颜色 */
+    --bg-main: #1a1a1a;
+    --bg-board: #2c2c2c;
+    --bg-cell: rgba(50, 50, 50, 0.35);
+    --bg-message: rgba(50, 50, 50, 0.73);
+    --bg-message-win: rgba(237, 194, 46, 0.3);
+    
+    /* 文本颜色 */
+    --text-main: #e0e0e0;
+    --text-light: #ffffff;
+    --text-tile-light: #f9f6f2;
+    
+    /* 按钮颜色 */
+    --btn-bg: #4a4a4a;
+    --btn-hover: #5a5a5a;
+    
+    /* 方块颜色 */
+    --tile-2: #3d3d3d;
+    --tile-4: #4d4d4d;
+    --tile-8: #b35900;
+    --tile-16: #cc5200;
+    --tile-32: #e64d00;
+    --tile-64: #ff471a;
+    --tile-128: #ccad00;
+    --tile-256: #e6c200;
+    --tile-512: #ffd700;
+    --tile-1024: #ffdb1a;
+    --tile-2048: #ffdf33;
+    --tile-super: #1a1a1a;
+}
+
+/* 返回按钮和主题切换按钮 */
+.back-button, .theme-toggle {
+    position: fixed;
+    background: var(--btn-bg);
+    color: var(--text-light);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 20px;
+    z-index: 1000;
+    transition: background-color 0.3s ease;
+}
+
+.back-button:hover, .theme-toggle:hover {
+    background: var(--btn-hover);
+}
+
+.back-button {
+    top: 20px;
+    left: 20px;
+}
+
+.theme-toggle {
+    top: 20px;
+    right: 20px;
+}
+
 /* 全局样式 */
 * {
     box-sizing: border-box;

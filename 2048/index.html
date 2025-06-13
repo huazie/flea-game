@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
     <title>2048</title>    
     <meta charset="UTF-8">
@@ -9,8 +9,16 @@
     <meta name="description" content="2048小游戏">
     <link rel="shortcut icon" href="../assets/images/flea-game.ico">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+    <button id="backButton" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <button id="themeToggle" class="theme-toggle">
+        <i class="fas fa-sun"></i>
+    </button>
+    
     <div class="game-container">
         <div class="header">
             <h1>2048</h1>

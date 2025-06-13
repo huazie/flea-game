@@ -16,10 +16,16 @@ class Game2048 {
         this.scoreDisplay = document.getElementById('score');
         this.bestScoreDisplay = document.getElementById('best-score');
         this.messageContainer = document.querySelector('.game-message');
+
+        this.themeToggle = document.getElementById('themeToggle');
+        this.themeIcon = themeToggle.querySelector('i');
         
         // 初始化
         this.initialize();
         this.setupEventListeners();
+        
+        // 初始化主题和按钮
+        this.initTheme();
         
         // 检测设备类型并显示相应指南
         this.detectDevice();
@@ -56,6 +62,17 @@ class Game2048 {
      * 设置事件监听器
      */
     setupEventListeners() {
+        const backButton = document.getElementById('backButton');
+        // 返回按钮事件
+        backButton.addEventListener('click', () => {
+            window.location.href = '../';
+        });
+
+        // 主题切换事件
+        this.themeToggle.addEventListener('click', () => {
+            this.toggleTheme();
+        });
+
         // 键盘事件
         document.addEventListener('keydown', (e) => {
             if (!this.gameOver) {
@@ -487,6 +504,44 @@ class Game2048 {
         } else {
             if (mobileInstruction) mobileInstruction.style.display = 'none';
             if (pcInstruction) pcInstruction.style.display = 'block';
+        }
+    }
+
+    // 初始化主题
+    initTheme() {
+        // 从本地存储中获取主题设置，如果没有则默认为浅色主题
+        const savedTheme = localStorage.getItem('color_scheme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        
+        // 更新主题切换按钮图标
+        this.updateThemeIcon(savedTheme);
+    }
+
+    // 切换主题
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        // 设置新主题
+        document.documentElement.setAttribute('data-theme', newTheme);
+        
+        // 保存主题设置到本地存储
+        localStorage.setItem('color_scheme', newTheme);
+        
+        // 更新主题切换按钮图标
+        this.updateThemeIcon(newTheme);
+    }
+
+    // 更新主题切换按钮图标
+    updateThemeIcon(theme) {
+        // 移除所有图标类
+        this.themeIcon.className = '';
+        
+        // 根据当前主题设置图标
+        if (theme === 'dark') {
+            this.themeIcon.classList.add('fas', 'fa-moon');
+        } else {
+            this.themeIcon.classList.add('fas', 'fa-sun');
         }
     }
 }
