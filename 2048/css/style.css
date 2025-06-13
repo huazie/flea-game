@@ -1,3 +1,36 @@
+/* 颜色变量 */
+:root {
+    /* 背景颜色 */
+    --bg-main: #faf8ef;
+    --bg-board: #bbada0;
+    --bg-cell: rgba(238, 228, 218, 0.35);
+    --bg-message: rgba(238, 228, 218, 0.73);
+    --bg-message-win: rgba(237, 194, 46, 0.5);
+    
+    /* 文本颜色 */
+    --text-main: #776e65;
+    --text-light: white;
+    --text-tile-light: #f9f6f2;
+    
+    /* 按钮颜色 */
+    --btn-bg: #8f7a66;
+    --btn-hover: #9f8b77;
+    
+    /* 方块颜色 */
+    --tile-2: #eee4da;
+    --tile-4: #ede0c8;
+    --tile-8: #f2b179;
+    --tile-16: #f59563;
+    --tile-32: #f67c5f;
+    --tile-64: #f65e3b;
+    --tile-128: #edcf72;
+    --tile-256: #edcc61;
+    --tile-512: #edc850;
+    --tile-1024: #edc53f;
+    --tile-2048: #edc22e;
+    --tile-super: #3c3a32;
+}
+
 /* 全局样式 */
 * {
     box-sizing: border-box;
@@ -7,8 +40,8 @@
 
 body {
     font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
-    background-color: #faf8ef;
-    color: #776e65;
+    background-color: var(--bg-main);
+    color: var(--text-main);
     margin: 0;
     padding: 0;
     display: flex;
@@ -22,7 +55,7 @@ body {
     width: 100%;
     max-width: 500px;
     margin: 0 auto;
-    padding: 10px;
+    padding: 5px;
 }
 
 /* 标题和分数区域 */
@@ -37,7 +70,7 @@ h1 {
     font-size: 60px;
     font-weight: bold;
     margin: 0;
-    color: #776e65;
+    color: var(--text-main);
 }
 
 .scores-container {
@@ -47,10 +80,10 @@ h1 {
 
 .score-container, .best-container {
     position: relative;
-    background: #bbada0;
+    background: var(--bg-board);
     padding: 10px 15px;
     border-radius: 3px;
-    color: white;
+    color: var(--text-light);
     text-align: center;
     min-width: 80px;
 }
@@ -103,10 +136,10 @@ h1 {
 }
 
 .button {
-    background: #8f7a66;
+    background: var(--btn-bg);
     border-radius: 3px;
     padding: 10px 20px;
-    color: white;
+    color: var(--text-light);
     border: none;
     font-weight: bold;
     cursor: pointer;
@@ -115,18 +148,20 @@ h1 {
 }
 
 .button:hover {
-    background: #9f8b77;
+    background: var(--btn-hover);
 }
 
 /* 游戏板 */
 .game-board {
     position: relative;
-    background: #bbada0;
+    background: var(--bg-board);
     border-radius: 6px;
     width: 100%;
-    height: 450px;
+    aspect-ratio: 1 / 1; /* 确保游戏板是正方形 */
     padding: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 0px;
+    margin-left: auto;
+    margin-right: auto;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(4, 1fr);
@@ -134,7 +169,7 @@ h1 {
 }
 
 .grid-cell {
-    background: rgba(238, 228, 218, 0.35);
+    background: var(--bg-cell);
     border-radius: 3px;
     width: 100%;
     height: 100%;
@@ -156,68 +191,68 @@ h1 {
 
 /* 不同数值的方块颜色 */
 .tile-2 {
-    background: #eee4da;
-    color: #776e65;
+    background: var(--tile-2);
+    color: var(--text-main);
 }
 
 .tile-4 {
-    background: #ede0c8;
-    color: #776e65;
+    background: var(--tile-4);
+    color: var(--text-main);
 }
 
 .tile-8 {
-    background: #f2b179;
-    color: #f9f6f2;
+    background: var(--tile-8);
+    color: var(--text-tile-light);
 }
 
 .tile-16 {
-    background: #f59563;
-    color: #f9f6f2;
+    background: var(--tile-16);
+    color: var(--text-tile-light);
 }
 
 .tile-32 {
-    background: #f67c5f;
-    color: #f9f6f2;
+    background: var(--tile-32);
+    color: var(--text-tile-light);
 }
 
 .tile-64 {
-    background: #f65e3b;
-    color: #f9f6f2;
+    background: var(--tile-64);
+    color: var(--text-tile-light);
 }
 
 .tile-128 {
-    background: #edcf72;
-    color: #f9f6f2;
+    background: var(--tile-128);
+    color: var(--text-tile-light);
     font-size: 30px;
 }
 
 .tile-256 {
-    background: #edcc61;
-    color: #f9f6f2;
+    background: var(--tile-256);
+    color: var(--text-tile-light);
     font-size: 30px;
 }
 
 .tile-512 {
-    background: #edc850;
-    color: #f9f6f2;
+    background: var(--tile-512);
+    color: var(--text-tile-light);
     font-size: 30px;
 }
 
 .tile-1024 {
-    background: #edc53f;
-    color: #f9f6f2;
+    background: var(--tile-1024);
+    color: var(--text-tile-light);
     font-size: 25px;
 }
 
 .tile-2048 {
-    background: #edc22e;
-    color: #f9f6f2;
+    background: var(--tile-2048);
+    color: var(--text-tile-light);
     font-size: 25px;
 }
 
 .tile-super {
-    background: #3c3a32;
-    color: #f9f6f2;
+    background: var(--tile-super);
+    color: var(--text-tile-light);
     font-size: 20px;
 }
 
@@ -229,7 +264,7 @@ h1 {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(238, 228, 218, 0.73);
+    background: var(--bg-message);
     z-index: 100;
     flex-direction: column;
     align-items: center;
@@ -250,14 +285,14 @@ h1 {
 }
 
 .game-message.game-won {
-    background: rgba(237, 194, 46, 0.5);
-    color: #f9f6f2;
+    background: var(--bg-message-win);
+    color: var(--text-tile-light);
     display: flex;
 }
 
 .game-message.game-over {
-    background: rgba(238, 228, 218, 0.73);
-    color: #776e65;
+    background: var(--bg-message);
+    color: var(--text-main);
     display: flex;
 }
 
@@ -265,6 +300,9 @@ h1 {
 @media (max-width: 520px) {
     .game-container {
         padding: 10px;
+        max-width: 520px; /* 限制游戏容器的最大宽度 */
+        width: 100%;
+        margin: 0 auto; /* 居中显示 */
     }
 
     h1 {
@@ -272,7 +310,6 @@ h1 {
     }
 
     .game-board {
-        height: 350px;
         padding: 10px;
         gap: 10px;
     }
