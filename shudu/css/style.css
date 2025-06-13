@@ -187,10 +187,10 @@ h1 {
 
 /* 游戏控制区域 */
 .game-controls {
-    width: min(80vw, 80vh, 500px); /* 与棋盘宽度一致 */
+    width: min(80vw, 80vh, 500px);
     margin: min(2px, 3vh) auto;
     display: flex;
-    justify-content: space-between; /* 均匀分布控件 */
+    justify-content: space-between;
     align-items: center;
     gap: min(12px, 2vw);
     padding: min(5px, 1.5vw);
@@ -224,8 +224,8 @@ h1 {
     min-height: 45px;
     white-space: nowrap;
     text-align: center;
-    text-align-last: center; /* 确保下拉选项也居中 */
-    -moz-text-align-last: center; /* Firefox支持 */
+    text-align-last: center;
+    -moz-text-align-last: center;
 }
 
 .game-controls select {
@@ -316,7 +316,7 @@ h1 {
     border-radius: 50%;
     background-color: var(--delete-bg);
     transform: scale(0.8);
-    pointer-events: auto; /* 确保即使隐藏也可点击 */
+    pointer-events: auto;
 }
 
 /* 只在鼠标悬停时显示删除按钮 */

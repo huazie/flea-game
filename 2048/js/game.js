@@ -21,6 +21,9 @@ class Game2048 {
         this.initialize();
         this.setupEventListeners();
         
+        // 检测设备类型并显示相应指南
+        this.detectDevice();
+        
         // 加载保存的游戏或开始新游戏
         const savedGame = GameStorage.loadGame();
         if (savedGame) {
@@ -75,6 +78,11 @@ class Game2048 {
                     this.afterMove();
                 }
             }
+        });
+
+        // 窗口大小改变时重新检测设备类型
+        window.addEventListener('resize', () => {
+            this.detectDevice();
         });
 
         // 触摸事件
@@ -461,6 +469,25 @@ class Game2048 {
         }
         
         this.updateDisplay();
+    }
+
+    /**
+     * 检测设备类型并显示相应指南
+     */
+    detectDevice() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                        (window.matchMedia && window.matchMedia('(max-width: 520px)').matches);
+        
+        const mobileInstruction = document.querySelector('.mobile-instruction');
+        const pcInstruction = document.querySelector('.pc-instruction');
+        
+        if (isMobile) {
+            if (mobileInstruction) mobileInstruction.style.display = 'block';
+            if (pcInstruction) pcInstruction.style.display = 'none';
+        } else {
+            if (mobileInstruction) mobileInstruction.style.display = 'none';
+            if (pcInstruction) pcInstruction.style.display = 'block';
+        }
     }
 }
 

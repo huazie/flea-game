@@ -157,7 +157,7 @@ h1 {
     background: var(--bg-board);
     border-radius: 6px;
     width: 100%;
-    aspect-ratio: 1 / 1; /* 确保游戏板是正方形 */
+    aspect-ratio: 1 / 1;
     padding: 15px;
     margin-bottom: 0px;
     margin-left: auto;
@@ -300,13 +300,21 @@ h1 {
 @media (max-width: 768px) {
     .game-container {
         padding: 10px;
-        max-width: 768px; /* 限制游戏容器的最大宽度 */
+        max-width: 768px;
         width: 100%;
-        margin: 0 auto; /* 居中显示 */
+        margin: 0 auto;
+    }
+
+    .header {
+        margin-bottom: 10px;
     }
 
     h1 {
         font-size: 40px;
+    }
+
+    .game-intro {
+        margin-bottom: 10px;
     }
 
     .game-board {
