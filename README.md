@@ -1,4 +1,4 @@
-# Flea Game - Web小游戏合集
+# <img src="./assets/images/flea-game.png" width="80" height="80"> Flea Game [![build and deploy](https://img.shields.io/github/actions/workflow/status/huazie/huazie.github.io/pages.yml?branch=main&label=build%20and%20deploy&logo=github)](https://github.com/huazie/huazie.github.io/actions/workflows/pages.yml) [![license](https://img.shields.io/badge/license-MIT-orange)](https://github.com/huazie/hexo-theme-diversity/blob/main/LICENSE) [![GitHub Repo stars](https://img.shields.io/github/stars/huazie/flea-game?style=flat)](https://github.com/huazie/flea-game/stargazers)
 
 Flea Game是一个基于Web技术的小游戏合集项目，旨在提供一系列简单有趣、易于访问的浏览器游戏。每个游戏都使用纯HTML、CSS和JavaScript实现，无需安装，打开浏览器即可游玩。
 
@@ -7,7 +7,7 @@ Flea Game是一个基于Web技术的小游戏合集项目，旨在提供一系�
 | 游戏 | 描述 | 开发难度 | 游戏难度 | 状态 |
 |------|------|----------|-----------|------|
 | [数独](./shudu/) | 经典数字逻辑游戏，支持多难度级别和游戏存档 | 🛠️🛠️🛠️ | 🎮🎮🎮 | ✅ 已完成 |
-| [2048](./2048/) | 数字合并游戏，看看你能达到多高的分数 | 🛠️🛠️ | 🎮🎮 | 🚧 开发中 |
+| [2048](./2048/) | 数字合并游戏，看看你能达到多高的分数 | 🛠️🛠️ | 🎮🎮 | ✅ 已完成 |
 | [贪吃蛇](./snake/) | 经典贪吃蛇游戏，考验你的反应能力 | 🛠️🛠️ | 🎮 | 🚧 开发中 |
 | [记忆翻牌](./memory/) | 考验记忆力的翻牌游戏，找出所有配对 | 🛠️ | 🎮🎮 | 🚧 开发中 |
 | [扫雷](./minesweeper/) | 经典的逻辑推理游戏，小心地雷 | 🛠️🛠️🛠️ | 🎮🎮🎮 | 🚧 开发中 |
@@ -59,6 +59,7 @@ flea-game/
 ├── config/          # 配置文件
 │   └── games.json   # 游戏配置
 ├── shudu/           # 数独游戏
+├── 2048/            # 2048游戏
 └── index.html       # 入口页面
 ```
 
