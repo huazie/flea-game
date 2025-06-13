@@ -297,10 +297,10 @@ h1 {
 }
 
 /* 响应式设计 */
-@media (max-width: 520px) {
+@media (max-width: 768px) {
     .game-container {
         padding: 10px;
-        max-width: 520px; /* 限制游戏容器的最大宽度 */
+        max-width: 768px; /* 限制游戏容器的最大宽度 */
         width: 100%;
         margin: 0 auto; /* 居中显示 */
     }
