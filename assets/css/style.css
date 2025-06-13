@@ -47,10 +47,41 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+/* 主题切换按钮 */
+.theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--card-bg);
+    color: var(--theme-toggle-color);
+    border: 1px solid var(--card-shadow);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    box-shadow: 0 2px 4px var(--card-shadow);
+}
+
+.theme-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--card-hover-shadow);
+}
+
+.theme-toggle i {
+    font-size: 0.9rem;
+}
+
+/* 手机端样式 */
+@media screen and (max-width: 768px) {
+    .theme-toggle i {
+        font-size: 1rem;
+    }
 }
 
 /* 头部样式 */
@@ -67,6 +98,12 @@ body {
     font-size: 2.5rem;
     margin-bottom: 1rem;
     transition: color 0.3s ease;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
 /* 游戏网格容器 */
@@ -127,43 +164,6 @@ body {
 
 .play-button:hover {
     background-color: var(--button-hover);
-}
-
-/* 主题切换按钮 */
-.theme-toggle {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 10px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: var(--card-bg);
-    color: var(--theme-toggle-color);
-    border: 1px solid var(--card-shadow);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    box-shadow: 0 2px 4px var(--card-shadow);
-}
-
-.theme-toggle:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px var(--card-hover-shadow);
-}
-
-.theme-toggle i {
-    font-size: 0.9rem;
-}
-
-/* 手机端样式 */
-@media screen and (max-width: 768px) {
-    .theme-toggle i {
-        font-size: 1rem;
-    }
 }
 
 /* 即将推出的游戏按钮样式 */

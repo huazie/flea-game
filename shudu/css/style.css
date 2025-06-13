@@ -60,6 +60,22 @@
     --gradient-dark: rgba(255, 255, 255, 0);
 }
 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--bg-primary);
+    transition: background-color 0.3s ease;
+}
+
 /* 返回按钮 */
 #backButton {
     position: fixed;
@@ -125,22 +141,6 @@
     .theme-toggle i {
         font-size: 1rem;
     }
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background-color: var(--bg-primary);
-    transition: background-color 0.3s ease;
 }
 
 /* 主容器样式 */
