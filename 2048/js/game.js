@@ -11,6 +11,8 @@ class Game2048 {
         this.won = false;
         this.continueAfterWin = false;
         this.hasMovedSinceLastAdd = true; // 初始化移动标志
+        this.mergedCells = Array(this.size).fill().map(() => Array(this.size).fill(false)); // 初始化合并单元格跟踪数组
+        this.newTiles = Array(this.size).fill().map(() => Array(this.size).fill(false)); // 初始化新添加单元格跟踪数组
 
         // DOM元素
         this.gameBoard = document.querySelector('.game-board');
@@ -194,6 +196,9 @@ class Game2048 {
             const {x, y} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
             this.grid[x][y] = Math.random() < 0.9 ? 2 : 4;
             this.hasMovedSinceLastAdd = false; // 重置移动标志
+            
+            // 标记这个位置为新添加的单元格
+            this.newTiles[x][y] = true;
         }
     }
 
@@ -212,12 +217,36 @@ class Game2048 {
         let moved = false;
         const rotated = this.rotateGrid(direction);
         
+        // 创建一个二维数组来跟踪合并的位置
+        const mergedCells = Array(this.size).fill().map(() => Array(this.size).fill(false));
+        
         for (let i = 0; i < this.size; i++) {
             const line = rotated[i];
             const merged = this.mergeLine(line);
             rotated[i] = merged.line;
             if (merged.moved) moved = true;
             this.score += merged.score;
+            
+            // 记录这一行中合并的位置
+            if (merged.mergedPositions && merged.mergedPositions.length > 0) {
+                for (const pos of merged.mergedPositions) {
+                    // 根据方向不同，合并位置在原网格中的坐标也不同
+                    switch(direction) {
+                        case 'left':
+                            mergedCells[i][pos] = true;
+                            break;
+                        case 'right':
+                            mergedCells[i][this.size - 1 - pos] = true;
+                            break;
+                        case 'up':
+                            mergedCells[pos][i] = true;
+                            break;
+                        case 'down':
+                            mergedCells[this.size - 1 - pos][i] = true;
+                            break;
+                    }
+                }
+            }
         }
         
         // 获取移动后的网格
@@ -237,6 +266,7 @@ class Game2048 {
         
         if (moved && hasChanged) {
             this.grid = newGrid;
+            this.mergedCells = mergedCells; // 保存合并的位置信息
             this.moveHistory.push(previousState);
             this.hasMovedSinceLastAdd = true; // 标记发生了有效移动
             return true;
@@ -253,6 +283,8 @@ class Game2048 {
         const newLine = line.filter(cell => cell !== 0);
         let score = 0;
         let moved = newLine.length !== line.length;
+        // 记录合并的位置
+        const mergedPositions = [];
 
         for (let i = 0; i < newLine.length - 1; i++) {
             if (newLine[i] === newLine[i + 1]) {
@@ -260,6 +292,8 @@ class Game2048 {
                 score += newLine[i];
                 newLine.splice(i + 1, 1);
                 moved = true;
+                // 记录这个位置是合并的
+                mergedPositions.push(i);
                 if (newLine[i] === 2048 && !this.won && !this.continueAfterWin) {
                     this.won = true;
                 }
@@ -273,7 +307,8 @@ class Game2048 {
         return {
             line: newLine,
             score: score,
-            moved: moved
+            moved: moved,
+            mergedPositions: mergedPositions // 返回合并位置信息
         };
     }
 
@@ -374,6 +409,10 @@ class Game2048 {
             this.showMessage('游戏结束！');
         }
         
+        // 重置合并单元格和新添加单元格数组，为下一次移动做准备
+        this.mergedCells = Array(this.size).fill().map(() => Array(this.size).fill(false));
+        this.newTiles = Array(this.size).fill().map(() => Array(this.size).fill(false));
+        
         // 保存游戏状态
         GameStorage.saveGame({
             grid: this.grid,
@@ -437,7 +476,18 @@ class Game2048 {
                 // 如果格子有数字，创建新的tile
                 if (value !== 0) {
                     const tile = document.createElement('div');
-                    tile.className = `tile tile-${value}${value > 2048 ? ' tile-super' : ''}`;
+                    let className = `tile tile-${value}${value > 2048 ? ' tile-super' : ''}`;
+                    
+                    // 如果这个位置是合并的，添加合并动画类
+                    if (this.mergedCells && this.mergedCells[i][j]) {
+                        className += ' tile-merged';
+                    }
+                    // 如果这个位置是新添加的，添加新tile动画类
+                    if (this.newTiles && this.newTiles[i][j]) {
+                        className += ' tile-new';
+                    }
+                    
+                    tile.className = className;
                     tile.textContent = value;
                     cell.appendChild(tile);
                 }
