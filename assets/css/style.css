@@ -47,6 +47,37 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* GitHub链接样式 */
+.github-link {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    padding: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--card-bg);
+    color: var(--header-color);
+    border: 1px solid var(--card-shadow);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    box-shadow: 0 2px 4px var(--card-shadow);
+    text-decoration: none;
+}
+
+.github-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--card-hover-shadow);
+}
+
+.github-link i {
+    font-size: 1.2rem;
+}
+
 /* 主题切换按钮 */
 .theme-toggle {
     position: fixed;
