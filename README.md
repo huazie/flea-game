@@ -52,7 +52,7 @@ npm run dev
 
 ```
 flea-game/
-├── assets/           # 静态资源
+├── assets/          # 静态资源
 │   ├── css/         # 样式文件
 │   ├── js/          # JavaScript文件
 │   └── images/      # 图片资源

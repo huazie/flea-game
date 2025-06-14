@@ -11,6 +11,7 @@
     --text-main: #776e65;
     --text-light: white;
     --text-tile-light: #f9f6f2;
+    --theme-toggle-color: #ffa500;
     
     /* 按钮颜色 */
     --btn-bg: #8f7a66;
@@ -44,6 +45,7 @@
     --text-main: #e0e0e0;
     --text-light: #ffffff;
     --text-tile-light: #f9f6f2;
+    --theme-toggle-color: #f1c40f;
     
     /* 按钮颜色 */
     --btn-bg: #4a4a4a;
@@ -64,38 +66,6 @@
     --tile-super: #1a1a1a;
 }
 
-/* 返回按钮和主题切换按钮 */
-.back-button, .theme-toggle {
-    position: fixed;
-    background: var(--btn-bg);
-    color: var(--text-light);
-    border: none;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    font-size: 20px;
-    z-index: 1000;
-    transition: background-color 0.3s ease;
-}
-
-.back-button:hover, .theme-toggle:hover {
-    background: var(--btn-hover);
-}
-
-.back-button {
-    top: 20px;
-    left: 20px;
-}
-
-.theme-toggle {
-    top: 20px;
-    right: 20px;
-}
-
 /* 全局样式 */
 * {
     box-sizing: border-box;
@@ -114,6 +84,42 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+}
+
+/* 控制按钮共用样式 */
+.control-button {
+    position: fixed;
+    top: 20px;
+    background: var(--btn-bg);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 20px;
+    z-index: 1000;
+    transition: background-color 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.control-button:hover {
+    background: var(--btn-hover);
+}
+
+/* 返回按钮 */
+.back-button {
+    left: 20px;
+    color: var(--text-light);
+}
+
+/* 主题切换按钮 */
+.theme-toggle {
+    right: 20px;
+    color: var(--theme-toggle-color);
 }
 
 .game-container {

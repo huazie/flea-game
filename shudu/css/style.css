@@ -37,6 +37,7 @@
     --bg-primary: #1a202c;
     --text-primary: #e2e8f0;
     --text-secondary: #a0aec0;
+    --theme-toggle-color: #f1c40f;
     --primary-color: #4299e1;
     --primary-dark: #3182ce;
     --primary-light: #63b3ed;
@@ -76,16 +77,14 @@ body {
     transition: background-color 0.3s ease;
 }
 
-/* 返回按钮 */
-#backButton {
+/* 控制按钮共用样式 */
+.control-button {
     position: fixed;
     top: 20px;
-    left: 20px;
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background-color: var(--cell-bg);
-    color: var(--primary-color);
     border: none;
     cursor: pointer;
     display: flex;
@@ -95,50 +94,34 @@ body {
     box-shadow: 0 2px 5px var(--shadow-color);
     transition: all 0.3s ease;
     z-index: 1000;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
 }
 
-.back-button:hover {
+.control-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px var(--shadow-color-hover);
 }
 
-.back-button i {
+.control-button i {
     font-size: 0.9rem;
+}
+
+/* 返回按钮 */
+.back-button {
+    left: 20px;
+    color: var(--primary-color);
 }
 
 /* 主题切换按钮 */
-#themeToggle {
-    position: fixed;
-    top: 20px;
+.theme-toggle {
     right: 20px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: var(--cell-bg);
     color: var(--theme-toggle-color);
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    box-shadow: 0 2px 5px var(--shadow-color);
-    transition: all 0.3s ease;
-    z-index: 1000;
-}
-
-.theme-toggle:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px var(--shadow-color-hover);
-}
-
-.theme-toggle i {
-    font-size: 0.9rem;
 }
 
 /* 手机端样式 */
 @media screen and (max-width: 768px) {
-    .theme-toggle i {
+    .back-button i, .theme-toggle i {
         font-size: 1rem;
     }
 }
