@@ -10,6 +10,7 @@ class Game2048 {
         this.gameOver = false;
         this.won = false;
         this.continueAfterWin = false;
+        this.hasMovedSinceLastAdd = true; // 初始化移动标志
 
         // DOM元素
         this.gameBoard = document.querySelector('.game-board');
@@ -165,8 +166,9 @@ class Game2048 {
         this.won = false;
         this.continueAfterWin = false;
         
-        this.addNewTile();
-        this.addNewTile();
+        // 新游戏开始时添加两个初始数字
+        this.addNewTile(true); // 强制添加第一个数字
+        this.addNewTile(true); // 强制添加第二个数字
         
         this.updateDisplay();
         this.hideMessage();
@@ -175,8 +177,10 @@ class Game2048 {
 
     /**
      * 在随机空位置添加新方块
+     * @param {boolean} force - 是否强制添加（用于游戏初始化）
      */
-    addNewTile() {
+    addNewTile(force = false) {
+        // 如果不是强制添加，且没有空格，则不添加新数字
         const emptyCells = [];
         for (let i = 0; i < this.size; i++) {
             for (let j = 0; j < this.size; j++) {
@@ -186,9 +190,10 @@ class Game2048 {
             }
         }
         
-        if (emptyCells.length) {
+        if (emptyCells.length && (force || this.hasMovedSinceLastAdd)) {
             const {x, y} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
             this.grid[x][y] = Math.random() < 0.9 ? 2 : 4;
+            this.hasMovedSinceLastAdd = false; // 重置移动标志
         }
     }
 
@@ -215,9 +220,25 @@ class Game2048 {
             this.score += merged.score;
         }
         
-        if (moved) {
-            this.grid = this.rotateGridBack(rotated, direction);
+        // 获取移动后的网格
+        const newGrid = this.rotateGridBack(rotated, direction);
+        
+        // 检查网格是否真的发生了变化
+        let hasChanged = false;
+        for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+                if (newGrid[i][j] !== this.grid[i][j]) {
+                    hasChanged = true;
+                    break;
+                }
+            }
+            if (hasChanged) break;
+        }
+        
+        if (moved && hasChanged) {
+            this.grid = newGrid;
             this.moveHistory.push(previousState);
+            this.hasMovedSinceLastAdd = true; // 标记发生了有效移动
             return true;
         }
         return false;
@@ -282,10 +303,15 @@ class Game2048 {
                 }
                 break;
             case 'down':
+                // 先转置矩阵
                 for (let i = 0; i < this.size; i++) {
                     for (let j = 0; j < this.size; j++) {
-                        rotated[i][j] = this.grid[this.size - 1 - j][i];
+                        rotated[i][j] = this.grid[j][i];
                     }
+                }
+                // 然后水平翻转
+                for (let i = 0; i < this.size; i++) {
+                    rotated[i].reverse();
                 }
                 break;
         }
@@ -319,9 +345,12 @@ class Game2048 {
                 }
                 break;
             case 'down':
+                // 先水平翻转
+                const flipped = rotated.map(row => [...row].reverse());
+                // 然后转置矩阵
                 for (let i = 0; i < this.size; i++) {
                     for (let j = 0; j < this.size; j++) {
-                        grid[i][j] = rotated[this.size - 1 - j][i];
+                        grid[i][j] = flipped[j][i];
                     }
                 }
                 break;
@@ -333,6 +362,7 @@ class Game2048 {
      * 移动后的处理
      */
     afterMove() {
+        // 添加新的数字（只有在hasMovedSinceLastAdd为true时才会添加）
         this.addNewTile();
         this.updateDisplay();
         
