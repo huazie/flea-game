@@ -84,6 +84,7 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    touch-action: none;
 }
 
 /* 控制按钮共用样式 */
@@ -171,12 +172,11 @@ h1 {
 
 /* 游戏介绍 */
 .game-intro {
-    margin-bottom: 20px;
+    margin-top: 10px;
     text-align: center;
 }
 
 .game-intro p {
-    margin-bottom: 10px;
     line-height: 1.5;
 }
 
@@ -376,16 +376,8 @@ h1 {
         margin: 0 auto;
     }
 
-    .header {
-        margin-bottom: 10px;
-    }
-
     h1 {
         font-size: 40px;
-    }
-
-    .game-intro {
-        margin-bottom: 10px;
     }
 
     .game-board {
