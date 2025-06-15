@@ -1,4 +1,26 @@
 {
+  "categories": [
+    {
+      "id": "puzzle",
+      "name": "益智解谜"
+    },
+    {
+      "id": "strategy",
+      "name": "策略游戏"
+    },
+    {
+      "id": "classic",
+      "name": "经典游戏"
+    },
+    {
+      "id": "memory",
+      "name": "记忆游戏"
+    },
+    {
+      "id": "logic",
+      "name": "逻辑推理"
+    }
+  ],
   "games": [
     {
       "id": "shudu",
@@ -6,6 +28,7 @@
       "description": "经典数独游戏，锻炼你的逻辑思维能力！",
       "link": "shudu/",
       "status": "active",
+      "categories": ["puzzle", "logic"],
       "images": {
         "light": "assets/images/shudu.png",
         "dark": "assets/images/shudu-dark.png"
@@ -17,6 +40,7 @@
       "description": "数字合并游戏，看看你能达到多高的分数！",
       "link": "2048/",
       "status": "active",
+      "categories": ["puzzle"],
       "images": {
         "light": "assets/images/2048.png",
         "dark": "assets/images/2048-dark.png"
@@ -28,6 +52,7 @@
       "description": "经典贪吃蛇游戏，考验你的反应能力！",
       "link": "#",
       "status": "coming_soon",
+      "categories": ["classic"],
       "images": {
         "light": "assets/images/snake.png",
         "dark": "assets/images/snake-dark.png"
@@ -39,6 +64,7 @@
       "description": "考验记忆力的翻牌游戏，找出所有配对！",
       "link": "#",
       "status": "coming_soon",
+      "categories": ["memory", "puzzle"],
       "images": {
         "light": "assets/images/memory.png",
         "dark": "assets/images/memory-dark.png"
@@ -50,6 +76,7 @@
       "description": "经典的逻辑推理游戏，小心地雷！",
       "link": "#",
       "status": "coming_soon",
+      "categories": ["logic", "puzzle"],
       "images": {
         "light": "assets/images/minesweeper.png",
         "dark": "assets/images/minesweeper-dark.png"
@@ -61,6 +88,7 @@
       "description": "经典的方块堆叠游戏，挑战你的空间思维！",
       "link": "#",
       "status": "coming_soon",
+      "categories": ["classic", "puzzle"],
       "images": {
         "light": "assets/images/tetris.png",
         "dark": "assets/images/tetris-dark.png"
@@ -72,6 +100,7 @@
       "description": "经典的策略对战游戏，五子连珠获胜！",
       "link": "#",
       "status": "coming_soon",
+      "categories": ["strategy", "classic"],
       "images": {
         "light": "assets/images/gomoku.png",
         "dark": "assets/images/gomoku-dark.png"
