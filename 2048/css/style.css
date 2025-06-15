@@ -170,16 +170,6 @@ h1 {
     font-weight: bold;
 }
 
-/* 游戏介绍 */
-.game-intro {
-    margin-top: 10px;
-    text-align: center;
-}
-
-.game-intro p {
-    line-height: 1.5;
-}
-
 /* 默认隐藏所有指南 */
 .pc-instruction, .mobile-instruction {
     display: none;
@@ -325,6 +315,16 @@ h1 {
     background: var(--tile-super);
     color: var(--text-tile-light);
     font-size: 20px;
+}
+
+/* 游戏介绍 */
+.game-intro {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.game-intro p {
+    line-height: 1.5;
 }
 
 /* 游戏消息 */

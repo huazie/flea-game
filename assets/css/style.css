@@ -128,6 +128,73 @@ body {
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* 搜索框样式 */
+.search-container {
+    margin: 1.5rem auto 0;
+    display: flex;
+    justify-content: center;
+    max-width: 500px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid var(--card-shadow);
+    border-radius: 20px 0 0 20px;
+    font-size: 1rem;
+    outline: none;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    border-color: var(--button-bg);
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+}
+
+.search-button {
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    border: none;
+    border-radius: 0 20px 20px 0;
+    padding: 10px 15px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.search-button:hover {
+    background-color: var(--button-hover);
+}
+
+/* 搜索结果为空的样式 */
+.no-results {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    box-shadow: 0 2px 4px var(--card-shadow);
+    color: var(--card-text);
+    font-size: 1.2rem;
+}
+
+/* 响应式搜索框 */
+@media (max-width: 768px) {
+    .search-container {
+        max-width: 90%;
+    }
+    
+    .search-input {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .search-button {
+        padding: 8px 12px;
+    }
+}
+
 .header h1 {
     color: var(--header-color);
     font-size: 2.5rem;
