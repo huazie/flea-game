@@ -175,7 +175,7 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: min(12px, 2vw);
+    gap: min(10px, 1.5vw);
     padding: min(5px, 1.5vw);
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -188,43 +188,92 @@ h1 {
 
 /* 确保所有控件在一行显示 */
 .game-controls > * {
-    flex: 1 1 auto;
-    min-width: max-content;
+    flex: 1 1 0;
+    min-width: 0;
+    width: 100%;
 }
 
-/* 更新控件样式 */
-.game-controls select,
-.game-controls button {
-    margin: 0;
-    font-size: clamp(12px, 1.8vw, 14px);
-    border: none;
-    border-radius: 8px;
-    background-color: var(--primary-color);
-    color: var(--text-light);
+/* 应用共享样式 */
+.minimal-button, .minimal-select {
+    /* 继承minimal-control的样式 */
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background-color: var(--cell-bg);
+    border: 1px solid var(--cell-border);
+    border-radius: 6px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 5px var(--shadow-color);
+    transition: all 0.2s ease;
     min-height: 45px;
+    width: 100%; /* 确保元素占据分配的全部宽度 */
+}
+
+/* 简约按钮样式 */
+.minimal-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
     white-space: nowrap;
-    text-align: center;
-    text-align-last: center;
-    -moz-text-align-last: center;
 }
 
-.game-controls select {
-    background-color: var(--primary-dark);
+.minimal-button i {
+    font-size: 14px;
+    opacity: 0.8;
 }
 
-.game-controls button:hover,
-.game-controls select:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px var(--shadow-color-hover);
-    background-image: linear-gradient(to bottom, var(--gradient-light), var(--gradient-dark));
+.minimal-button:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--text-light);
+    transform: translateY(-1px);
 }
 
-.game-controls button:active,
-.game-controls select:active {
+.minimal-button:active {
     transform: translateY(0);
+}
+
+/* 简约下拉菜单样式 */
+.minimal-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 8px 32px 8px 16px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+}
+
+.minimal-select:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.minimal-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-shadow);
+}
+
+/* 响应式调整 */
+@media (max-width: 480px) {
+    .minimal-button, .minimal-select {
+        padding: 6px 12px;
+        font-size: 13px;
+        min-height: 36px;
+    }
+
+    .minimal-select {
+        padding: 6px 28px 6px 12px;
+        font-size: 13px;
+        min-height: 36px;
+    }
+
+    .minimal-button i {
+        font-size: 13px;
+    }
 }
 
 /* 数独棋盘 */
@@ -565,6 +614,12 @@ h1 {
         max-width: none;
         width: 100%;
         margin: 0 auto;
+    }
+    
+    .game-controls {
+        width: 100%; /* 与棋盘宽度保持一致 */
+        max-width: none;
+        margin: min(2px, 3vh) auto;
     }
     
     .cell {
