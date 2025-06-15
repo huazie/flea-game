@@ -50,7 +50,7 @@
       "id": "snake",
       "name": "贪吃蛇",
       "description": "经典贪吃蛇游戏，考验你的反应能力！",
-      "link": "#",
+      "link": "snake/",
       "status": "coming_soon",
       "categories": ["classic"],
       "images": {
