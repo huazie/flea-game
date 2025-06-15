@@ -23,13 +23,13 @@
 ```
 shudu/
 ├── css/
-│   └── style.css          # 响应式样式文件
+│   └── style.css  # 响应式样式文件
 ├── js/
-│   ├── sudoku.js          # 数独核心逻辑(生成、验证)
-│   ├── storage.js         # 存储管理(存档、历史)
-│   └── game.js            # 游戏主逻辑(流程控制)
-├── index.html             # 主页面入口
-└── README.md              # 项目说明文档
+│   ├── sudoku.js  # 数独核心逻辑(生成、验证)
+│   ├── storage.js # 存储管理(存档、历史)
+│   └── game.js    # 游戏主逻辑(流程控制)
+├── index.html     # 主页面入口
+└── README.md      # 项目说明文档
 ```
 
 ## 使用说明

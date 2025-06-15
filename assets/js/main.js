@@ -1,10 +1,16 @@
 // 全局变量存储游戏配置数据
 let gamesData = null;
 
+// 全局变量存储搜索关键词
+let searchKeyword = '';
+
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化主题
     initTheme();
+    
+    // 初始化搜索功能
+    initSearch();
     
     // 加载游戏配置并生成游戏卡片
     loadGamesConfig();
@@ -16,6 +22,34 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.opacity = '1';
     }, 100);
 });
+
+// 初始化搜索功能
+function initSearch() {
+    const searchInput = document.getElementById('gameSearch');
+    const searchButton = document.getElementById('searchButton');
+    
+    // 搜索按钮点击事件
+    searchButton.addEventListener('click', function() {
+        searchKeyword = searchInput.value.trim().toLowerCase();
+        refreshGameCards(); // 重新加载游戏并应用搜索过滤
+    });
+    
+    // 输入框回车事件
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchKeyword = searchInput.value.trim().toLowerCase();
+            refreshGameCards(); // 重新加载游戏并应用搜索过滤
+        }
+    });
+    
+    // 输入框清空事件
+    searchInput.addEventListener('input', function() {
+        if (this.value.trim() === '' && searchKeyword !== '') {
+            searchKeyword = '';
+            refreshGameCards(); // 如果搜索框被清空，重新加载所有游戏
+        }
+    });
+}
 
 // 初始化主题
 function initTheme() {
@@ -88,10 +122,26 @@ function generateGameCards(games) {
     
     container.innerHTML = ''; // 清空容器
     
+    // 根据搜索关键词过滤游戏
+    const filteredGames = searchKeyword ? 
+        games.filter(game => 
+            game.name.toLowerCase().includes(searchKeyword) || 
+            (game.description && game.description.toLowerCase().includes(searchKeyword))
+        ) : games;
+    
+    // 如果没有匹配的游戏，显示提示信息
+    if (filteredGames.length === 0) {
+        const noResults = document.createElement('div');
+        noResults.className = 'no-results';
+        noResults.textContent = '没有找到匹配的游戏';
+        container.appendChild(noResults);
+        return;
+    }
+    
     // 获取当前主题
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
     
-    games.forEach(game => {
+    filteredGames.forEach(game => {
         const card = document.createElement('div');
         card.className = 'game-card';
         card.setAttribute('data-game', game.id);
