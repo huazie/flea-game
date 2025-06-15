@@ -34,6 +34,20 @@
         </div>
     </main>
 
+    <!-- 页脚部分 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>
+                <img src="assets/images/flea-game.png" alt="Flea Game" class="footer-logo">
+                © <span id="copyright-year"></span> 
+                <a href="https://github.com/huazie" target="_blank">Huazie</a>. </p>
+            <script>
+                document.getElementById('copyright-year').textContent = 
+                    `${new Date().getFullYear()}`;
+            </script>
+        </div>
+    </footer>
+
     <script src="assets/js/main.js"></script>
     <script src="assets/js/notification.js"></script>
 </body>

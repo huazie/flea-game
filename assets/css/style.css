@@ -67,6 +67,8 @@ body {
     z-index: 1000;
     box-shadow: 0 2px 4px var(--card-shadow);
     text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
 }
 
 .github-link:hover {
@@ -230,5 +232,59 @@ body {
 
     .game-card h3 {
         font-size: 1.2rem;
+    }
+}
+
+/* Footer样式 */
+.footer {
+    margin-top: 3rem;
+    padding: 2rem 0;
+    background-color: var(--card-bg);
+    border-top: 1px solid var(--card-shadow);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    text-align: center;
+    color: var(--text-color);
+}
+
+.footer-content p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.footer-content a {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-content a:hover {
+    color: var(--header-color);
+}
+
+/* Footer logo样式 */
+.footer-logo {
+    height: 20px;
+    width: auto;
+    vertical-align: middle;
+    margin-right: 4px;
+    display: inline-block;
+    position: relative;
+    top: -2px; /* 微调垂直位置 */
+}
+
+@media (max-width: 768px) {
+    .footer {
+        padding: 1.5rem 0;
+    }
+    
+    .footer-content p {
+        font-size: 0.8rem;
     }
 }
