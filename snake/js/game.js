@@ -1,3 +1,5 @@
+import GameStorage from './storage.js';
+
 class SnakeGame {
     constructor() {
         this.canvas = document.getElementById('game-board');
@@ -45,12 +47,11 @@ class SnakeGame {
     }
 
     loadBestScore() {
-        const bestScore = localStorage.getItem('snakeGameBestScore');
-        return bestScore ? parseInt(bestScore) : 0;
+        return GameStorage.getBestScore();
     }
 
     saveBestScore(score) {
-        localStorage.setItem('snakeGameBestScore', score.toString());
+        GameStorage.saveBestScore(score);
     }
 
     reset() {
@@ -68,6 +69,7 @@ class SnakeGame {
         // 初始化游戏状态
         this.score = 0;
         this.bestScore = this.loadBestScore();
+        console.log("重置时加载的最高分：" + this.bestScore); // 添加调试日志
         this.isGameOver = false;
         this.isPaused = true;
         this.isGameStarted = false; // 添加新状态来跟踪游戏是否已经开始
@@ -282,10 +284,23 @@ class SnakeGame {
 
     updateScore() {
         this.scoreElement.textContent = this.score;
+        
+        // 实时更新最高分：如果当前分数高于最高分，立即更新最高分
+        if (this.score > this.bestScore) {
+            this.bestScore = this.score;
+            this.saveBestScore(this.bestScore);
+            this.updateBestScore();
+            console.log("最高分已更新为：" + this.bestScore); // 添加调试日志
+        }
     }
 
     updateBestScore() {
-        this.bestScoreElement.textContent = this.bestScore;
+        if (this.bestScoreElement) {
+            this.bestScoreElement.textContent = this.bestScore;
+            console.log("更新UI上的最高分显示为：" + this.bestScore); // 添加调试日志
+        } else {
+            console.error("bestScoreElement not found!"); // 添加错误日志
+        }
     }
 
     updateButtons() {
