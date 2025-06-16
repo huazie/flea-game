@@ -12,20 +12,6 @@
     --header-bg: #fff;
 }
 
-[data-theme="dark"] {
-    /* 深色主题变量 */
-    --bg-color: #1a1a1a;
-    --text-color: #fff;
-    --board-bg: #2d2d2d;
-    --board-border: #404040;
-    --snake-color: #66bb6a;
-    --food-color: #ef5350;
-    --button-bg: #66bb6a;
-    --button-text: #fff;
-    --button-hover: #558b2f;
-    --header-bg: #2d2d2d;
-}
-
 * {
     margin: 0;
     padding: 0;
@@ -45,44 +31,84 @@ body {
 
 .game-container {
     width: 100%;
-    max-width: 800px;
-    padding: 20px;
+    height: 100vh;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 10px;
 }
 
 .game-header {
-    width: 100%;
+    width: min(80vh, 500px);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
+    padding: 12px 15px;
     background-color: var(--header-bg);
-    border-radius: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 10px;
 }
 
-.score-container {
-    font-size: 1.2em;
+.title-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.title-container h1 {
+    font-size: 2em;
+    margin: 0;
+    line-height: 1.2;
     font-weight: bold;
 }
 
-.theme-toggle {
+.subtitle {
+    font-size: 0.9em;
+    color: var(--text-color);
+    opacity: 0.8;
+    margin: 0;
+}
+
+.scores-container {
     display: flex;
+    gap: 10px;
     align-items: center;
+}
+
+.score-container, .best-container {
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 80px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.score-title {
+    font-size: 0.8em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+#score, #best-score {
+    font-size: 1.2em;
+    font-weight: bold;
+    display: block;
 }
 
 .game-board-container {
     width: 100%;
+    flex: 1;
+    max-width: min(80vh, 500px);
+    max-height: min(80vh, 500px);
     aspect-ratio: 1;
-    max-width: 600px;
-    max-height: 600px;
     background-color: var(--board-bg);
     border: 2px solid var(--board-border);
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
+    margin: 5px 0;
 }
 
 #game-board {
@@ -93,29 +119,30 @@ body {
 .game-controls {
     width: 100%;
     text-align: center;
+    margin-top: 5px;
 }
 
 .control-info {
-    margin-bottom: 15px;
+    margin-bottom: 8px;
     color: var(--text-color);
 }
 
 .control-info p {
-    margin: 5px 0;
-    font-size: 0.9em;
+    margin: 2px 0;
+    font-size: 0.8em;
 }
 
 .control-buttons {
     display: flex;
     justify-content: center;
-    gap: 15px;
+    gap: 10px;
 }
 
 button {
-    padding: 10px 20px;
-    font-size: 1em;
+    padding: 6px 12px;
+    font-size: 0.9em;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     background-color: var(--button-bg);
     color: var(--button-text);
     cursor: pointer;
@@ -131,19 +158,49 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* 确保在所有屏幕尺寸下内容都在一个视图内 */
+@media (max-height: 600px) {
+    .game-header h1 {
+        font-size: 1.2em;
+    }
+    
+    .control-info {
+        margin-bottom: 4px;
+    }
+    
+    .control-info p {
+        font-size: 0.7em;
+        margin: 1px 0;
+    }
+    
+    button {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+}
+
 @media (max-width: 600px) {
     .game-container {
-        padding: 10px;
+        padding: 5px;
+        gap: 5px;
     }
 
     .game-header {
-        flex-direction: column;
-        gap: 10px;
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        padding: 5px 10px;
+    }
+    
+    .game-header h1 {
+        width: 100%;
         text-align: center;
+        margin-bottom: 5px;
     }
 
     .control-buttons {
-        flex-direction: column;
-        align-items: center;
+        gap: 8px;
     }
 }

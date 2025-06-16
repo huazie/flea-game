@@ -3,13 +3,13 @@ class SnakeGame {
         this.canvas = document.getElementById('game-board');
         this.ctx = this.canvas.getContext('2d');
         this.scoreElement = document.getElementById('score');
+        this.bestScoreElement = document.getElementById('best-score');
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
-        this.themeToggleBtn = document.getElementById('theme-toggle-btn');
+        this.boardContainer = document.querySelector('.game-board-container');
 
         // 游戏配置
-        this.tileSize = 20;
-        this.tileCount = 30;
+        this.tileCount = 20; // 减少网格数量以适应更小的视图
         this.speed = 10;
 
         // 初始化画布大小
@@ -21,40 +21,63 @@ class SnakeGame {
         // 绑定事件处理器
         this.bindEvents();
 
-        // 初始主题
-        this.isDarkMode = false;
-        this.updateTheme();
-
         // 初始渲染
         this.draw();
+
+        // 添加窗口大小改变的监听
+        window.addEventListener('resize', () => {
+            this.initCanvas();
+            this.draw();
+        });
     }
 
     initCanvas() {
+        // 获取容器的大小
+        const containerRect = this.boardContainer.getBoundingClientRect();
+        const size = Math.min(containerRect.width, containerRect.height);
+        
         // 设置画布大小
-        this.canvas.width = this.tileSize * this.tileCount;
-        this.canvas.height = this.tileSize * this.tileCount;
+        this.canvas.width = size;
+        this.canvas.height = size;
+        
+        // 计算瓦片大小
+        this.tileSize = size / this.tileCount;
+    }
+
+    loadBestScore() {
+        const bestScore = localStorage.getItem('snakeGameBestScore');
+        return bestScore ? parseInt(bestScore) : 0;
+    }
+
+    saveBestScore(score) {
+        localStorage.setItem('snakeGameBestScore', score.toString());
     }
 
     reset() {
-        // 初始化蛇的位置和方向
+        // 初始化蛇的位置和方向 - 使用相对位置而不是固定位置
+        const centerX = Math.floor(this.tileCount / 2);
+        const centerY = Math.floor(this.tileCount / 2);
         this.snake = [
-            { x: 15, y: 15 },
-            { x: 14, y: 15 },
-            { x: 13, y: 15 }
+            { x: centerX, y: centerY },
+            { x: centerX - 1, y: centerY },
+            { x: centerX - 2, y: centerY }
         ];
         this.direction = { x: 1, y: 0 };
         this.nextDirection = { x: 1, y: 0 };
 
         // 初始化游戏状态
         this.score = 0;
+        this.bestScore = this.loadBestScore();
         this.isGameOver = false;
         this.isPaused = true;
+        this.isGameStarted = false; // 添加新状态来跟踪游戏是否已经开始
 
         // 生成第一个食物
         this.generateFood();
 
         // 更新分数显示
         this.updateScore();
+        this.updateBestScore();
 
         // 更新按钮状态
         this.updateButtons();
@@ -67,7 +90,6 @@ class SnakeGame {
         // 按钮点击事件
         this.startBtn.addEventListener('click', () => this.togglePause());
         this.restartBtn.addEventListener('click', () => this.restart());
-        this.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
     }
 
     handleKeyPress(e) {
@@ -100,6 +122,7 @@ class SnakeGame {
                 }
                 break;
             case ' ':
+                e.preventDefault(); // 防止空格键滚动页面
                 this.togglePause();
                 break;
         }
@@ -189,43 +212,71 @@ class SnakeGame {
 
         // 游戏结束显示
         if (this.isGameOver) {
-            this.ctx.fillStyle = this.isDarkMode ? '#fff' : '#000';
-            this.ctx.font = '48px Arial';
+            this.ctx.fillStyle = '#000';
+            // 根据画布大小调整字体大小
+            const fontSize = Math.max(16, Math.min(32, this.canvas.width / 10));
+            this.ctx.font = `${fontSize}px Arial`;
             this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
             this.ctx.fillText('游戏结束!', this.canvas.width / 2, this.canvas.height / 2);
         }
     }
 
     gameLoop() {
+        if (this.isPaused || this.isGameOver) {
+            return; // 如果游戏暂停或结束，不继续游戏循环
+        }
+        
         this.move();
         this.draw();
 
-        if (!this.isGameOver) {
-            setTimeout(() => {
+        // 使用setTimeout和requestAnimationFrame结合控制游戏速度
+        setTimeout(() => {
+            if (!this.isPaused && !this.isGameOver) {
                 requestAnimationFrame(() => this.gameLoop());
-            }, 1000 / this.speed);
-        }
+            }
+        }, 1000 / this.speed);
     }
 
     togglePause() {
         if (this.isGameOver) return;
 
         this.isPaused = !this.isPaused;
+        
+        // 如果这是游戏第一次启动
+        if (!this.isGameStarted && !this.isPaused) {
+            this.isGameStarted = true;
+        }
+        
         this.updateButtons();
 
         if (!this.isPaused) {
-            this.gameLoop();
+            // 确保游戏循环重新启动
+            requestAnimationFrame(() => this.gameLoop());
         }
     }
 
     restart() {
         this.reset();
+        this.isPaused = false;
+        this.isGameStarted = true;
+        this.updateButtons();
         this.draw();
+        // 启动游戏循环
+        requestAnimationFrame(() => this.gameLoop());
     }
 
     gameOver() {
         this.isGameOver = true;
         this.isPaused = true;
+        
+        // 检查是否更新最高分
+        if (this.score > this.bestScore) {
+            this.bestScore = this.score;
+            this.saveBestScore(this.bestScore);
+            this.updateBestScore();
+        }
+        
         this.updateButtons();
     }
 
@@ -233,21 +284,13 @@ class SnakeGame {
         this.scoreElement.textContent = this.score;
     }
 
+    updateBestScore() {
+        this.bestScoreElement.textContent = this.bestScore;
+    }
+
     updateButtons() {
         this.startBtn.textContent = this.isPaused ? '开始游戏' : '暂停游戏';
         this.startBtn.disabled = this.isGameOver;
-    }
-
-    toggleTheme() {
-        this.isDarkMode = !this.isDarkMode;
-        this.updateTheme();
-    }
-
-    updateTheme() {
-        document.documentElement.setAttribute(
-            'data-theme',
-            this.isDarkMode ? 'dark' : 'light'
-        );
     }
 }
 

@@ -3,19 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贪吃蛇 - 简约风格</title>
+    <title>贪吃蛇</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="game-container">
         <div class="game-header">
-            <h1>贪吃蛇</h1>
-            <div class="score-container">
-                <span>分数: </span>
-                <span id="score">0</span>
+            <div class="title-container">
+                <h1>贪吃蛇</h1>
             </div>
-            <div class="theme-toggle">
-                <button id="theme-toggle-btn">切换主题</button>
+            <div class="scores-container">
+                <div class="score-container">
+                    <div class="score-title">分数</div>
+                    <span id="score">0</span>
+                </div>
+                <div class="best-container">
+                    <div class="score-title">最高分</div>
+                    <span id="best-score">0</span>
+                </div>
             </div>
         </div>
         <div class="game-board-container">
@@ -23,12 +28,11 @@
         </div>
         <div class="game-controls">
             <div class="control-info">
-                <p>使用方向键或WASD控制蛇的移动</p>
-                <p>按空格键暂停/继续游戏</p>
+                <p>方向键/WASD移动 | 空格暂停</p>
             </div>
             <div class="control-buttons">
-                <button id="start-btn">开始游戏</button>
-                <button id="restart-btn">重新开始</button>
+                <button id="start-btn">开始</button>
+                <button id="restart-btn">重玩</button>
             </div>
         </div>
     </div>
