@@ -31,6 +31,23 @@ class SnakeGame {
             this.initCanvas();
             this.draw();
         });
+        
+        // 添加主题变化的监听
+        document.addEventListener('themeChanged', () => {
+            const currentTheme = document.body.dataset.theme || 'light';
+            console.log('主题已更改为:', currentTheme);
+            
+            // 获取并记录当前主题的所有颜色
+            const style = getComputedStyle(document.body);
+            console.log('主题变更后的颜色值:', {
+                boardBgColor: style.getPropertyValue('--board-bg').trim(),
+                snakeColor: style.getPropertyValue('--snake-color').trim(),
+                foodColor: style.getPropertyValue('--food-color').trim(),
+                gameOverTextColor: style.getPropertyValue('--game-over-text').trim()
+            });
+            
+            this.draw(); // 重新绘制画布以应用新主题
+        });
     }
 
     initCanvas() {
@@ -183,14 +200,26 @@ class SnakeGame {
     }
 
     draw() {
+        // 获取并记录所有颜色 - 从body元素获取计算样式
+        const style = getComputedStyle(document.body);
+        const boardBgColor = style.getPropertyValue('--board-bg').trim();
+        const snakeColor = style.getPropertyValue('--snake-color').trim();
+        const foodColor = style.getPropertyValue('--food-color').trim();
+        const gameOverTextColor = style.getPropertyValue('--game-over-text').trim();
+            
+        // 打印所有颜色，以便调试主题切换
+        console.log('当前主题颜色：', {
+            boardBgColor,
+            snakeColor,
+            foodColor,
+            gameOverTextColor
+        });
+            
         // 清空画布
-        this.ctx.fillStyle = getComputedStyle(document.documentElement)
-            .getPropertyValue('--board-bg');
+        this.ctx.fillStyle = boardBgColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // 绘制蛇
-        const snakeColor = getComputedStyle(document.documentElement)
-            .getPropertyValue('--snake-color');
         this.snake.forEach((segment, index) => {
             this.ctx.fillStyle = snakeColor;
             this.ctx.fillRect(
@@ -202,8 +231,6 @@ class SnakeGame {
         });
 
         // 绘制食物
-        const foodColor = getComputedStyle(document.documentElement)
-            .getPropertyValue('--food-color');
         this.ctx.fillStyle = foodColor;
         this.ctx.fillRect(
             this.food.x * this.tileSize,
@@ -214,13 +241,25 @@ class SnakeGame {
 
         // 游戏结束显示
         if (this.isGameOver) {
-            this.ctx.fillStyle = '#000';
+            // 添加半透明背景以增强文本可读性
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            // 使用CSS变量获取游戏结束文本颜色 - 从body元素获取
+            const gameOverTextColor = getComputedStyle(document.body).getPropertyValue('--game-over-text').trim();
+            console.log('游戏结束文本颜色:', gameOverTextColor); // 添加调试日志
+            this.ctx.fillStyle = gameOverTextColor;
             // 根据画布大小调整字体大小
             const fontSize = Math.max(16, Math.min(32, this.canvas.width / 10));
             this.ctx.font = `${fontSize}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText('游戏结束!', this.canvas.width / 2, this.canvas.height / 2);
+            
+            // 添加分数显示
+            const smallerFontSize = fontSize * 0.7;
+            this.ctx.font = `${smallerFontSize}px Arial`;
+            this.ctx.fillText(`最终得分: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2 + fontSize);
         }
     }
 

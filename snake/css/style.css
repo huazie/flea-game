@@ -6,10 +6,50 @@
     --board-border: #ddd;
     --snake-color: #4CAF50;
     --food-color: #F44336;
+    --game-over-text: #000;
     --button-bg: #4CAF50;
     --button-text: #fff;
     --button-hover: #45a049;
     --header-bg: #fff;
+    --icon-button-bg: #eaeaea;
+    --icon-button-hover: #d5d5d5;
+    --score-bg: #4CAF50;
+    --score-text: #fff;
+    --best-bg: #2196F3;
+    --best-text: #fff;
+    --start-button-bg: #4CAF50;
+    --start-button-text: #fff;
+    --start-button-hover: #45a049;
+    --restart-button-bg: #FF9800;
+    --restart-button-text: #fff;
+    --restart-button-hover: #F57C00;
+}
+
+/* 深色主题变量 */
+[data-theme="dark"] {
+    --bg-color: #222;
+    --text-color: #f5f5f5;
+    --board-bg: #1a1a1a;
+    --board-border: #444;
+    --snake-color: #66BB6A;
+    --food-color: #EF5350;
+    --game-over-text: #fff;
+    --button-bg: #388E3C;
+    --button-text: #e0e0e0;
+    --button-hover: #2E7D32;
+    --header-bg: #333;
+    --icon-button-bg: #444;
+    --icon-button-hover: #555;
+    --score-bg: #388E3C;
+    --score-text: #e0e0e0;
+    --best-bg: #1976D2;
+    --best-text: #e0e0e0;
+    --start-button-bg: #388E3C;
+    --start-button-text: #e0e0e0;
+    --start-button-hover: #2E7D32;
+    --restart-button-bg: #F57C00;
+    --restart-button-text: #e0e0e0;
+    --restart-button-hover: #EF6C00;
 }
 
 * {
@@ -49,15 +89,25 @@ body {
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     margin-bottom: 10px;
+    position: relative;
+}
+
+.header-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 40px;
 }
 
 .title-container {
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 .title-container h1 {
-    font-size: 2em;
+    font-size: 1.8em;
     margin: 0;
     line-height: 1.2;
     font-weight: bold;
@@ -74,11 +124,57 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
+    margin-top: 5px;
 }
 
-.score-container, .best-container {
-    background-color: var(--button-bg);
-    color: var(--button-text);
+.icon-button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background-color: var(--icon-button-bg);
+    color: var(--text-color);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.icon-button:hover {
+    background-color: var(--icon-button-hover);
+    transform: scale(1.05);
+}
+
+.icon-button:active {
+    transform: scale(0.95);
+}
+
+#back-button {
+    position: absolute;
+    left: 15px;
+}
+
+#theme-button {
+    position: absolute;
+    right: 15px;
+}
+
+.score-container {
+    background-color: var(--score-bg);
+    color: var(--score-text);
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 80px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.best-container {
+    background-color: var(--best-bg);
+    color: var(--best-text);
     padding: 8px 15px;
     border-radius: 4px;
     text-align: center;
@@ -153,6 +249,25 @@ button:hover {
     background-color: var(--button-hover);
 }
 
+/* 特定按钮样式 */
+#start-btn {
+    background-color: var(--start-button-bg);
+    color: var(--start-button-text);
+}
+
+#start-btn:hover {
+    background-color: var(--start-button-hover);
+}
+
+#restart-btn {
+    background-color: var(--restart-button-bg);
+    color: var(--restart-button-text);
+}
+
+#restart-btn:hover {
+    background-color: var(--restart-button-hover);
+}
+
 button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -187,20 +302,77 @@ button:disabled {
 
     .game-header {
         width: 100%;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px;
-        padding: 5px 10px;
+        padding: 8px;
     }
     
-    .game-header h1 {
-        width: 100%;
-        text-align: center;
-        margin-bottom: 5px;
+    .header-center {
+        margin: 0 35px;
+    }
+    
+    .title-container h1 {
+        font-size: 1.5em;
+    }
+    
+    .icon-button {
+        width: 32px;
+        height: 32px;
+        font-size: 1em;
+    }
+    
+    #back-button {
+        left: 8px;
+    }
+    
+    #theme-button {
+        right: 8px;
     }
 
     .control-buttons {
         gap: 8px;
+    }
+}
+
+@media (max-width: 400px) {
+    .game-header {
+        padding: 6px;
+    }
+    
+    .header-center {
+        margin: 0 30px;
+    }
+    
+    .title-container h1 {
+        font-size: 1.3em;
+    }
+    
+    .scores-container {
+        gap: 6px;
+    }
+    
+    .score-container, .best-container {
+        padding: 5px 10px;
+        min-width: 70px;
+    }
+    
+    .score-title {
+        font-size: 0.7em;
+    }
+    
+    #score, #best-score {
+        font-size: 1em;
+    }
+    
+    .icon-button {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9em;
+    }
+    
+    #back-button {
+        left: 5px;
+    }
+    
+    #theme-button {
+        right: 5px;
     }
 }
