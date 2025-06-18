@@ -92,21 +92,21 @@ body {
     background-color: var(--header-bg);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 10px;
+    margin-bottom: 0px;
     position: relative;
 }
 
 .header-center {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     margin: 0 40px;
 }
 
 .title-container {
     display: flex;
-    flex-direction: column;
     align-items: center;
 }
 
@@ -115,6 +115,7 @@ body {
     margin: 0;
     line-height: 1.2;
     font-weight: bold;
+    margin-left: 5px;
 }
 
 .subtitle {
@@ -128,7 +129,6 @@ body {
     display: flex;
     gap: 10px;
     align-items: center;
-    margin-top: 5px;
 }
 
 .icon-button {
@@ -186,6 +186,7 @@ body {
     text-align: center;
     min-width: 80px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-right: 5px;
 }
 
 .score-title {
@@ -313,10 +314,28 @@ button:disabled {
     
     .header-center {
         margin: 0 35px;
+        gap: 15px;
     }
     
     .title-container h1 {
-        font-size: 1.5em;
+        font-size: 1.3em;
+    }
+    
+    .scores-container {
+        gap: 8px;
+    }
+    
+    .score-container, .best-container {
+        padding: 4px 8px;
+        min-width: 65px;
+    }
+    
+    .score-title {
+        font-size: 0.7em;
+    }
+    
+    #score, #best-score {
+        font-size: 0.9em;
     }
     
     .icon-button {
@@ -345,10 +364,11 @@ button:disabled {
     
     .header-center {
         margin: 0 30px;
+        gap: 10px;
     }
     
     .title-container h1 {
-        font-size: 1.3em;
+        font-size: 1.1em;
     }
     
     .scores-container {
@@ -356,16 +376,16 @@ button:disabled {
     }
     
     .score-container, .best-container {
-        padding: 5px 10px;
-        min-width: 70px;
+        padding: 3px 6px;
+        min-width: 55px;
     }
     
     .score-title {
-        font-size: 0.7em;
+        font-size: 0.65em;
     }
     
     #score, #best-score {
-        font-size: 1em;
+        font-size: 0.85em;
     }
     
     .icon-button {
