@@ -3,7 +3,7 @@ class ThemeManager {
     constructor() {
         this.themeButton = document.getElementById('theme-button');
         this.backButton = document.getElementById('back-button');
-        this.themeKey = 'snake_theme';
+        this.themeKey = 'color_scheme';
         
         this.initTheme();
         this.bindEvents();
@@ -31,14 +31,17 @@ class ThemeManager {
     }
     
     toggleTheme() {
-        const isDarkTheme = document.body.dataset.theme !== 'dark';
-        document.body.dataset.theme = isDarkTheme ? 'dark' : 'light';
+        // 检查当前主题是否为深色
+        const currentIsDark = document.body.dataset.theme === 'dark';
+        // 切换到相反的主题
+        const newTheme = currentIsDark ? 'light' : 'dark';
+        document.body.dataset.theme = newTheme;
         
         // 保存主题设置到本地存储
-        localStorage.setItem(this.themeKey, isDarkTheme ? 'dark' : 'light');
+        localStorage.setItem(this.themeKey, newTheme);
         
-        // 更新图标
-        this.updateThemeIcon(isDarkTheme);
+        // 更新图标 - 传入新主题是否为深色
+        this.updateThemeIcon(!currentIsDark);
         
         // 触发自定义事件，通知游戏画布重绘
         document.dispatchEvent(new CustomEvent('themeChanged'));

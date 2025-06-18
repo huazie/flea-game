@@ -35,17 +35,6 @@ class SnakeGame {
         // 添加主题变化的监听
         document.addEventListener('themeChanged', () => {
             const currentTheme = document.body.dataset.theme || 'light';
-            console.log('主题已更改为:', currentTheme);
-            
-            // 获取并记录当前主题的所有颜色
-            const style = getComputedStyle(document.body);
-            console.log('主题变更后的颜色值:', {
-                boardBgColor: style.getPropertyValue('--board-bg').trim(),
-                snakeColor: style.getPropertyValue('--snake-color').trim(),
-                foodColor: style.getPropertyValue('--food-color').trim(),
-                gameOverTextColor: style.getPropertyValue('--game-over-text').trim()
-            });
-            
             this.draw(); // 重新绘制画布以应用新主题
         });
     }
