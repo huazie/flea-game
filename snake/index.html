@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>贪吃蛇</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <button id="back-button" class="icon-button" title="返回">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="header-center">
+                <div class="title-container">
+                    <h1>贪吃蛇</h1>
+                </div>
+                <div class="scores-container">
+                    <div class="score-container">
+                        <div class="score-title">分数</div>
+                        <span id="score">0</span>
+                    </div>
+                    <div class="best-container">
+                        <div class="score-title">最高分</div>
+                        <span id="best-score">0</span>
+                    </div>
+                </div>
+            </div>
+            <button id="theme-button" class="icon-button" title="切换主题">
+                <i class="fas fa-sun"></i>
+            </button>
+        </div>
+        <div class="game-board-container">
+            <canvas id="game-board"></canvas>
+        </div>
+        <div class="game-controls">
+            <div class="control-info">
+                <p>方向键/WASD移动 | 空格暂停</p>
+            </div>
+            <div class="control-buttons">
+                <button id="start-btn">开始</button>
+                <button id="restart-btn">重玩</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/game.js" type="module"></script>
+    <script src="js/theme.js"></script>
+</body>
+</html>
