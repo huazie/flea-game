@@ -440,6 +440,10 @@ button:disabled {
     #theme-button {
         right: 6px;
     }
+    
+    .difficulty-container label {
+        display: none;
+    }
 }
 
 /* 虚拟方向键 */
