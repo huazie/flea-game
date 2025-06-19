@@ -36,8 +36,19 @@
             <canvas id="game-board"></canvas>
         </div>
         <div class="game-controls">
-            <div class="control-info">
-                <p>方向键/WASD移动 | 空格暂停</p>
+            <div class="control-panel">
+                <div class="difficulty-container">
+                    <label for="difficulty-select">难度：</label>
+                    <select id="difficulty-select" class="difficulty-select">
+                        <option value="easy">简单</option>
+                        <option value="normal">普通</option>
+                        <option value="hard">困难</option>
+                        <option value="expert">专家</option>
+                    </select>
+                </div>
+                <div class="control-info">
+                    <p>方向键/WASD移动 | 空格暂停</p>
+                </div>
             </div>
             <div class="control-buttons">
                 <button id="start-btn">开始</button>

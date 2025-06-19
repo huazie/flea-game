@@ -1,6 +1,15 @@
 import GameStorage from './storage.js';
+import TouchControls from './touch-controls.js';
 
 class SnakeGame {
+    // 定义难度级别对应的速度
+    static DIFFICULTY_SPEEDS = {
+        easy: 7,
+        normal: 10,
+        hard: 15,
+        expert: 20
+    };
+
     constructor() {
         this.canvas = document.getElementById('game-board');
         this.ctx = this.canvas.getContext('2d');
@@ -8,11 +17,13 @@ class SnakeGame {
         this.bestScoreElement = document.getElementById('best-score');
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
+        this.difficultySelect = document.getElementById('difficulty-select');
         this.boardContainer = document.querySelector('.game-board-container');
 
         // 游戏配置
         this.tileCount = 20; // 减少网格数量以适应更小的视图
-        this.speed = 10;
+        this.difficulty = GameStorage.getDifficulty();
+        this.speed = SnakeGame.DIFFICULTY_SPEEDS[this.difficulty];
 
         // 初始化画布大小
         this.initCanvas();
@@ -37,6 +48,9 @@ class SnakeGame {
             const currentTheme = document.body.dataset.theme || 'light';
             this.draw(); // 重新绘制画布以应用新主题
         });
+        
+        // 初始化触摸控制
+        this.touchControls = new TouchControls(this);
     }
 
     initCanvas() {
@@ -75,7 +89,6 @@ class SnakeGame {
         // 初始化游戏状态
         this.score = 0;
         this.bestScore = this.loadBestScore();
-        console.log("重置时加载的最高分：" + this.bestScore); // 添加调试日志
         this.isGameOver = false;
         this.isPaused = true;
         this.isGameStarted = false; // 添加新状态来跟踪游戏是否已经开始
@@ -89,6 +102,9 @@ class SnakeGame {
 
         // 更新按钮状态
         this.updateButtons();
+        
+        // 设置难度选择器的初始值
+        this.difficultySelect.value = this.difficulty;
     }
 
     bindEvents() {
@@ -98,6 +114,22 @@ class SnakeGame {
         // 按钮点击事件
         this.startBtn.addEventListener('click', () => this.togglePause());
         this.restartBtn.addEventListener('click', () => this.restart());
+
+        // 难度选择事件
+        this.difficultySelect.addEventListener('change', (e) => {
+            this.setDifficulty(e.target.value);
+        });
+    }
+
+    setDifficulty(difficulty) {
+        this.difficulty = difficulty;
+        this.speed = SnakeGame.DIFFICULTY_SPEEDS[difficulty];
+        GameStorage.saveDifficulty(difficulty);
+        
+        // 如果游戏正在进行，重新开始游戏以应用新的难度
+        if (this.isGameStarted && !this.isGameOver) {
+            this.restart();
+        }
     }
 
     handleKeyPress(e) {
@@ -236,7 +268,6 @@ class SnakeGame {
             
             // 使用CSS变量获取游戏结束文本颜色 - 从body元素获取
             const gameOverTextColor = getComputedStyle(document.body).getPropertyValue('--game-over-text').trim();
-            console.log('游戏结束文本颜色:', gameOverTextColor); // 添加调试日志
             this.ctx.fillStyle = gameOverTextColor;
             // 根据画布大小调整字体大小
             const fontSize = Math.max(16, Math.min(32, this.canvas.width / 10));
@@ -318,22 +349,23 @@ class SnakeGame {
             this.bestScore = this.score;
             this.saveBestScore(this.bestScore);
             this.updateBestScore();
-            console.log("最高分已更新为：" + this.bestScore); // 添加调试日志
         }
     }
 
     updateBestScore() {
         if (this.bestScoreElement) {
             this.bestScoreElement.textContent = this.bestScore;
-            console.log("更新UI上的最高分显示为：" + this.bestScore); // 添加调试日志
         } else {
             console.error("bestScoreElement not found!"); // 添加错误日志
         }
     }
 
     updateButtons() {
-        this.startBtn.textContent = this.isPaused ? '开始游戏' : '暂停游戏';
+        this.startBtn.textContent = this.isPaused ? '开始' : '暂停';
         this.startBtn.disabled = this.isGameOver;
+        
+        // 在游戏进行时禁用难度选择器
+        this.difficultySelect.disabled = this.isGameStarted && !this.isGameOver;
     }
 }
 
