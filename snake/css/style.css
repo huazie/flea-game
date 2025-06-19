@@ -223,22 +223,59 @@ body {
     width: 100%;
     text-align: center;
     margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.control-panel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 8px;
 }
 
 .control-info {
-    margin-bottom: 8px;
     color: var(--text-color);
 }
 
 .control-info p {
     margin: 2px 0;
-    font-size: 0.8em;
+    font-size: 0.9em;
 }
 
 .control-buttons {
     display: flex;
     justify-content: center;
     gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.difficulty-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.difficulty-container label {
+    font-size: 0.9em;
+    color: var(--text-color);
+}
+
+.difficulty-select {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--board-border);
+    background-color: var(--board-bg);
+    color: var(--text-color);
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.difficulty-select:focus {
+    outline: 2px solid var(--primary-color);
 }
 
 button {
@@ -309,39 +346,39 @@ button:disabled {
 
     .game-header {
         width: 100%;
-        padding: 8px;
+        padding: 18px 8px;
     }
     
     .header-center {
-        margin: 0 35px;
+        margin: 0 40px;
         gap: 15px;
     }
     
     .title-container h1 {
-        font-size: 1.3em;
+        font-size: 1.5em;
     }
     
     .scores-container {
-        gap: 8px;
+        gap: 10px;
     }
     
     .score-container, .best-container {
-        padding: 4px 8px;
-        min-width: 65px;
+        padding: 6px 10px;
+        min-width: 70px;
     }
     
     .score-title {
-        font-size: 0.7em;
+        font-size: 0.75em;
     }
     
     #score, #best-score {
-        font-size: 0.9em;
+        font-size: 1em;
     }
     
     .icon-button {
-        width: 32px;
-        height: 32px;
-        font-size: 1em;
+        width: 36px;
+        height: 36px;
+        font-size: 1.1em;
     }
     
     #back-button {
@@ -359,46 +396,102 @@ button:disabled {
 
 @media (max-width: 400px) {
     .game-header {
-        padding: 6px;
+        padding: 16px 6px;
     }
     
     .header-center {
-        margin: 0 30px;
+        margin: 0 34px;
         gap: 10px;
     }
     
     .title-container h1 {
-        font-size: 1.1em;
+        font-size: 1.3em;
     }
     
     .scores-container {
-        gap: 6px;
+        gap: 8px;
     }
     
     .score-container, .best-container {
-        padding: 3px 6px;
-        min-width: 55px;
+        padding: 5px 8px;
+        min-width: 60px;
     }
     
     .score-title {
-        font-size: 0.65em;
+        font-size: 0.7em;
     }
     
     #score, #best-score {
-        font-size: 0.85em;
-    }
-    
-    .icon-button {
-        width: 28px;
-        height: 28px;
         font-size: 0.9em;
     }
     
+    .icon-button {
+        width: 32px;
+        height: 32px;
+        font-size: 1em;
+    }
+    
     #back-button {
-        left: 5px;
+        left: 6px;
     }
     
     #theme-button {
-        right: 5px;
+        right: 6px;
+    }
+}
+
+/* 虚拟方向键 */
+.direction-pad {
+    display: none; /* 默认隐藏，在移动端显示 */
+    grid-template-areas:
+        ". up ."
+        "left . right"
+        ". down .";
+    gap: 5px;
+    margin-top: 15px;
+}
+
+.direction-button {
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    font-size: 1.5em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮 */
+}
+
+.direction-button:active {
+    background-color: var(--button-hover);
+}
+
+.direction-button.up { grid-area: up; }
+.direction-button.down { grid-area: down; }
+.direction-button.left { grid-area: left; }
+.direction-button.right { grid-area: right; }
+
+@media (max-width: 600px) {
+    .direction-pad {
+        display: grid;
+    }
+    
+    .direction-button {
+        width: 45px;
+        height: 45px;
+        font-size: 1.3em;
+    }
+}
+
+@media (max-width: 400px) {
+    .direction-button {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2em;
     }
 }
