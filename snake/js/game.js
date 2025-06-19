@@ -15,6 +15,7 @@ class SnakeGame {
         this.ctx = this.canvas.getContext('2d');
         this.scoreElement = document.getElementById('score');
         this.bestScoreElement = document.getElementById('best-score');
+        this.bestScoreTitleElement = document.querySelector('.best-container .score-title');
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
         this.difficultySelect = document.getElementById('difficulty-select');
@@ -67,11 +68,11 @@ class SnakeGame {
     }
 
     loadBestScore() {
-        return GameStorage.getBestScore();
+        return GameStorage.getBestScore(this.difficulty);
     }
 
     saveBestScore(score) {
-        GameStorage.saveBestScore(score);
+        GameStorage.saveBestScore(score, this.difficulty);
     }
 
     reset() {
@@ -125,6 +126,10 @@ class SnakeGame {
         this.difficulty = difficulty;
         this.speed = SnakeGame.DIFFICULTY_SPEEDS[difficulty];
         GameStorage.saveDifficulty(difficulty);
+        
+        // 更新最高分显示为新难度的最高分
+        this.bestScore = this.loadBestScore();
+        this.updateBestScore();
         
         // 如果游戏正在进行，重新开始游戏以应用新的难度
         if (this.isGameStarted && !this.isGameOver) {
@@ -353,10 +358,11 @@ class SnakeGame {
     }
 
     updateBestScore() {
-        if (this.bestScoreElement) {
+        if (this.bestScoreElement && this.bestScoreTitleElement) {
+            // 更新最高分显示，只显示分数
             this.bestScoreElement.textContent = this.bestScore;
         } else {
-            console.error("bestScoreElement not found!"); // 添加错误日志
+            console.error("bestScoreElement or bestScoreTitleElement not found!"); // 添加错误日志
         }
     }
 

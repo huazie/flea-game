@@ -145,6 +145,8 @@ body {
     font-size: 1.1em;
     transition: all 0.3s ease;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
 }
 
 .icon-button:hover {
@@ -376,8 +378,8 @@ button:disabled {
     }
     
     .icon-button {
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         font-size: 1.1em;
     }
     
@@ -442,7 +444,7 @@ button:disabled {
 
 /* 虚拟方向键 */
 .direction-pad {
-    display: none; /* 默认隐藏，在移动端显示 */
+    display: none;
     grid-template-areas:
         ". up ."
         "left . right"
@@ -464,7 +466,7 @@ button:disabled {
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s;
-    -webkit-tap-highlight-color: transparent; /* 移除移动端点击高亮 */
+    -webkit-tap-highlight-color: transparent;
 }
 
 .direction-button:active {
