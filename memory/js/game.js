@@ -14,9 +14,6 @@ class MemoryGame {
         this.gridSize = 4;
         this.matchedPairs = 0;
         
-        // 主题相关属性
-        this.themeKey = 'color_scheme';
-        
         // DOM 元素
         this.gameBoard = document.getElementById('game-board');
         this.movesDisplay = document.getElementById('moves');
@@ -24,8 +21,6 @@ class MemoryGame {
         this.startButton = document.getElementById('start-btn');
         this.restartButton = document.getElementById('restart-btn');
         this.gridSizeSelect = document.getElementById('grid-size');
-        this.backButton = document.getElementById('back-button');
-        this.themeButton = document.getElementById('theme-button');
         
         // 初始化游戏
         this.init();
@@ -38,58 +33,11 @@ class MemoryGame {
         this.gridSizeSelect.value = this.gridSize;
         this.bestMoves = storageManager.getBestMoves(this.gridSize);
         
-        // 初始化主题
-        this.initTheme();
         this.setupEventListeners();
         this.updateMovesDisplay();
         
         // 自动开始游戏
         this.startGame();
-    }
-    
-    // 初始化主题
-    initTheme() {
-        // 从本地存储加载主题设置
-        const savedTheme = localStorage.getItem(this.themeKey);
-        
-        if (savedTheme === 'dark') {
-            document.body.dataset.theme = 'dark';
-            this.updateThemeIcon(true);
-        } else {
-            document.body.dataset.theme = 'light';
-            this.updateThemeIcon(false);
-        }
-    }
-    
-    // 切换主题
-    toggleTheme() {
-        // 检查当前主题是否为深色
-        const currentIsDark = document.body.dataset.theme === 'dark';
-        // 切换到相反的主题
-        const newTheme = currentIsDark ? 'light' : 'dark';
-        document.body.dataset.theme = newTheme;
-        
-        // 保存主题设置到本地存储
-        localStorage.setItem(this.themeKey, newTheme);
-        
-        // 更新图标 - 传入新主题是否为深色
-        this.updateThemeIcon(!currentIsDark);
-        
-        // 触发自定义事件，通知游戏画布重绘
-        document.dispatchEvent(new CustomEvent('themeChanged'));
-    }
-    
-    // 更新主题图标
-    updateThemeIcon(isDarkTheme) {
-        const themeIcon = this.themeButton.querySelector('i');
-        
-        if (isDarkTheme) {
-            themeIcon.classList.remove('fa-sun');
-            themeIcon.classList.add('fa-moon');
-        } else {
-            themeIcon.classList.remove('fa-moon');
-            themeIcon.classList.add('fa-sun');
-        }
     }
     
     // 设置事件监听器
@@ -104,11 +52,6 @@ class MemoryGame {
             // 自动按新难度重新开始游戏
             this.startGame();
         });
-        this.backButton.addEventListener('click', () => {
-            window.location.href = '../';
-        });
-        // 添加主题切换按钮事件监听
-        this.themeButton.addEventListener('click', () => this.toggleTheme());
     }
     
     // 更新按钮状态

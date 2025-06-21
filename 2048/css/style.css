@@ -112,13 +112,13 @@ body {
 }
 
 /* 返回按钮 */
-.back-button {
+#back-button {
     left: 20px;
     color: var(--text-light);
 }
 
 /* 主题切换按钮 */
-.theme-toggle {
+#theme-button {
     right: 20px;
     color: var(--theme-toggle-color);
 }

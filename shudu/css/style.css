@@ -108,20 +108,20 @@ body {
 }
 
 /* 返回按钮 */
-.back-button {
+#back-button {
     left: 20px;
     color: var(--primary-color);
 }
 
 /* 主题切换按钮 */
-.theme-toggle {
+#theme-button {
     right: 20px;
     color: var(--theme-toggle-color);
 }
 
 /* 手机端样式 */
 @media screen and (max-width: 768px) {
-    .back-button i, .theme-toggle i {
+    #back-button i, #theme-button i {
         font-size: 1rem;
     }
 }

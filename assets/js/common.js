@@ -1,5 +1,9 @@
-// 处理主题切换和返回按钮功能
-class ThemeManager {
+/**
+ * 处理各种公共逻辑：
+ * - 1. 主题切换点击事件
+ * - 2. 返回按钮点击事件
+ */
+class CommonManager {
     constructor() {
         this.themeButton = document.getElementById('theme-button');
         this.backButton = document.getElementById('back-button');
@@ -24,10 +28,10 @@ class ThemeManager {
     
     bindEvents() {
         // 主题切换按钮点击事件
-        this.themeButton.addEventListener('click', () => this.toggleTheme());
+        this.themeButton && this.themeButton.addEventListener('click', () => this.toggleTheme());
         
         // 返回按钮点击事件
-        this.backButton.addEventListener('click', () => this.goBack());
+        this.backButton && this.backButton.addEventListener('click', () => this.goBack());
     }
     
     toggleTheme() {
@@ -67,5 +71,5 @@ class ThemeManager {
 
 // 当页面加载完成后初始化主题管理器
 window.addEventListener('load', () => {
-    new ThemeManager();
+    new CommonManager();
 });
