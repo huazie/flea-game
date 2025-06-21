@@ -171,6 +171,13 @@ h1 {
 }
 
 /* 计时器容器样式 */
+.timer-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-right: 16px;
+}
+
 .timer-container {
     display: flex;
     flex-direction: column;
@@ -181,7 +188,6 @@ h1 {
     border: 1px solid var(--timer-border);
     border-radius: 6px;
     padding: 6px 16px;
-    margin-right: 16px;
     box-shadow: 0 2px 4px var(--shadow-color);
     transition: all 0.3s ease;
 }

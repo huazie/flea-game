@@ -1,5 +1,6 @@
 class GameStorage {
     static STORAGE_KEY = 'shudu_game';
+    static BEST_TIMES_KEY = 'shudu_best_times';
 
     // 保存当前游戏状态
     static saveGame(gameState) {
@@ -62,5 +63,41 @@ class GameStorage {
             console.error('清除保存的游戏失败:', error);
             return false;
         }
+    }
+
+    // 保存指定难度下的最少用时
+    static saveBestTime(difficulty, time) {
+        try {
+            const bestTimes = this.loadBestTimes();
+            if (!bestTimes[difficulty] || time < bestTimes[difficulty]) {
+                bestTimes[difficulty] = time;
+                localStorage.setItem(this.BEST_TIMES_KEY, JSON.stringify(bestTimes));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('保存最少用时失败:', error);
+            return false;
+        }
+    }
+
+    // 加载所有难度下的最少用时
+    static loadBestTimes() {
+        try {
+            const bestTimesData = localStorage.getItem(this.BEST_TIMES_KEY);
+            if (!bestTimesData) {
+                return { easy: 0, medium: 0, hard: 0 };
+            }
+            return JSON.parse(bestTimesData);
+        } catch (error) {
+            console.error('加载最少用时失败:', error);
+            return { easy: 0, medium: 0, hard: 0 };
+        }
+    }
+
+    // 获取指定难度下的最少用时
+    static getBestTime(difficulty) {
+        const bestTimes = this.loadBestTimes();
+        return bestTimes[difficulty] || 0;
     }
 }
