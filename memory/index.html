@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>记忆翻牌</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Huazie">
+    <meta name="keywords" content="记忆翻牌">
+    <meta name="description" content="记忆翻牌小游戏">
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <button id="back-button" class="icon-button" title="返回">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="header-center">
+                <div class="title-container">
+                    <h1>记忆翻牌</h1>
+                </div>
+                <div class="scores-container">
+                    <div class="score-container">
+                        <div class="score-title">步数</div>
+                        <span id="moves">0</span>
+                    </div>
+                    <div class="best-container">
+                        <div class="score-title">最佳步数</div>
+                        <span id="best-moves">0</span>
+                    </div>
+                </div>
+            </div>
+            <button id="theme-button" class="icon-button" title="切换主题">
+                <i class="fas fa-sun"></i>
+            </button>
+        </div>
+        <div class="game-board-container">
+            <div id="game-board" class="memory-board"></div>
+        </div>
+        <div class="game-controls">
+            <div class="control-panel">
+                <div class="difficulty-container">
+                    <label for="grid-size">难度：</label>
+                    <select id="grid-size" class="difficulty-select">
+                        <option value="4">简单 (4x4)</option>
+                        <option value="6">普通 (6x6)</option>
+                        <option value="8">困难 (8x8)</option>
+                    </select>
+                </div>
+                <div class="control-info">
+                    <p>点击卡片翻开 | 找出所有配对</p>
+                </div>
+            </div>
+            <div class="control-buttons">
+                <button id="start-btn">开始</button>
+                <button id="restart-btn">重玩</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/game.js" type="module"></script>
+    <script src="js/theme.js"></script>
+</body>
+</html>

@@ -1,0 +1,582 @@
+:root {
+    /* 浅色主题变量 */
+    --bg-color: #f5f5f5;
+    --text-color: #333;
+    --primary-color: #4299e1;
+    --board-bg: #fff;
+    --theme-toggle-color: #ffa500;
+    --board-border: #ddd;
+    --card-bg: #fff;
+    --card-back: #4299e1;
+    --card-border: #ddd;
+    --card-matched: #4CAF50;
+    --card-text: #333;
+    --game-over-text: #000;
+    --button-bg: #4CAF50;
+    --button-text: #fff;
+    --button-hover: #45a049;
+    --header-bg: #fff;
+    --icon-button-bg: #eaeaea;
+    --icon-button-hover: #d5d5d5;
+    --score-bg: #4CAF50;
+    --score-text: #fff;
+    --best-bg: #2196F3;
+    --best-text: #fff;
+    --start-button-bg: #4CAF50;
+    --start-button-text: #fff;
+    --start-button-hover: #45a049;
+    --restart-button-bg: #FF9800;
+    --restart-button-text: #fff;
+    --restart-button-hover: #F57C00;
+}
+
+/* 深色主题变量 */
+[data-theme="dark"] {
+    --bg-color: #222;
+    --text-color: #f5f5f5;
+    --primary-color: #63b3ed;
+    --board-bg: #1a1a1a;
+    --theme-toggle-color: #f1c40f;
+    --board-border: #444;
+    --card-bg: #333;
+    --card-back: #63b3ed;
+    --card-border: #555;
+    --card-matched: #388E3C;
+    --card-text: #f5f5f5;
+    --game-over-text: #fff;
+    --button-bg: #388E3C;
+    --button-text: #e0e0e0;
+    --button-hover: #2E7D32;
+    --header-bg: #333;
+    --icon-button-bg: #444;
+    --icon-button-hover: #555;
+    --score-bg: #2E7D32;
+    --score-text: #e0e0e0;
+    --best-bg: #0D47A1;
+    --best-text: #e0e0e0;
+    --start-button-bg: #388E3C;
+    --start-button-text: #e0e0e0;
+    --start-button-hover: #2E7D32;
+    --restart-button-bg: #F57C00;
+    --restart-button-text: #e0e0e0;
+    --restart-button-hover: #EF6C00;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    transition: background-color 0.3s ease;
+}
+
+.game-container {
+    width: 100%;
+    height: 100vh;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.game-header {
+    width: min(80vh, 500px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background-color: var(--header-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 0px;
+    position: relative;
+}
+
+.header-center {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 40px;
+}
+
+.title-container {
+    display: flex;
+    align-items: center;
+}
+
+.title-container h1 {
+    font-size: 1.8em;
+    margin: 0;
+    line-height: 1.2;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.subtitle {
+    font-size: 0.9em;
+    color: var(--text-color);
+    opacity: 0.8;
+    margin: 0;
+}
+
+.scores-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.icon-button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background-color: var(--icon-button-bg);
+    color: var(--text-color);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1em;
+    transition: all 0.3s ease;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.icon-button:hover {
+    background-color: var(--icon-button-hover);
+    transform: scale(1.05);
+}
+
+.icon-button:active {
+    transform: scale(0.95);
+}
+
+#back-button {
+    position: absolute;
+    left: 15px;
+    color: var(--primary-color);
+}
+
+#theme-button {
+    position: absolute;
+    right: 15px;
+    color: var(--theme-toggle-color);
+}
+
+.score-container {
+    background-color: var(--score-bg);
+    color: var(--score-text);
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 80px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.best-container {
+    background-color: var(--best-bg);
+    color: var(--best-text);
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 80px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-right: 5px;
+}
+
+.score-title {
+    font-size: 0.8em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+#moves, #best-moves {
+    font-size: 1.2em;
+    font-weight: bold;
+    display: block;
+}
+
+.game-board-container {
+    width: 100%;
+    flex: 1;
+    max-width: min(80vh, 500px);
+    max-height: min(80vh, 500px);
+    aspect-ratio: 1;
+    background-color: var(--board-bg);
+    border: 2px solid var(--board-border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 5px 0;
+    padding: 10px;
+}
+
+/* 记忆翻牌游戏特有样式 */
+.memory-board {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 10px;
+    padding: 10px;
+}
+
+.memory-board.grid-6 {
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 8px;
+    padding: 8px;
+}
+
+.memory-board.grid-8 {
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 6px;
+    padding: 6px;
+}
+
+.card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.6s;
+    cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.card.flipped {
+    transform: rotateY(180deg);
+}
+
+.card.matched {
+    transform: rotateY(180deg);
+    box-shadow: 0 0 10px var(--card-matched);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.card-front {
+    background-color: var(--card-bg);
+    border: 2px solid var(--card-border);
+    color: var(--card-text);
+    transform: rotateY(180deg);
+}
+
+.card-back {
+    background-color: var(--card-back);
+    border: 2px solid var(--card-border);
+    color: var(--card-text);
+}
+
+.card-back::after {
+    content: "?";
+    font-size: 1.8em;
+    color: white;
+}
+
+.game-controls {
+    width: 100%;
+    text-align: center;
+    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.control-panel {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 8px;
+}
+
+.control-info {
+    color: var(--text-color);
+}
+
+.control-info p {
+    margin: 2px 0;
+    font-size: 0.9em;
+}
+
+.control-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.difficulty-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.difficulty-container label {
+    font-size: 0.9em;
+    color: var(--text-color);
+}
+
+.difficulty-select {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--board-border);
+    background-color: var(--board-bg);
+    color: var(--text-color);
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.difficulty-select:focus {
+    outline: 2px solid var(--primary-color);
+}
+
+button {
+    padding: 6px 12px;
+    font-size: 0.9em;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--button-bg);
+    color: var(--button-text);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+button:hover {
+    background-color: var(--button-hover);
+}
+
+/* 特定按钮样式 */
+#start-btn {
+    background-color: var(--start-button-bg);
+    color: var(--start-button-text);
+}
+
+#start-btn:hover {
+    background-color: var(--start-button-hover);
+}
+
+#restart-btn {
+    background-color: var(--restart-button-bg);
+    color: var(--restart-button-text);
+}
+
+#restart-btn:hover {
+    background-color: var(--restart-button-hover);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 游戏结束消息 */
+.game-over {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.5em;
+    z-index: 10;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.game-over.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.game-over h2 {
+    margin-bottom: 10px;
+}
+
+.game-over p {
+    margin-bottom: 20px;
+}
+
+/* 确保在所有屏幕尺寸下内容都在一个视图内 */
+@media (max-height: 600px) {
+    .game-header h1 {
+        font-size: 1.2em;
+    }
+    
+    .control-info {
+        margin-bottom: 4px;
+    }
+    
+    .control-info p {
+        font-size: 0.7em;
+        margin: 1px 0;
+    }
+    
+    button {
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+    
+    .card-front, .card-back {
+        font-size: 1.2em;
+    }
+}
+
+@media (max-width: 600px) {
+    .game-container {
+        padding: 5px;
+        gap: 5px;
+    }
+
+    .game-header {
+        width: 100%;
+        padding: 18px 8px;
+    }
+    
+    .header-center {
+        margin: 0 40px;
+        gap: 15px;
+    }
+    
+    .title-container h1 {
+        font-size: 1.5em;
+    }
+    
+    .scores-container {
+        gap: 10px;
+    }
+    
+    .score-container, .best-container {
+        padding: 6px 10px;
+        min-width: 70px;
+    }
+    
+    .score-title {
+        font-size: 0.75em;
+    }
+    
+    #moves, #best-moves {
+        font-size: 1em;
+    }
+    
+    .icon-button {
+        width: 38px;
+        height: 38px;
+        font-size: 1.1em;
+    }
+    
+    #back-button {
+        left: 8px;
+    }
+    
+    #theme-button {
+        right: 8px;
+    }
+
+    .control-buttons {
+        gap: 8px;
+    }
+    
+    .memory-board {
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .card-front, .card-back {
+        font-size: 1.2em;
+    }
+}
+
+@media (max-width: 400px) {
+    .game-header {
+        padding: 16px 6px;
+    }
+    
+    .header-center {
+        margin: 0 34px;
+        gap: 10px;
+    }
+    
+    .title-container h1 {
+        font-size: 1.3em;
+    }
+    
+    .scores-container {
+        gap: 8px;
+    }
+    
+    .score-container, .best-container {
+        padding: 5px 8px;
+        min-width: 60px;
+    }
+    
+    .score-title {
+        font-size: 0.7em;
+    }
+    
+    #moves, #best-moves {
+        font-size: 0.9em;
+    }
+    
+    .icon-button {
+        width: 32px;
+        height: 32px;
+        font-size: 1em;
+    }
+    
+    #back-button {
+        left: 6px;
+    }
+    
+    #theme-button {
+        right: 6px;
+    }
+    
+    .difficulty-container label {
+        display: none;
+    }
+    
+    .memory-board {
+        gap: 5px;
+        padding: 5px;
+    }
+    
+    .card-front, .card-back {
+        font-size: 1em;
+    }
+}
