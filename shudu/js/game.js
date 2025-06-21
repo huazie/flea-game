@@ -55,8 +55,23 @@ class Game {
         // 重置并启动计时器
         this.resetTimer();
         this.startTimer();
+        
+        // 更新最少用时显示
+        this.updateMinTimer();
 
         Toast.success('新游戏已加载');
+    }
+    
+    updateMinTimer() {
+        const minTimerElement = document.getElementById('min-timer');
+        if (!minTimerElement) return;
+        
+        const bestTime = GameStorage.getBestTime(this.difficulty);
+        if (bestTime > 0) {
+            minTimerElement.textContent = this.formatTime(bestTime);
+        } else {
+            minTimerElement.textContent = '--:--';
+        }
     }
     
     // 计时器相关方法
@@ -367,13 +382,24 @@ class Game {
         // 停止计时器
         this.stopTimer();
         
+        // 保存最少用时
+        const isNewRecord = GameStorage.saveBestTime(this.difficulty, this.elapsedTime);
+        const bestTime = GameStorage.getBestTime(this.difficulty);
+        
         // 移除所有高亮效果
         document.querySelectorAll('.cell').forEach(cell => {
             cell.classList.remove('selected', 'related');
         });
 
         setTimeout(() => {
-            Toast.success(`恭喜！你完成了这局游戏！用时: ${this.formatTime(this.elapsedTime)}`);
+            // 显示完成消息和最少用时
+            const bestTimeFormatted = bestTime > 0 ? this.formatTime(bestTime) : '--:--';
+            const message = isNewRecord 
+                ? `恭喜！新纪录！用时: ${this.formatTime(this.elapsedTime)}\n最少用时: ${bestTimeFormatted}`
+                : `恭喜！你完成了这局游戏！用时: ${this.formatTime(this.elapsedTime)}\n最少用时: ${bestTimeFormatted}`;
+            
+            Toast.success(message);
+            
             // 添加胜利动画效果
             document.querySelectorAll('.cell').forEach((cell, index) => {
                 setTimeout(() => {
@@ -532,6 +558,12 @@ class Game {
             if (!this.gameStarted || await Dialog.confirm('确定要加载保存的游戏吗？当前进度将丢失。')) {
                 this.loadGame();
             }
+        });
+        
+        // 处理难度切换
+        document.getElementById('difficulty').addEventListener('change', () => {
+            this.difficulty = document.getElementById('difficulty').value;
+            this.updateMinTimer();
         });
     }
 
