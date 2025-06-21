@@ -28,22 +28,6 @@ class StorageManager {
         return bestMoves ? parseInt(bestMoves) : Infinity;
     }
 
-    // 保存主题设置
-    setTheme(theme) {
-        try {
-            this.storage.setItem(STORAGE_KEYS.THEME, theme);
-            return true;
-        } catch (e) {
-            console.error('保存主题设置失败:', e);
-            return false;
-        }
-    }
-
-    // 获取主题设置
-    getTheme() {
-        return this.storage.getItem(STORAGE_KEYS.THEME) || 'light';
-    }
-
     // 保存网格大小设置
     setGridSize(size) {
         try {
