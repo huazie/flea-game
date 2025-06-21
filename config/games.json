@@ -62,8 +62,8 @@
       "id": "memory",
       "name": "记忆翻牌",
       "description": "考验记忆力的翻牌游戏，找出所有配对！",
-      "link": "#",
-      "status": "coming_soon",
+      "link": "memory/",
+      "status": "active",
       "categories": ["memory", "puzzle"],
       "images": {
         "light": "assets/images/memory.png",
