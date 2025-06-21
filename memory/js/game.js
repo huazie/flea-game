@@ -34,15 +34,17 @@ class MemoryGame {
     // 初始化方法
     init() {
         // 加载保存的设置
-        this.bestMoves = storageManager.getBestMoves();
         this.gridSize = storageManager.getGridSize();
         this.gridSizeSelect.value = this.gridSize;
+        this.bestMoves = storageManager.getBestMoves(this.gridSize);
         
         // 初始化主题
         this.initTheme();
         this.setupEventListeners();
-        this.updateButtonStates();
         this.updateMovesDisplay();
+        
+        // 自动开始游戏
+        this.startGame();
     }
     
     // 初始化主题
@@ -92,12 +94,15 @@ class MemoryGame {
     
     // 设置事件监听器
     setupEventListeners() {
-        this.startButton.addEventListener('click', () => this.startGame());
         this.restartButton.addEventListener('click', () => this.restartGame());
         this.gridSizeSelect.addEventListener('change', () => {
             this.gridSize = parseInt(this.gridSizeSelect.value);
             storageManager.setGridSize(this.gridSize);
-            this.updateButtonStates();
+            // 更新当前难度级别的最佳步数
+            this.bestMoves = storageManager.getBestMoves(this.gridSize);
+            this.updateMovesDisplay();
+            // 自动按新难度重新开始游戏
+            this.startGame();
         });
         this.backButton.addEventListener('click', () => {
             window.location.href = '../';
@@ -108,9 +113,8 @@ class MemoryGame {
     
     // 更新按钮状态
     updateButtonStates() {
-        this.startButton.disabled = this.isPlaying;
-        this.restartButton.disabled = !this.isPlaying;
-        this.gridSizeSelect.disabled = this.isPlaying;
+        this.restartButton.disabled = false; // 重玩按钮始终可用
+        this.gridSizeSelect.disabled = false; // 难度选择器始终可用
     }
     
     // 开始游戏
@@ -257,7 +261,7 @@ class MemoryGame {
     handleGameWin() {
         if (this.moves < this.bestMoves) {
             this.bestMoves = this.moves;
-            storageManager.setBestMoves(this.bestMoves);
+            storageManager.setBestMoves(this.bestMoves, this.gridSize);
             this.updateMovesDisplay();
         }
         

@@ -1,6 +1,6 @@
 // 本地存储键名
 const STORAGE_KEYS = {
-    BEST_MOVES: 'memoryGameBestMoves',
+    BEST_MOVES_PREFIX: 'memoryGameBestMoves_',
     THEME: 'memoryGameTheme',
     GRID_SIZE: 'memoryGameGridSize'
 };
@@ -12,9 +12,9 @@ class StorageManager {
     }
 
     // 保存最佳步数
-    setBestMoves(moves) {
+    setBestMoves(moves, gridSize) {
         try {
-            this.storage.setItem(STORAGE_KEYS.BEST_MOVES, moves.toString());
+            this.storage.setItem(STORAGE_KEYS.BEST_MOVES_PREFIX + gridSize, moves.toString());
             return true;
         } catch (e) {
             console.error('保存最佳步数失败:', e);
@@ -23,8 +23,8 @@ class StorageManager {
     }
 
     // 获取最佳步数
-    getBestMoves() {
-        const bestMoves = this.storage.getItem(STORAGE_KEYS.BEST_MOVES);
+    getBestMoves(gridSize) {
+        const bestMoves = this.storage.getItem(STORAGE_KEYS.BEST_MOVES_PREFIX + gridSize);
         return bestMoves ? parseInt(bestMoves) : Infinity;
     }
 
