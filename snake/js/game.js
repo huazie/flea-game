@@ -233,14 +233,6 @@ class SnakeGame {
         const foodColor = style.getPropertyValue('--food-color').trim();
         const gameOverTextColor = style.getPropertyValue('--game-over-text').trim();
             
-        // 打印所有颜色，以便调试主题切换
-        console.log('当前主题颜色：', {
-            boardBgColor,
-            snakeColor,
-            foodColor,
-            gameOverTextColor
-        });
-            
         // 清空画布
         this.ctx.fillStyle = boardBgColor;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
