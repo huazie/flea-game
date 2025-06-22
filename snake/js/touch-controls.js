@@ -7,8 +7,8 @@ class TouchControls {
         this.minSwipeDistance = 30; // 最小滑动距离，单位像素
         this.lastTapTime = 0;  // 添加最后点击时间记录
         
-        // 创建虚拟方向键
-        this.createDirectionPad();
+        // 创建转向轮
+        this.createControlWheel();
         
         // 添加滑动事件监听
         this.addSwipeListeners();
@@ -20,37 +20,81 @@ class TouchControls {
         // 确保在页面加载完成后立即检查屏幕大小
         document.addEventListener('DOMContentLoaded', () => this.checkScreenSize());
     }
-    
-    createDirectionPad() {
-        // 创建方向键容器
-        this.directionPad = document.createElement('div');
-        this.directionPad.className = 'direction-pad';
+
+    createControlWheel() {
+        this.controlWheel = document.querySelector('.control-wheel');
+        this.wheelBase = this.controlWheel.querySelector('.wheel-base');
+        this.wheelKnob = this.controlWheel.querySelector('.wheel-knob');
         
-        // 创建四个方向按钮
-        const directions = [
-            { name: 'up', icon: '↑', x: 0, y: -1 },
-            { name: 'right', icon: '→', x: 1, y: 0 },
-            { name: 'down', icon: '↓', x: 0, y: 1 },
-            { name: 'left', icon: '←', x: -1, y: 0 }
-        ];
-        
-        directions.forEach(dir => {
-            const button = document.createElement('button');
-            button.className = `direction-button ${dir.name}`;
-            button.innerHTML = dir.icon;
-            button.addEventListener('click', (e) => {
-                e.preventDefault(); // 防止双击缩放
-                this.handleDirectionChange(dir.x, dir.y);
-            });
-            this.directionPad.appendChild(button);
-        });
-        
-        // 添加到游戏控制区域
-        const gameControls = document.querySelector('.game-controls');
-        gameControls.appendChild(this.directionPad);
+        // 添加触摸事件监听
+        this.wheelBase.addEventListener('touchstart', this.handleWheelStart.bind(this), { passive: false });
+        this.wheelBase.addEventListener('touchmove', this.handleWheelMove.bind(this), { passive: false });
+        this.wheelBase.addEventListener('touchend', this.handleWheelEnd.bind(this), { passive: false });
         
         // 默认隐藏
-        this.directionPad.style.display = 'none';
+        this.controlWheel.style.display = 'none';
+    }
+
+    handleWheelStart(e) {
+        e.preventDefault();
+        const rect = this.wheelBase.getBoundingClientRect();
+        this.wheelCenterX = rect.left + rect.width / 2;
+        this.wheelCenterY = rect.top + rect.height / 2;
+        this.wheelRadius = rect.width / 2;
+        this.isWheelActive = true;
+        
+        // 初始位置
+        this.handleWheelMove(e);
+    }
+
+    handleWheelMove(e) {
+        if (!this.isWheelActive || this.game.isPaused || this.game.isGameOver) return;
+        e.preventDefault();
+        
+        const touchX = e.touches[0].clientX;
+        const touchY = e.touches[0].clientY;
+        
+        // 计算相对于中心的位置
+        const deltaX = touchX - this.wheelCenterX;
+        const deltaY = touchY - this.wheelCenterY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        // 限制在轮子范围内
+        const angle = Math.atan2(deltaY, deltaX);
+        const limitedDistance = Math.min(distance, this.wheelRadius * 0.7);
+        const limitedX = Math.cos(angle) * limitedDistance;
+        const limitedY = Math.sin(angle) * limitedDistance;
+        
+        // 更新旋钮位置
+        this.wheelKnob.style.transform = `translate(${limitedX}px, ${limitedY}px)`;
+        
+        // 计算方向向量 (归一化)
+        const directionX = deltaX / distance;
+        const directionY = deltaY / distance;
+        
+        // 确定主要方向 (上、下、左、右)
+        let x = 0, y = 0;
+        if (Math.abs(directionX) > Math.abs(directionY)) {
+            x = directionX > 0 ? 1 : -1;
+        } else {
+            y = directionY > 0 ? 1 : -1;
+        }
+        
+        // 防止180度转向
+        if ((x === 1 && this.game.direction.x === -1) ||
+            (x === -1 && this.game.direction.x === 1) ||
+            (y === 1 && this.game.direction.y === -1) ||
+            (y === -1 && this.game.direction.y === 1)) {
+            return;
+        }
+        
+        this.game.nextDirection = { x, y };
+    }
+
+    handleWheelEnd() {
+        this.isWheelActive = false;
+        // 重置旋钮位置
+        this.wheelKnob.style.transform = 'translate(0, 0)';
     }
 
     addSwipeListeners() {
@@ -135,16 +179,16 @@ class TouchControls {
     }
     
     checkScreenSize() {
-        // 在小屏幕上显示虚拟方向键
+        // 在小屏幕上显示转向轮
         if (window.innerWidth <= 768) {
-            this.directionPad.style.display = 'grid';
+            this.controlWheel.style.display = 'block';
             // 更新控制提示
             const controlInfo = document.querySelector('.control-info p');
             if (controlInfo) {
-                controlInfo.textContent = '滑动或使用方向键控制 | 点击开始/暂停';
+                controlInfo.textContent = '滑动或转向轮控制 | 点击开始/暂停';
             }
         } else {
-            this.directionPad.style.display = 'none';
+            this.controlWheel.style.display = 'none';
             // 恢复原始控制提示
             const controlInfo = document.querySelector('.control-info p');
             if (controlInfo) {
