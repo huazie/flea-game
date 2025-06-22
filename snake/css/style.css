@@ -25,6 +25,9 @@
     --restart-button-bg: #FF9800;
     --restart-button-text: #fff;
     --restart-button-hover: #F57C00;
+    --wheel-base-bg: rgba(0, 0, 0, 0.1);
+    --wheel-knob-bg: transparent;
+    --wheel-knob-color: #fff;
 }
 
 /* 深色主题变量 */
@@ -54,6 +57,9 @@
     --restart-button-bg: #F57C00;
     --restart-button-text: #e0e0e0;
     --restart-button-hover: #EF6C00;
+    --wheel-base-bg: rgba(255, 255, 255, 0.1);
+    --wheel-knob-bg: transparent;
+    --wheel-knob-color: #e0e0e0;
 }
 
 * {
@@ -446,58 +452,38 @@ button:disabled {
     }
 }
 
-/* 虚拟方向键 */
-.direction-pad {
+/* 转向轮控制器样式 */
+.control-wheel {
     display: none;
-    grid-template-areas:
-        ". up ."
-        "left . right"
-        ". down .";
-    gap: 5px;
     margin-top: 15px;
+    position: relative;
+    width: 150px;
+    height: 150px;
 }
 
-.direction-button {
-    width: 50px;
-    height: 50px;
-    border: none;
-    border-radius: 8px;
-    background-color: var(--button-bg);
-    color: var(--button-text);
-    font-size: 1.5em;
-    cursor: pointer;
+.wheel-base {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: var(--wheel-base-bg);
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s;
-    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
 }
 
-.direction-button:active {
-    background-color: var(--button-hover);
-}
-
-.direction-button.up { grid-area: up; }
-.direction-button.down { grid-area: down; }
-.direction-button.left { grid-area: left; }
-.direction-button.right { grid-area: right; }
-
-@media (max-width: 600px) {
-    .direction-pad {
-        display: grid;
-    }
-    
-    .direction-button {
-        width: 45px;
-        height: 45px;
-        font-size: 1.3em;
-    }
-}
-
-@media (max-width: 400px) {
-    .direction-button {
-        width: 40px;
-        height: 40px;
-        font-size: 1.2em;
-    }
+.wheel-knob {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: var(--wheel-knob-bg);
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--wheel-knob-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.1s ease-out;
+    border: 2px solid rgba(128, 128, 128, 0.3);
 }
