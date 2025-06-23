@@ -74,8 +74,8 @@
       "id": "minesweeper",
       "name": "扫雷",
       "description": "经典的逻辑推理游戏，小心地雷！",
-      "link": "#",
-      "status": "coming_soon",
+      "link": "minesweeper/",
+      "status": "active",
       "categories": ["logic", "puzzle"],
       "images": {
         "light": "assets/images/minesweeper.png",
