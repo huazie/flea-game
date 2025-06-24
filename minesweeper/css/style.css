@@ -128,4 +128,10 @@ body {
         height: 25px;
         font-size: 12px;
     }
+    
+    /* 在手机端隐藏普通的中级和高级选项 */
+    #difficulty option[value="intermediate"],
+    #difficulty option[value="expert"] {
+        display: none;
+    }
 }

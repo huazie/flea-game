@@ -2,7 +2,9 @@
 const DIFFICULTY_SETTINGS = {
     beginner: { rows: 9, cols: 9, mines: 10 },
     intermediate: { rows: 16, cols: 16, mines: 40 },
-    expert: { rows: 16, cols: 30, mines: 99 }
+    expert: { rows: 16, cols: 30, mines: 99 },
+    intermediate_phone: { rows: 22, cols: 12, mines: 40 },
+    expert_phone: { rows: 40, cols: 12, mines: 99 }
 };
 
 // 游戏状态
