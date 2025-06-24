@@ -20,6 +20,42 @@ body {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
+/* 全局禁用文本选择和长按菜单 */
+html, body, * {
+    /* 禁用用户选择 */
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    
+    /* 禁用触摸高亮 */
+    -webkit-tap-highlight-color: transparent !important;
+    
+    /* 禁用长按菜单 */
+    -webkit-touch-callout: none !important;
+    
+    /* 禁用拖动 */
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+    
+    /* 禁用上下文菜单 */
+    -webkit-context-menu: none !important;
+    -moz-context-menu: none !important;
+}
+
+/* 游戏容器和游戏面板特定样式 */
+.game-container,
+.game-container *,
+#gameBoard,
+#gameBoard * {
+    /* 确保这些属性不会被其他样式覆盖 */
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+}
+
 .game-header {
     display: flex;
     justify-content: space-between;
