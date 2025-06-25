@@ -132,8 +132,8 @@ html, body, * {
 .cell[data-number="8"] { color: #808080; }
 
 .game-controls {
-    margin-top: 16px;
     text-align: center;
+    margin-bottom: 16px;
 }
 
 #difficulty {
@@ -150,9 +150,23 @@ html, body, * {
     border-color: #666;
 }
 
+#difficulty option[value="intermediate_phone"],
+#difficulty option[value="expert_phone"] {
+    display: none;
+}
+
 @media (max-width: 600px) {
     .game-container {
         padding: 10px;
+    }
+
+    /* 为非初级难度添加顶部外边距 */
+    .game-container.non-beginner {
+        margin-top: 80px;
+    }
+
+    .game-controls {
+        margin-bottom: 10px;
     }
 
     .game-board {
@@ -160,8 +174,8 @@ html, body, * {
     }
 
     .cell {
-        width: 25px;
-        height: 25px;
+        width: 28px;
+        height: 28px;
         font-size: 12px;
     }
     
@@ -169,5 +183,10 @@ html, body, * {
     #difficulty option[value="intermediate"],
     #difficulty option[value="expert"] {
         display: none;
+    }
+
+    #difficulty option[value="intermediate_phone"],
+    #difficulty option[value="expert_phone"] {
+        display: block;
     }
 }

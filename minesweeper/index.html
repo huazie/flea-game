@@ -8,21 +8,21 @@
 </head>
 <body>
     <div class="game-container" ontouchstart="" unselectable="on">
+        <div class="game-controls">
+            <select id="difficulty">
+                <option value="beginner">初级 (10x10, 10个雷)</option>
+                <option value="intermediate">中级 (16x16, 40个雷)</option>
+                <option value="intermediate_phone">中级 (26x10, 40个雷)</option>
+                <option value="expert">高级 (16x30, 99个雷)</option>
+                <option value="expert_phone">高级 (48x10, 99个雷)</option>
+            </select>
+        </div>
         <div class="game-header">
             <div class="mine-count">💣 <span id="mineCount">10</span></div>
             <button id="newGameBtn">😊</button>
             <div class="timer">⏱️ <span id="timer">0</span></div>
         </div>
         <div id="gameBoard" class="game-board"></div>
-        <div class="game-controls">
-            <select id="difficulty">
-                <option value="beginner">初级 (9x9, 10个雷)</option>
-                <option value="intermediate">中级 (16x16, 40个雷)</option>
-                <option value="intermediate_phone">中级 (22x12, 40个雷)</option>
-                <option value="expert">高级 (16x30, 99个雷)</option>
-                <option value="expert_phone">高级 (40x12, 99个雷)</option>
-            </select>
-        </div>
     </div>
     <script src="js/game.js"></script>
 </body>

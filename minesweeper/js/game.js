@@ -1,10 +1,10 @@
 // 游戏配置
 const DIFFICULTY_SETTINGS = {
-    beginner: { rows: 9, cols: 9, mines: 10 },
+    beginner: { rows: 10, cols: 10, mines: 10 },
     intermediate: { rows: 16, cols: 16, mines: 40 },
     expert: { rows: 16, cols: 30, mines: 99 },
-    intermediate_phone: { rows: 22, cols: 12, mines: 40 },
-    expert_phone: { rows: 40, cols: 12, mines: 99 }
+    intermediate_phone: { rows: 26, cols: 10, mines: 40 },
+    expert_phone: { rows: 48, cols: 10, mines: 99 }
 };
 
 // 游戏状态
@@ -35,6 +35,14 @@ class MinesweeperGame {
         // 初始化事件监听
         this.initEventListeners();
         
+        // 在手机端，为非初级难度添加特殊类
+        const gameContainer = document.querySelector('.game-container');
+        if (this.difficulty === 'beginner') {
+            gameContainer.classList.remove('non-beginner');
+        } else {
+            gameContainer.classList.add('non-beginner');
+        }
+        
         // 开始新游戏
         this.startNewGame();
     }
@@ -48,6 +56,15 @@ class MinesweeperGame {
             this.rows = DIFFICULTY_SETTINGS[this.difficulty].rows;
             this.cols = DIFFICULTY_SETTINGS[this.difficulty].cols;
             this.totalMines = DIFFICULTY_SETTINGS[this.difficulty].mines;
+            
+            // 在手机端，为非初级难度添加特殊类
+            const gameContainer = document.querySelector('.game-container');
+            if (this.difficulty === 'beginner') {
+                gameContainer.classList.remove('non-beginner');
+            } else {
+                gameContainer.classList.add('non-beginner');
+            }
+            
             this.startNewGame();
         });
         
@@ -315,7 +332,7 @@ class MinesweeperGame {
             
             if (cell.isMine) {
                 cellElement.classList.add('mine');
-                cellElement.textContent = '💣';
+                cellElement.textContent = '�';
             } else if (cell.neighborMines > 0) {
                 cellElement.dataset.number = cell.neighborMines;
                 cellElement.textContent = cell.neighborMines;
