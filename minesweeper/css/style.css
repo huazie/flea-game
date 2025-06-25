@@ -4,6 +4,8 @@
     --color-container: #c0c0c0;
     --color-shadow: rgba(0, 0, 0, 0.2);
     --color-header: #e0e0e0;
+    --color-theme-toggle: #ffa500;
+    --color-primary: #4299e1;
     --color-text: #333;
     --color-board: #999;
     --color-border: #808080;
@@ -24,6 +26,36 @@
     /* 控件颜色 */
     --color-control-bg: #fff;
     --color-control-focus: #666;
+}
+
+/* 深色模式颜色变量 */
+[data-theme="dark"] {
+    --color-background: #1a1a1a;
+    --color-container: #2d2d2d;
+    --color-shadow: rgba(0, 0, 0, 0.4);
+    --color-header: #333333;
+    --color-theme-toggle: #f1c40f;
+    --color-primary: #4299e1;
+    --color-text: #e0e0e0;
+    --color-board: #404040;
+    --color-border: #505050;
+    --color-border-light: #666666;
+    --color-revealed: #404040;
+    --color-mine: #ff4444;
+    
+    /* 深色主题数字颜色 - 调整为更明亮的色调以提高可读性 */
+    --color-number-1: #5c9eff;
+    --color-number-2: #4caf50;
+    --color-number-3: #ff5252;
+    --color-number-4: #7986cb;
+    --color-number-5: #ff8a65;
+    --color-number-6: #4db6ac;
+    --color-number-7: #ba68c8;
+    --color-number-8: #90a4ae;
+    
+    /* 深色主题控件颜色 */
+    --color-control-bg: #333333;
+    --color-control-focus: #666666;
 }
 
 * {
@@ -83,6 +115,7 @@ html, body, * {
     padding: 8px;
     font-size: 14px;
     border-radius: 4px;
+    color: var(--color-text);
     border: 1px solid var(--color-border);
     background-color: var(--color-control-bg);
     cursor: pointer;
@@ -251,5 +284,50 @@ html, body, * {
     
     #pc-instructions {
         display: block;
+    }
+}
+
+/* 控制按钮样式 */
+.control-button {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    top: 20px;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--color-control-bg);
+    color: var(--color-text);
+    cursor: pointer;
+    box-shadow: 0 2px 5px var(--color-shadow);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.control-button:hover {
+    transform: scale(1.1);
+    background-color: var(--color-header);
+}
+
+/* 返回按钮位置 */
+#back-button {
+    left: 20px;
+    color: var(--color-primary);
+}
+
+/* 主题切换按钮位置 */
+#theme-button {
+    right: 20px;
+    color: var(--color-theme-toggle);
+}
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+    .control-button {
+        width: 36px;
+        height: 36px;
     }
 }
