@@ -1,3 +1,31 @@
+:root {
+    /* 基础颜色 */
+    --color-background: #f0f0f0;
+    --color-container: #c0c0c0;
+    --color-shadow: rgba(0, 0, 0, 0.2);
+    --color-header: #e0e0e0;
+    --color-text: #333;
+    --color-board: #999;
+    --color-border: #808080;
+    --color-border-light: #fff;
+    --color-revealed: #e0e0e0;
+    --color-mine: #ff0000;
+    
+    /* 数字颜色 */
+    --color-number-1: #0000ff;
+    --color-number-2: #008000;
+    --color-number-3: #ff0000;
+    --color-number-4: #000080;
+    --color-number-5: #800000;
+    --color-number-6: #008080;
+    --color-number-7: #000000;
+    --color-number-8: #808080;
+    
+    /* 控件颜色 */
+    --color-control-bg: #fff;
+    --color-control-focus: #666;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -10,14 +38,14 @@ body {
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    background-color: #f0f0f0;
+    background-color: var(--color-background);
 }
 
 .game-container {
-    background-color: #c0c0c0;
-    padding: 16px;
+    background-color: var(--color-container);
+    padding: 10px;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 10px var(--color-shadow);
 }
 
 /* 全局禁用文本选择和长按菜单 */
@@ -46,6 +74,30 @@ html, body, * {
     -moz-context-menu: none !important;
 }
 
+.game-controls {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+#difficulty {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-control-bg);
+    cursor: pointer;
+}
+
+#difficulty:focus {
+    outline: none;
+    border-color: var(--color-control-focus);
+}
+
+#difficulty option[value="intermediate_phone"],
+#difficulty option[value="expert_phone"] {
+    display: none;
+}
+
 /* 游戏容器和游戏面板特定样式 */
 .game-container,
 .game-container *,
@@ -60,17 +112,17 @@ html, body, * {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #e0e0e0;
+    background-color: var(--color-header);
     padding: 10px;
     border-radius: 4px;
-    margin-bottom: 16px;
+    margin-bottom: 6px;
 }
 
 .mine-count, .timer {
     font-family: 'Courier New', Courier, monospace;
     font-size: 24px;
     font-weight: bold;
-    color: #333;
+    color: var(--color-text);
     min-width: 80px;
 }
 
@@ -90,17 +142,17 @@ html, body, * {
     display: grid;
     grid-template-columns: repeat(9, 30px);
     gap: 1px;
-    background-color: #999;
+    background-color: var(--color-board);
     padding: 1px;
-    border: 3px solid #808080;
+    border: 3px solid var(--color-border);
 }
 
 .cell {
     width: 30px;
     height: 30px;
-    background-color: #c0c0c0;
+    background-color: var(--color-container);
     border: 2px solid;
-    border-color: #fff #808080 #808080 #fff;
+    border-color: var(--color-border-light) var(--color-border) var(--color-border) var(--color-border-light);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -110,48 +162,39 @@ html, body, * {
 }
 
 .cell.revealed {
-    border: 1px solid #808080;
-    background-color: #e0e0e0;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-revealed);
 }
 
 .cell.mine {
-    background-color: #ff0000;
+    background-color: var(--color-mine);
 }
 
 .cell.flagged {
-    background-color: #c0c0c0;
+    background-color: var(--color-container);
 }
 
-.cell[data-number="1"] { color: #0000ff; }
-.cell[data-number="2"] { color: #008000; }
-.cell[data-number="3"] { color: #ff0000; }
-.cell[data-number="4"] { color: #000080; }
-.cell[data-number="5"] { color: #800000; }
-.cell[data-number="6"] { color: #008080; }
-.cell[data-number="7"] { color: #000000; }
-.cell[data-number="8"] { color: #808080; }
+.cell[data-number="1"] { color: var(--color-number-1); }
+.cell[data-number="2"] { color: var(--color-number-2); }
+.cell[data-number="3"] { color: var(--color-number-3); }
+.cell[data-number="4"] { color: var(--color-number-4); }
+.cell[data-number="5"] { color: var(--color-number-5); }
+.cell[data-number="6"] { color: var(--color-number-6); }
+.cell[data-number="7"] { color: var(--color-number-7); }
+.cell[data-number="8"] { color: var(--color-number-8); }
 
-.game-controls {
-    text-align: center;
-    margin-bottom: 16px;
-}
-
-#difficulty {
-    padding: 8px;
-    font-size: 14px;
+/* 操作提示样式 */
+.game-instructions {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--color-header);
     border-radius: 4px;
-    border: 1px solid #808080;
-    background-color: #fff;
-    cursor: pointer;
+    font-size: 14px;
+    text-align: center;
+    color: var(--color-text);
 }
 
-#difficulty:focus {
-    outline: none;
-    border-color: #666;
-}
-
-#difficulty option[value="intermediate_phone"],
-#difficulty option[value="expert_phone"] {
+.instructions {
     display: none;
 }
 
@@ -187,6 +230,26 @@ html, body, * {
 
     #difficulty option[value="intermediate_phone"],
     #difficulty option[value="expert_phone"] {
+        display: block;
+    }
+    
+    /* 在移动设备上显示移动操作提示 */
+    #mobile-instructions {
+        display: block;
+    }
+    
+    #pc-instructions {
+        display: none;
+    }
+}
+
+@media (min-width: 601px) {
+    /* 在PC设备上显示PC操作提示 */
+    #mobile-instructions {
+        display: none;
+    }
+    
+    #pc-instructions {
         display: block;
     }
 }

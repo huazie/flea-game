@@ -332,7 +332,7 @@ class MinesweeperGame {
             
             if (cell.isMine) {
                 cellElement.classList.add('mine');
-                cellElement.textContent = '�';
+                cellElement.textContent = '💣';
             } else if (cell.neighborMines > 0) {
                 cellElement.dataset.number = cell.neighborMines;
                 cellElement.textContent = cell.neighborMines;
