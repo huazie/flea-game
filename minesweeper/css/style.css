@@ -1,0 +1,333 @@
+:root {
+    /* 基础颜色 */
+    --color-background: #f0f0f0;
+    --color-container: #c0c0c0;
+    --color-shadow: rgba(0, 0, 0, 0.2);
+    --color-header: #e0e0e0;
+    --color-theme-toggle: #ffa500;
+    --color-primary: #4299e1;
+    --color-text: #333;
+    --color-board: #999;
+    --color-border: #808080;
+    --color-border-light: #fff;
+    --color-revealed: #e0e0e0;
+    --color-mine: #ff0000;
+    
+    /* 数字颜色 */
+    --color-number-1: #0000ff;
+    --color-number-2: #008000;
+    --color-number-3: #ff0000;
+    --color-number-4: #000080;
+    --color-number-5: #800000;
+    --color-number-6: #008080;
+    --color-number-7: #000000;
+    --color-number-8: #808080;
+    
+    /* 控件颜色 */
+    --color-control-bg: #fff;
+    --color-control-focus: #666;
+}
+
+/* 深色模式颜色变量 */
+[data-theme="dark"] {
+    --color-background: #1a1a1a;
+    --color-container: #2d2d2d;
+    --color-shadow: rgba(0, 0, 0, 0.4);
+    --color-header: #333333;
+    --color-theme-toggle: #f1c40f;
+    --color-primary: #4299e1;
+    --color-text: #e0e0e0;
+    --color-board: #404040;
+    --color-border: #505050;
+    --color-border-light: #666666;
+    --color-revealed: #404040;
+    --color-mine: #ff4444;
+    
+    /* 深色主题数字颜色 - 调整为更明亮的色调以提高可读性 */
+    --color-number-1: #5c9eff;
+    --color-number-2: #4caf50;
+    --color-number-3: #ff5252;
+    --color-number-4: #7986cb;
+    --color-number-5: #ff8a65;
+    --color-number-6: #4db6ac;
+    --color-number-7: #ba68c8;
+    --color-number-8: #90a4ae;
+    
+    /* 深色主题控件颜色 */
+    --color-control-bg: #333333;
+    --color-control-focus: #666666;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--color-background);
+}
+
+.game-container {
+    background-color: var(--color-container);
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px var(--color-shadow);
+}
+
+/* 全局禁用文本选择和长按菜单 */
+html, body, * {
+    /* 禁用用户选择 */
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    
+    /* 禁用触摸高亮 */
+    -webkit-tap-highlight-color: transparent !important;
+    
+    /* 禁用长按菜单 */
+    -webkit-touch-callout: none !important;
+    
+    /* 禁用拖动 */
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+    
+    /* 禁用上下文菜单 */
+    -webkit-context-menu: none !important;
+    -moz-context-menu: none !important;
+}
+
+.game-controls {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+#difficulty {
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 4px;
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-control-bg);
+    cursor: pointer;
+}
+
+#difficulty:focus {
+    outline: none;
+    border-color: var(--color-control-focus);
+}
+
+#difficulty option[value="intermediate_phone"],
+#difficulty option[value="expert_phone"] {
+    display: none;
+}
+
+/* 游戏容器和游戏面板特定样式 */
+.game-container,
+.game-container *,
+#gameBoard,
+#gameBoard * {
+    /* 确保这些属性不会被其他样式覆盖 */
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--color-header);
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+}
+
+.mine-count, .timer {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--color-text);
+    min-width: 80px;
+}
+
+#newGameBtn {
+    font-size: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 10px;
+}
+
+#newGameBtn:hover {
+    transform: scale(1.1);
+}
+
+.game-board {
+    display: grid;
+    grid-template-columns: repeat(9, 30px);
+    gap: 1px;
+    background-color: var(--color-board);
+    padding: 1px;
+    border: 3px solid var(--color-border);
+}
+
+.cell {
+    width: 30px;
+    height: 30px;
+    background-color: var(--color-container);
+    border: 2px solid;
+    border-color: var(--color-border-light) var(--color-border) var(--color-border) var(--color-border-light);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    cursor: pointer;
+    user-select: none;
+}
+
+.cell.revealed {
+    border: 1px solid var(--color-border);
+    background-color: var(--color-revealed);
+}
+
+.cell.mine {
+    background-color: var(--color-mine);
+}
+
+.cell.flagged {
+    background-color: var(--color-container);
+}
+
+.cell[data-number="1"] { color: var(--color-number-1); }
+.cell[data-number="2"] { color: var(--color-number-2); }
+.cell[data-number="3"] { color: var(--color-number-3); }
+.cell[data-number="4"] { color: var(--color-number-4); }
+.cell[data-number="5"] { color: var(--color-number-5); }
+.cell[data-number="6"] { color: var(--color-number-6); }
+.cell[data-number="7"] { color: var(--color-number-7); }
+.cell[data-number="8"] { color: var(--color-number-8); }
+
+/* 操作提示样式 */
+.game-instructions {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: var(--color-header);
+    border-radius: 4px;
+    font-size: 14px;
+    text-align: center;
+    color: var(--color-text);
+}
+
+.instructions {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .game-container {
+        padding: 10px;
+    }
+
+    /* 为非初级难度添加顶部外边距 */
+    .game-container.non-beginner {
+        margin-top: 80px;
+    }
+
+    .game-controls {
+        margin-bottom: 10px;
+    }
+
+    .game-board {
+        grid-template-columns: repeat(9, 25px);
+    }
+
+    .cell {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+    
+    /* 在手机端隐藏普通的中级和高级选项 */
+    #difficulty option[value="intermediate"],
+    #difficulty option[value="expert"] {
+        display: none;
+    }
+
+    #difficulty option[value="intermediate_phone"],
+    #difficulty option[value="expert_phone"] {
+        display: block;
+    }
+    
+    /* 在移动设备上显示移动操作提示 */
+    #mobile-instructions {
+        display: block;
+    }
+    
+    #pc-instructions {
+        display: none;
+    }
+}
+
+@media (min-width: 601px) {
+    /* 在PC设备上显示PC操作提示 */
+    #mobile-instructions {
+        display: none;
+    }
+    
+    #pc-instructions {
+        display: block;
+    }
+}
+
+/* 控制按钮样式 */
+.control-button {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    top: 20px;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--color-control-bg);
+    color: var(--color-text);
+    cursor: pointer;
+    box-shadow: 0 2px 5px var(--color-shadow);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.control-button:hover {
+    transform: scale(1.1);
+    background-color: var(--color-header);
+}
+
+/* 返回按钮位置 */
+#back-button {
+    left: 20px;
+    color: var(--color-primary);
+}
+
+/* 主题切换按钮位置 */
+#theme-button {
+    right: 20px;
+    color: var(--color-theme-toggle);
+}
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+    .control-button {
+        width: 36px;
+        height: 36px;
+    }
+}

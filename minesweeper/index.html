@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>扫雷游戏</title>
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="../assets/css/notification.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 返回按钮 -->
+    <button id="back-button" class="control-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    
+    <!-- 主题切换按钮 -->
+    <button id="theme-button" class="control-button">
+        <i class="fas fa-sun"></i>
+    </button>
+    <div class="game-container" ontouchstart="" unselectable="on">
+        <div class="game-controls">
+            <select id="difficulty">
+                <option value="beginner">初级 (10x10, 10个雷)</option>
+                <option value="intermediate">中级 (16x16, 40个雷)</option>
+                <option value="intermediate_phone">中级 (26x10, 40个雷)</option>
+                <option value="expert">高级 (16x30, 99个雷)</option>
+                <option value="expert_phone">高级 (48x10, 99个雷)</option>
+            </select>
+        </div>
+        <div class="game-header">
+            <div class="mine-count">💣 <span id="mineCount">10</span></div>
+            <button id="newGameBtn">😊</button>
+            <div class="timer">⏱️ <span id="timer">0</span></div>
+        </div>
+        <div id="gameBoard" class="game-board"></div>
+        <div class="game-instructions">
+            <div id="pc-instructions" class="instructions">
+                <p><strong>提示：</strong> 左键点击揭示方块，右键点击标记地雷</p>
+            </div>
+            <div id="mobile-instructions" class="instructions">
+                <p><strong>提示：</strong> 点击揭示方块，长按标记地雷</p>
+            </div>
+        </div>
+    </div>
+    <script src="../assets/js/common.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
