@@ -398,11 +398,11 @@ class MinesweeperGame {
                     }
                 }
             }
-            setTimeout(() => alert('恭喜你赢了！'), 100);
+            setTimeout(() => Toast.success('恭喜你赢了！'), 100);
         } else {
             this.newGameBtn.textContent = '😵';
             this.revealAllMines();
-            setTimeout(() => alert('游戏结束！'), 100);
+            setTimeout(() => Toast.error('游戏结束！'), 100);
         }
     }
 }
