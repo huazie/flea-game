@@ -23,6 +23,13 @@
             <div class="game-info">
                 <div class="score">分数: <span id="score">0</span></div>
                 <div class="level">等级: <span id="level">1</span></div>
+                <div class="difficulty-header">
+                    <select id="difficulty-select" class="difficulty-select">
+                        <option value="1000">简单</option>
+                        <option value="500">中等</option>
+                        <option value="200">困难</option>
+                    </select>
+                </div>
             </div>
         </div>
         
@@ -36,17 +43,9 @@
                     <canvas id="next-piece-canvas" width="120" height="120"></canvas>
                 </div>
                 <div class="game-controls">
-                    <button id="start-btn" class="btn">开始游戏</button>
+                    <button id="start-btn" class="btn">开始</button>
                     <button id="pause-btn" class="btn" disabled>暂停</button>
                     <button id="reset-btn" class="btn">重置</button>
-                </div>
-                <div class="difficulty">
-                    <h3>难度</h3>
-                    <div class="difficulty-options">
-                        <button class="difficulty-btn active" data-speed="1000">简单</button>
-                        <button class="difficulty-btn" data-speed="500">中等</button>
-                        <button class="difficulty-btn" data-speed="200">困难</button>
-                    </div>
                 </div>
                 <div class="instructions">
                     <h3>操作说明</h3>

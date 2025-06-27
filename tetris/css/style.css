@@ -294,32 +294,45 @@ body {
     text-align: center;
 }
 
-.difficulty-options {
+.game-info {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
-.difficulty-btn {
-    flex: 1;
-    padding: 8px;
-    border: none;
-    background-color: var(--icon-button-bg);
+.game-info > div {
+    margin: 0;
+}
+
+.difficulty-header {
+    margin-left: auto;
+}
+
+.difficulty-select {
+    padding: 8px 24px 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--board-border);
+    background-color: var(--board-bg);
     color: var(--text-color);
+    font-size: 1rem;
+    font-weight: bold;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: border-color 0.2s;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+    height: 35px;
+    box-sizing: border-box;
 }
 
-.difficulty-btn:first-child {
-    border-radius: 4px 0 0 4px;
-}
-
-.difficulty-btn:last-child {
-    border-radius: 0 4px 4px 0;
-}
-
-.difficulty-btn.active {
-    background-color: var(--primary-color);
-    color: white;
+.difficulty-select:hover, .difficulty-select:focus {
+    border-color: var(--primary-color);
 }
 
 .instructions {
@@ -363,6 +376,10 @@ body {
     .game-header {
         flex-direction: column;
         gap: 15px;
+    }
+    
+    .difficulty-header {
+        margin-left: 0;
     }
     
     .game-info {
