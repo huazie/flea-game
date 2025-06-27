@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>俄罗斯方块 - Flea Game</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/notification.css">
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="game-title">
+                <h1>俄罗斯方块</h1>
+                <a href="../index.html" class="back-btn">
+                    <i class="fas fa-home"></i>
+                </a>
+            </div>
+            <div class="game-info">
+                <div class="score">分数: <span id="score">0</span></div>
+                <div class="level">等级: <span id="level">1</span></div>
+                <div class="lines">消除行数: <span id="lines">0</span></div>
+            </div>
+            <div class="theme-toggle">
+                <i class="fas fa-moon"></i>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="theme-toggle">
+                    <label for="theme-toggle"></label>
+                </div>
+                <i class="fas fa-sun"></i>
+            </div>
+        </div>
+        
+        <div class="game-body">
+            <div class="game-board">
+                <canvas id="tetris-canvas" width="300" height="600"></canvas>
+            </div>
+            <div class="game-sidebar">
+                <div class="next-piece">
+                    <h3>下一个方块</h3>
+                    <canvas id="next-piece-canvas" width="120" height="120"></canvas>
+                </div>
+                <div class="game-controls">
+                    <button id="start-btn" class="btn">开始游戏</button>
+                    <button id="pause-btn" class="btn" disabled>暂停</button>
+                    <button id="reset-btn" class="btn">重置</button>
+                </div>
+                <div class="difficulty">
+                    <h3>难度</h3>
+                    <div class="difficulty-options">
+                        <button class="difficulty-btn active" data-speed="1000">简单</button>
+                        <button class="difficulty-btn" data-speed="500">中等</button>
+                        <button class="difficulty-btn" data-speed="200">困难</button>
+                    </div>
+                </div>
+                <div class="instructions">
+                    <h3>操作说明</h3>
+                    <ul>
+                        <li><i class="fas fa-arrow-left"></i> 左移</li>
+                        <li><i class="fas fa-arrow-right"></i> 右移</li>
+                        <li><i class="fas fa-arrow-down"></i> 加速下落</li>
+                        <li><i class="fas fa-arrow-up"></i> 旋转</li>
+                        <li><i class="fas fa-space"></i> 空格键 - 直接落下</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/common.js"></script>
+    <script src="../assets/js/notification.js"></script>
+    <script type="module" src="./js/game.js"></script>
+</body>
+</html>
