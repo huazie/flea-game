@@ -82,9 +82,7 @@ const pauseBtn = document.getElementById('pause-btn');
 const resetBtn = document.getElementById('reset-btn');
 const scoreElement = document.getElementById('score');
 const levelElement = document.getElementById('level');
-const linesElement = document.getElementById('lines');
 const difficultyBtns = document.querySelectorAll('.difficulty-btn');
-const themeToggle = document.getElementById('theme-toggle');
 
 // 初始化游戏
 function init() {
@@ -114,11 +112,6 @@ function init() {
                 gameInterval = setInterval(moveDown, gameSpeed);
             }
         });
-    });
-    
-    // 主题切换
-    themeToggle.addEventListener('change', () => {
-        document.body.setAttribute('data-theme', themeToggle.checked ? 'dark' : 'light');
     });
     
     // 初始化游戏
@@ -426,8 +419,6 @@ function clearLines() {
     if (linesCleared > 0) {
         // 更新已清除的行数
         lines += linesCleared;
-        linesElement.textContent = lines;
-        
         // 根据清除的行数计算分数
         // 1行=100分，2行=300分，3行=500分，4行=800分
         const points = [0, 100, 300, 500, 800][linesCleared];
@@ -585,7 +576,6 @@ function resetGame() {
     // 更新显示
     scoreElement.textContent = score;
     levelElement.textContent = level;
-    linesElement.textContent = lines;
     
     // 重置按钮状态
     startBtn.disabled = false;

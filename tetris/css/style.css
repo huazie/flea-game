@@ -133,10 +133,46 @@ body {
     margin: 0;
 }
 
-.back-btn {
+/* 控制按钮共用样式 */
+.control-button {
+    position: fixed;
+    top: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--header-bg);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.control-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow-color-hover);
+}
+
+.control-button i {
+    font-size: 0.9rem;
+}
+
+/* 返回按钮 */
+#back-button {
+    left: 20px;
     color: var(--primary-color);
-    text-decoration: none;
-    font-size: 1.5rem;
+}
+
+/* 主题切换按钮 */
+#theme-button {
+    right: 20px;
+    color: var(--theme-toggle-color);
 }
 
 .game-info {
@@ -144,7 +180,7 @@ body {
     gap: 15px;
 }
 
-.score, .level, .lines {
+.score, .level {
     padding: 8px 15px;
     border-radius: 4px;
     text-align: center;
@@ -159,61 +195,6 @@ body {
 .level {
     background-color: var(--level-bg);
     color: var(--level-text);
-}
-
-.lines {
-    background-color: var(--lines-bg);
-    color: var(--lines-text);
-}
-
-.theme-toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.toggle-switch {
-    position: relative;
-    width: 50px;
-    height: 24px;
-}
-
-.toggle-switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.toggle-switch label {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 34px;
-}
-
-.toggle-switch label:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-}
-
-.toggle-switch input:checked + label {
-    background-color: var(--theme-toggle-color);
-}
-
-.toggle-switch input:checked + label:before {
-    transform: translateX(26px);
 }
 
 .game-body {
@@ -371,6 +352,10 @@ body {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+    .control-button {
+        background-color: var(--bg-color);
+    }
+
     .game-body {
         flex-direction: column;
     }

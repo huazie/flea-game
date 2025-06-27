@@ -4,32 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>俄罗斯方块 - Flea Game</title>
-    <link rel="stylesheet" href="../assets/css/common.css">
     <link rel="stylesheet" href="../assets/css/notification.css">
-    <link rel="stylesheet" href="./css/style.css">
-    <link rel="stylesheet" href="../node_modules/@fortawesome/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <button id="back-button" class="control-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <button id="theme-button" class="control-button">
+        <i class="fas fa-sun"></i>
+    </button>
     <div class="game-container">
         <div class="game-header">
             <div class="game-title">
                 <h1>俄罗斯方块</h1>
-                <a href="../index.html" class="back-btn">
-                    <i class="fas fa-home"></i>
-                </a>
             </div>
             <div class="game-info">
                 <div class="score">分数: <span id="score">0</span></div>
                 <div class="level">等级: <span id="level">1</span></div>
-                <div class="lines">消除行数: <span id="lines">0</span></div>
-            </div>
-            <div class="theme-toggle">
-                <i class="fas fa-moon"></i>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="theme-toggle">
-                    <label for="theme-toggle"></label>
-                </div>
-                <i class="fas fa-sun"></i>
             </div>
         </div>
         
@@ -71,6 +64,6 @@
 
     <script src="../assets/js/common.js"></script>
     <script src="../assets/js/notification.js"></script>
-    <script type="module" src="./js/game.js"></script>
+    <script src="js/game.js"></script>
 </body>
 </html>
