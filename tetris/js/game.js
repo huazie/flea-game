@@ -636,14 +636,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 创建游戏实例
     const game = new TetrisGame();
     
-    // 返回按钮功能
-    document.getElementById('back-button').addEventListener('click', () => {
-        window.location.href = '../index.html';
-    });
-    
     // 主题切换功能
     document.getElementById('theme-button').addEventListener('click', () => {
-        toggleTheme();
         game.renderer.drawBoard(game.board, game.currentPiece);
         game.renderer.drawNextPiece(game.nextPiece);
     });
