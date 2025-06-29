@@ -283,13 +283,11 @@ class GameController {
     setupEventListeners() {
         document.addEventListener('keydown', this.handleKeyPress.bind(this));
         
-        const startBtn = document.getElementById('start-btn');
-        const pauseBtn = document.getElementById('pause-btn');
+        const playPauseBtn = document.getElementById('play-pause-btn');
         const resetBtn = document.getElementById('reset-btn');
         const difficultySelect = document.getElementById('difficulty-select');
         
-        startBtn.addEventListener('click', () => this.game.start());
-        pauseBtn.addEventListener('click', () => this.game.togglePause());
+        playPauseBtn.addEventListener('click', () => this.game.togglePlayPause());
         resetBtn.addEventListener('click', () => this.game.reset());
         
         difficultySelect.addEventListener('change', () => {
@@ -347,8 +345,7 @@ class TetrisGame {
         
         this.scoreElement = document.getElementById('score');
         this.levelElement = document.getElementById('level');
-        this.startBtn = document.getElementById('start-btn');
-        this.pauseBtn = document.getElementById('pause-btn');
+        this.playPauseBtn = document.getElementById('play-pause-btn');
         
         // 初始化游戏控制器
         this.controller = new GameController(this);
@@ -530,37 +527,27 @@ class TetrisGame {
         }
     }
 
-    start() {
-        if (this.isGameStarted && !this.isGameOver) {
+    togglePlayPause() {
+        // 如果游戏结束，重置并开始新游戏
+        if (this.isGameOver) {
+            this.reset();
+            this.startGame();
             return;
         }
         
-        // 重置游戏状态
-        this.reset();
-        
-        // 更新按钮状态
-        this.startBtn.disabled = true;
-        this.pauseBtn.disabled = false;
-        
-        // 开始游戏循环
-        this.isGameStarted = true;
-        this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
-        
-        // 显示通知
-        this.showNotification('游戏开始！', 1500);
-    }
-
-    togglePause() {
-        if (!this.isGameStarted || this.isGameOver) {
+        // 如果游戏尚未开始，开始游戏
+        if (!this.isGameStarted) {
+            this.startGame();
             return;
         }
         
+        // 如果游戏已经开始，则切换暂停/继续状态
         this.isPaused = !this.isPaused;
         
         if (this.isPaused) {
             // 暂停游戏
             clearInterval(this.gameInterval);
-            this.pauseBtn.textContent = '继续';
+            this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
             
             // 显示暂停消息
             this.renderer.showPause();
@@ -569,11 +556,23 @@ class TetrisGame {
         } else {
             // 继续游戏
             this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
-            this.pauseBtn.textContent = '暂停';
+            this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
             this.renderer.drawBoard(this.board, this.currentPiece);
             
             this.showNotification('游戏继续', 1500);
         }
+    }
+    
+    startGame() {
+        // 开始游戏循环
+        this.isGameStarted = true;
+        this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
+        
+        // 更新按钮状态
+        this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        
+        // 显示通知
+        this.showNotification('游戏开始！', 1500);
     }
 
     gameOver() {
@@ -581,9 +580,7 @@ class TetrisGame {
         clearInterval(this.gameInterval);
         
         // 更新按钮状态
-        this.startBtn.disabled = false;
-        this.startBtn.textContent = '重新开始';
-        this.pauseBtn.disabled = true;
+        this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         
         // 显示游戏结束消息
         this.renderer.showGameOver(this.score);
@@ -607,10 +604,7 @@ class TetrisGame {
         this.levelElement.textContent = this.level;
         
         // 重置按钮状态
-        this.startBtn.disabled = false;
-        this.startBtn.textContent = '开始';
-        this.pauseBtn.disabled = true;
-        this.pauseBtn.textContent = '暂停';
+        this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         
         // 清除游戏循环
         clearInterval(this.gameInterval);
