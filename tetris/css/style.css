@@ -248,8 +248,8 @@ body {
     border: 2px solid var(--board-border);
     background-color: var(--grid-bg);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    max-height: 600px;
     width: auto;
+    display: block; /* 确保canvas正确显示 */
 }
 
 .game-info-panel {
@@ -296,7 +296,6 @@ body {
     align-items: center;
     width: 100%;
     padding: 20px;
-    margin-top: 20px;
 }
 
 .dpad-container {

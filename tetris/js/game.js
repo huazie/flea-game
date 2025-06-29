@@ -1,8 +1,8 @@
 // 游戏常量
 const GAME_CONSTANTS = {
-    COLS: 10,           // 游戏区域宽度（列数）
-    ROWS: 20,           // 游戏区域高度（行数）
-    BLOCK_SIZE: 30,     // 方块大小（像素）
+    COLS: 15,           // 游戏区域宽度（列数）
+    ROWS: 30,           // 游戏区域高度（行数）
+    BLOCK_SIZE: 15,     // 方块大小（像素）
     COLORS: [
         null,
         '#00bcd4', // I - 青色
@@ -136,6 +136,31 @@ class Renderer {
         this.blockSize = blockSize;
         this.mainCanvas = mainCanvas;
         this.nextCanvas = nextCanvas;
+        
+        // 保存原始尺寸比例
+        this.aspectRatio = GAME_CONSTANTS.COLS / GAME_CONSTANTS.ROWS;
+    }
+    
+    // 调整方块大小和画布尺寸
+    resize(newBlockSize) {
+        this.blockSize = newBlockSize;
+        
+        // 调整主画布尺寸
+        this.mainCanvas.width = GAME_CONSTANTS.COLS * this.blockSize;
+        this.mainCanvas.height = GAME_CONSTANTS.ROWS * this.blockSize;
+        
+        // 调整预览画布尺寸 - 确保足够大以显示任何方块，但不超过一定大小
+        const maxPreviewSize = 150; // 预览区域的最大尺寸
+        const previewBlockSize = this.blockSize * 0.8;
+        const previewSize = Math.min(5 * previewBlockSize, maxPreviewSize);
+        
+        // 保持预览区域为正方形
+        this.nextCanvas.width = previewSize;
+        this.nextCanvas.height = previewSize;
+        
+        // 更新预览区域的样式，确保它在视觉上适应新的尺寸
+        this.nextCanvas.style.maxWidth = `${previewSize}px`;
+        this.nextCanvas.style.maxHeight = `${previewSize}px`;
     }
 
     drawBlock(ctx, x, y, colorIndex) {
@@ -216,32 +241,33 @@ class Renderer {
         
         if (!piece) return;
         
-        const blockSize = 24; // 预览区块大小
+        // 使用主游戏区域方块大小的比例作为预览区块大小
+        const previewBlockSize = this.blockSize * 0.8;
         const shape = piece.shape;
         const width = shape[0].length;
         const height = shape.length;
         
         // 计算居中位置
-        const offsetX = (this.nextCanvas.width - width * blockSize) / 2;
-        const offsetY = (this.nextCanvas.height - height * blockSize) / 2;
+        const offsetX = (this.nextCanvas.width - width * previewBlockSize) / 2;
+        const offsetY = (this.nextCanvas.height - height * previewBlockSize) / 2;
         
         // 绘制方块
         for (let y = 0; y < shape.length; y++) {
             for (let x = 0; x < shape[y].length; x++) {
                 if (shape[y][x] !== 0) {
-                    const blockX = offsetX + x * blockSize;
-                    const blockY = offsetY + y * blockSize;
+                    const blockX = offsetX + x * previewBlockSize;
+                    const blockY = offsetY + y * previewBlockSize;
                     
                     this.nextCtx.fillStyle = GAME_CONSTANTS.COLORS[shape[y][x]];
-                    this.nextCtx.fillRect(blockX, blockY, blockSize, blockSize);
+                    this.nextCtx.fillRect(blockX, blockY, previewBlockSize, previewBlockSize);
                     
                     this.nextCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--block-border');
                     this.nextCtx.lineWidth = 1;
-                    this.nextCtx.strokeRect(blockX, blockY, blockSize, blockSize);
+                    this.nextCtx.strokeRect(blockX, blockY, previewBlockSize, previewBlockSize);
                     
                     this.nextCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                    this.nextCtx.fillRect(blockX, blockY, blockSize, blockSize / 4);
-                    this.nextCtx.fillRect(blockX, blockY, blockSize / 4, blockSize);
+                    this.nextCtx.fillRect(blockX, blockY, previewBlockSize, previewBlockSize / 4);
+                    this.nextCtx.fillRect(blockX, blockY, previewBlockSize / 4, previewBlockSize);
                 }
             }
         }
@@ -396,8 +422,73 @@ class TetrisGame {
         // 初始化游戏控制器
         this.controller = new GameController(this);
         
+        // 调整游戏大小以适应窗口
+        this.resizeGame();
+        
+        // 添加窗口大小变化事件监听器
+        window.addEventListener('resize', () => {
+            this.resizeGame();
+            // 重新绘制游戏
+            this.renderer.drawBoard(this.board, this.currentPiece);
+            this.renderer.drawNextPiece(this.nextPiece);
+        });
+        
         // 初始化游戏
         this.init();
+    }
+    
+    // 调整游戏大小以适应窗口
+    resizeGame() {
+        // 防抖处理
+        if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+        }
+        
+        this.resizeTimeout = setTimeout(() => {
+            // 获取游戏容器和其他UI元素
+            const gameContainer = document.querySelector('.game-container');
+            const controlsContainer = document.querySelector('.controls-container');
+            const containerStyle = window.getComputedStyle(gameContainer);
+            
+            // 计算容器的内边距
+            const paddingVertical = parseFloat(containerStyle.paddingTop) + parseFloat(containerStyle.paddingBottom);
+            const paddingHorizontal = parseFloat(containerStyle.paddingLeft) + parseFloat(containerStyle.paddingRight);
+            
+            // 计算控制区域的高度
+            const controlsHeight = controlsContainer ? controlsContainer.offsetHeight : 150;
+            
+            // 计算可用空间
+            const minWidth = 280; // 最小游戏区域宽度
+            const maxWidth = 500; // 最大游戏区域宽度
+            const availableHeight = window.innerHeight - paddingVertical - controlsHeight - 20; // 额外留出20px的间距
+            const availableWidth = Math.min(Math.max(window.innerWidth - paddingHorizontal, minWidth), maxWidth);
+            
+            // 计算基于宽高比的方块大小
+            const heightBasedSize = Math.floor(availableHeight / GAME_CONSTANTS.ROWS);
+            const widthBasedSize = Math.floor(availableWidth / GAME_CONSTANTS.COLS);
+            
+            // 选择较小的尺寸以确保完全适应
+            let newBlockSize = Math.min(heightBasedSize, widthBasedSize);
+            
+            // 根据设备类型设置不同的大小限制
+            const isMobile = window.innerWidth <= 768;
+            const minBlockSize = isMobile ? 12 : 15;
+            const maxBlockSize = isMobile ? 30 : 40;
+            
+            // 应用大小限制
+            newBlockSize = Math.max(minBlockSize, Math.min(newBlockSize, maxBlockSize));
+            
+            // 调整渲染器的方块大小和画布尺寸
+            this.renderer.resize(newBlockSize);
+            
+            // 重新绘制游戏画面
+            if (this.board && this.currentPiece) {
+                this.renderer.drawBoard(this.board, this.currentPiece);
+                if (this.nextPiece) {
+                    this.renderer.drawNextPiece(this.nextPiece);
+                }
+            }
+        }, 150); // 150ms的防抖延迟
     }
 
     init() {
