@@ -20,27 +20,49 @@
         <i class="fas fa-sun"></i>
     </button>
     <div class="game-container">
-        <div class="game-body">
-            <div class="game-board">
-                <canvas id="tetris-canvas" width="300" height="600"></canvas>
-            </div>
-            <div class="game-sidebar">
-                <h3>下一个方块</h3>
-                <canvas id="next-piece-canvas" width="120" height="120"></canvas>
-                <div class="game-info">
-                    <div class="score">分数: <span id="score">0</span></div>
-                    <div class="level">等级: <span id="level">1</span></div>
-                    <select id="difficulty-select" class="difficulty-select">
-                        <option value="1000">简单</option>
-                        <option value="500">中等</option>
-                        <option value="200">困难</option>
-                    </select>
+        <div class="game-screen">
+            <div class="game-display">
+                <div class="game-board">
+                    <canvas id="tetris-canvas" width="300" height="600"></canvas>
+                </div>
+                <div class="game-info-panel">
+                    <div class="next-piece">
+                        <h3>下一个方块</h3>
+                        <canvas id="next-piece-canvas" width="120" height="120"></canvas>
+                    </div>
+                    <div class="game-stats">
+                        <div class="score">分数: <span id="score">0</span></div>
+                        <div class="level">等级: <span id="level">1</span></div>
+                        <select id="difficulty-select" class="difficulty-select">
+                            <option value="1000">简单</option>
+                            <option value="500">中等</option>
+                            <option value="200">困难</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="game-controls">
-            <button id="play-pause-btn" class="btn"><i class="fas fa-play"></i></button>
-            <button id="reset-btn" class="btn"><i class="fas fa-redo"></i></button>
+        <div class="game-dpad">
+            <div class="dpad-container">
+                <button id="up-btn" class="dpad-btn dpad-up"><i class="fas fa-chevron-up"></i></button>
+                <div class="dpad-middle">
+                    <button id="left-btn" class="dpad-btn dpad-left"><i class="fas fa-chevron-left"></i></button>
+                    <div class="dpad-center"></div>
+                    <button id="right-btn" class="dpad-btn dpad-right"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <button id="down-btn" class="dpad-btn dpad-down"><i class="fas fa-chevron-down"></i></button>
+            </div>
+            
+            <div class="action-buttons">
+                <div class="control-buttons">
+                    <button id="play-pause-btn" class="btn"><i class="fas fa-play"></i></button>
+                    <button id="reset-btn" class="btn"><i class="fas fa-redo"></i></button>
+                </div>
+                <div class="game-buttons">
+                    <button id="rotate-btn" class="action-btn">A</button>
+                    <button id="drop-btn" class="action-btn">B</button>
+                </div>
+            </div>
         </div>
     </div>
 

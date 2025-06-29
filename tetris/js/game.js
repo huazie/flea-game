@@ -287,11 +287,52 @@ class GameController {
         const resetBtn = document.getElementById('reset-btn');
         const difficultySelect = document.getElementById('difficulty-select');
         
+        // 基本控制按钮
         playPauseBtn.addEventListener('click', () => this.game.togglePlayPause());
         resetBtn.addEventListener('click', () => this.game.reset());
         
         difficultySelect.addEventListener('change', () => {
             this.game.setSpeed(parseInt(difficultySelect.value));
+        });
+
+        // D-pad 方向键
+        const upBtn = document.getElementById('up-btn');
+        const leftBtn = document.getElementById('left-btn');
+        const rightBtn = document.getElementById('right-btn');
+        const downBtn = document.getElementById('down-btn');
+        
+        // 动作按钮
+        const rotateBtn = document.getElementById('rotate-btn');
+        const dropBtn = document.getElementById('drop-btn');
+
+        // 添加触摸和点击事件
+        const addButtonEvents = (button, action) => {
+            if (!button) return;
+            
+            // 移动设备触摸事件
+            button.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                action();
+            });
+            
+            // 桌面点击事件
+            button.addEventListener('mousedown', action);
+        };
+
+        // 绑定方向键事件
+        addButtonEvents(leftBtn, () => this.game.moveLeft());
+        addButtonEvents(rightBtn, () => this.game.moveRight());
+        addButtonEvents(downBtn, () => this.game.moveDown());
+        addButtonEvents(upBtn, () => this.game.rotatePiece());
+
+        // 绑定动作按钮事件
+        addButtonEvents(rotateBtn, () => this.game.rotatePiece());
+        addButtonEvents(dropBtn, () => this.game.hardDrop());
+
+        // 防止长按时触发浏览器的默认行为
+        document.querySelectorAll('.dpad-btn, .action-btn').forEach(button => {
+            button.addEventListener('touchstart', (e) => e.preventDefault());
+            button.addEventListener('contextmenu', (e) => e.preventDefault());
         });
     }
 
@@ -315,8 +356,13 @@ class GameController {
                 this.game.hardDrop();
                 break;
             case 80: // P键
-                this.game.togglePause();
+                this.game.togglePlayPause();
                 break;
+        }
+        
+        // 防止空格键触发页面滚动
+        if (event.keyCode === 32) {
+            event.preventDefault();
         }
     }
 }
