@@ -339,11 +339,28 @@ class GameController {
             // 移动设备触摸事件
             button.addEventListener('touchstart', (e) => {
                 e.preventDefault();
+                button.classList.add('active');
                 action();
             });
             
+            button.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                button.classList.remove('active');
+            });
+            
             // 桌面点击事件
-            button.addEventListener('mousedown', action);
+            button.addEventListener('mousedown', (e) => {
+                button.classList.add('active');
+                action();
+            });
+            
+            button.addEventListener('mouseup', () => {
+                button.classList.remove('active');
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                button.classList.remove('active');
+            });
         };
 
         // 绑定方向键事件

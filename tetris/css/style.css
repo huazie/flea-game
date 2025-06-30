@@ -454,9 +454,11 @@ body {
     transition: all 0.2s ease;
 }
 
-.dpad-btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #1a1a1a, 0 3px 5px rgba(0, 0, 0, 0.3);
+.dpad-btn:active, .dpad-btn.active {
+    transform: translateY(4px) !important;
+    box-shadow: 0 1px 0 #1a1a1a, 0 2px 3px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+    transition: none;
 }
 
 .action-buttons {
@@ -488,16 +490,20 @@ body {
     height: 60px;
     border: none;
     border-radius: 50%;
-    background: linear-gradient(145deg, var(--action-btn-gradient-light), var(--action-btn-gradient-dark));
-    color: var(--action-btn-text);
+    background: linear-gradient(145deg, #ff5252, #d32f2f);
+    color: white;
     font-size: 20px;
     font-weight: bold;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 0 var(--action-btn-shadow-dark), 0 6px 10px var(--shadow-color);
-    transition: all 0.2s ease;
+    box-shadow: 0 4px 0 #b71c1c, 0 6px 10px rgba(0, 0, 0, 0.3);
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s ease;
 }
 
 .action-btn:hover {
@@ -505,9 +511,11 @@ body {
     background: linear-gradient(145deg, #ff6262, #e33f3f);
 }
 
-.action-btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #b71c1c, 0 3px 5px rgba(0, 0, 0, 0.3);
+.action-btn:active, .action-btn.active {
+    transform: translateY(4px) !important;
+    box-shadow: 0 1px 0 #b71c1c, 0 2px 3px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, #d32f2f, #c62828);
+    transition: none;
 }
 
 .btn {
@@ -527,6 +535,8 @@ body {
     box-shadow: 0 4px 0 #b71c1c, 0 6px 10px rgba(0, 0, 0, 0.3);
     position: relative;
     overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
 }
 
 .btn::after {
@@ -559,33 +569,6 @@ body {
     opacity: 0.6;
     transform: none;
     background-color: var(--button-disabled-bg);
-}
-
-#start-btn {
-    background-color: var(--start-button-bg);
-    color: var(--start-button-text);
-}
-
-#start-btn:hover {
-    background-color: var(--start-button-hover);
-}
-
-#pause-btn {
-    background-color: var(--pause-button-bg);
-    color: var(--pause-button-text);
-}
-
-#pause-btn:hover {
-    background-color: var(--pause-button-hover);
-}
-
-#reset-btn {
-    background-color: var(--reset-button-bg);
-    color: var(--reset-button-text);
-}
-
-#reset-btn:hover {
-    background-color: var(--reset-button-hover);
 }
 
 .controls-hint {
@@ -642,6 +625,10 @@ body {
 
     .pc-hint {
         display: none;
+    }
+
+    .game-dpad {
+        padding: 10px;
     }
 }
 
