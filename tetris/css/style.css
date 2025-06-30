@@ -231,7 +231,7 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background-color: var(--header-bg);
+    background-color: var(--bg-color);
     border: none;
     cursor: pointer;
     display: flex;
@@ -588,19 +588,35 @@ body {
     background-color: var(--reset-button-hover);
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-    .control-button {
-        background-color: var(--bg-color);
-    }
+.controls-hint {
+    width: 100%;
+    margin-top: 5px;
+    padding: 0px;
+    background-color: var(--board-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-size: 0.7rem;
+    color: var(--text-color);
+    text-align: center;
+}
 
+.hint p {
+    text-align: left;
+    padding-left: 4px;
+}
+
+.pc-hint {
+    display: block;
+}
+
+@media (max-width: 768px) {
     .game-body {
         flex-direction: column;
     }
     
     #tetris-canvas {
         width: 100%;
-        height: auto;
+        height: 100%;
     }
     
     .game-sidebar {
@@ -614,6 +630,19 @@ body {
     .score, .level, .difficulty-select {
         font-size: 0.7rem;
     }
+
+    .controls-hint {
+        border-radius: 8px;
+        font-size: 0.6rem;
+    }
+
+    .hint p {
+        padding-left: 3px;
+    }
+
+    .pc-hint {
+        display: none;
+    }
 }
 
 @media (max-width: 480px) {
@@ -621,12 +650,15 @@ body {
         padding: 10px;
     }
     
-    
     .next-piece h3 {
         font-size: 0.6rem;
     }
 
     .score, .level, .difficulty-select {
         font-size: 0.6rem;
+    }
+
+    .controls-hint {
+        font-size: 0.5rem;
     }
 }
