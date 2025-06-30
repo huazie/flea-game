@@ -39,6 +39,48 @@
     --block-s: #4caf50; /* S形方块 - 绿色 */
     --block-t: #9c27b0; /* T形方块 - 紫色 */
     --block-z: #f44336; /* Z形方块 - 红色 */
+    
+    /* 游戏机外观颜色 */
+    --console-bg: #444;
+    --console-border: #222;
+    --console-indicator: #f44336;
+    --console-indicator-glow: rgba(255, 0, 0, 0.5);
+    --console-text: #ddd;
+    
+    /* 游戏屏幕颜色 */
+    --screen-bg: #9EAD86;
+    --screen-border: #555;
+    --screen-overlay-light: rgba(255, 255, 255, 0.1);
+    --screen-overlay-mid: rgba(255, 255, 255, 0.05);
+    --screen-overlay-dark: rgba(0, 0, 0, 0.05);
+    
+    /* 控制按钮颜色 */
+    --dpad-center: #555;
+    --dpad-btn-gradient-light: #3a3a3a;
+    --dpad-btn-gradient-dark: #2a2a2a;
+    --dpad-btn-text: #fff;
+    --dpad-btn-shadow-dark: #1a1a1a;
+    --dpad-btn-shadow: rgba(0, 0, 0, 0.3);
+    
+    /* 控制面板颜色 */
+    --control-panel-bg: #333;
+    
+    /* 动作按钮颜色 */
+    --action-btn-gradient-light: #ff5252;
+    --action-btn-gradient-dark: #d32f2f;
+    --action-btn-text: white;
+    --action-btn-shadow-dark: #b71c1c;
+    --action-btn-shadow: rgba(0, 0, 0, 0.3);
+    --action-btn-hover-light: #ff6262;
+    --action-btn-hover-dark: #e33f3f;
+    
+    /* 按钮高光效果 */
+    --btn-highlight: rgba(255, 255, 255, 0.3);
+    
+    /* 阴影颜色 */
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --shadow-color-hover: rgba(0, 0, 0, 0.4);
+    --border-color-focus: var(--primary-color);
 }
 
 /* 深色主题变量 */
@@ -82,6 +124,48 @@
     --block-s: #43a047; /* S形方块 - 深绿色 */
     --block-t: #7b1fa2; /* T形方块 - 深紫色 */
     --block-z: #d32f2f; /* Z形方块 - 深红色 */
+    
+    /* 游戏机外观颜色 - 深色主题 */
+    --console-bg: #333;
+    --console-border: #111;
+    --console-indicator: #e53935;
+    --console-indicator-glow: rgba(229, 57, 53, 0.5);
+    --console-text: #bbb;
+    
+    /* 游戏屏幕颜色 - 深色主题 */
+    --screen-bg: #8A9A76;
+    --screen-border: #444;
+    --screen-overlay-light: rgba(255, 255, 255, 0.08);
+    --screen-overlay-mid: rgba(255, 255, 255, 0.04);
+    --screen-overlay-dark: rgba(0, 0, 0, 0.08);
+    
+    /* 控制按钮颜色 - 深色主题 */
+    --dpad-center: #444;
+    --dpad-btn-gradient-light: #2a2a2a;
+    --dpad-btn-gradient-dark: #1a1a1a;
+    --dpad-btn-text: #e0e0e0;
+    --dpad-btn-shadow-dark: #000;
+    --dpad-btn-shadow: rgba(0, 0, 0, 0.4);
+    
+    /* 控制面板颜色 - 深色主题 */
+    --control-panel-bg: #222;
+    
+    /* 动作按钮颜色 - 深色主题 */
+    --action-btn-gradient-light: #e53935;
+    --action-btn-gradient-dark: #c62828;
+    --action-btn-text: #e0e0e0;
+    --action-btn-shadow-dark: #8e0000;
+    --action-btn-shadow: rgba(0, 0, 0, 0.4);
+    --action-btn-hover-light: #ef5350;
+    --action-btn-hover-dark: #d32f2f;
+    
+    /* 按钮高光效果 - 深色主题 */
+    --btn-highlight: rgba(255, 255, 255, 0.2);
+    
+    /* 阴影颜色 - 深色主题 */
+    --shadow-color: rgba(0, 0, 0, 0.4);
+    --shadow-color-hover: rgba(0, 0, 0, 0.5);
+    --border-color-focus: var(--primary-color);
 }
 
 * {
@@ -108,10 +192,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-color: #444;
+    background-color: var(--console-bg);
     border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    border: 15px solid #222;
+    box-shadow: 0 10px 25px var(--shadow-color);
+    border: 15px solid var(--console-border);
     position: relative;
 }
 
@@ -182,32 +266,15 @@ body {
     color: var(--theme-toggle-color);
 }
 
-.score, .level {
-    padding: 8px 15px;
-    border-radius: 4px;
-    text-align: center;
-    font-weight: bold;
-}
-
-.score {
-    background-color: var(--score-bg);
-    color: var(--score-text);
-}
-
-.level {
-    background-color: var(--level-bg);
-    color: var(--level-text);
-}
-
 .game-screen {
     width: 100%;
     max-width: 450px;
-    background-color: #9EAD86;  /* 经典LCD屏幕的绿色 */
+    background-color: var(--screen-bg);  /* 经典LCD屏幕的绿色 */
     border-radius: 8px;
     padding: 15px;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 0 10px var(--shadow-color);
     margin-bottom: 20px;
-    border: 8px solid #555;
+    border: 8px solid var(--screen-border);
     position: relative;
     overflow: hidden;
 }
@@ -230,11 +297,11 @@ body {
 
 .game-display {
     display: flex;
-    background-color: #9EAD86;
+    background-color: var(--screen-bg);
     border-radius: 4px;
     padding: 10px;
     gap: 10px;
-    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+    box-shadow: inset 0 0 5px var(--shadow-color);
 }
 
 .game-board {
@@ -273,6 +340,7 @@ body {
 .next-piece h3 {
     margin: 0;
     color: var(--text-color);
+    font-size: 0.9rem;
 }
 
 #next-piece-canvas {
@@ -281,6 +349,59 @@ body {
     height: auto;
     border: 1px solid var(--board-border);
     background-color: var(--grid-bg);
+}
+
+.score, .level {
+    padding: 8px 8px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.score {
+    background-color: var(--score-bg);
+    color: var(--score-text);
+}
+
+.level {
+    background-color: var(--level-bg);
+    color: var(--level-text);
+}
+
+.score, .level, .difficulty-select {
+    width: 100%;
+    max-width: 120px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.difficulty-select {
+    padding: 8px 24px 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--board-border);
+    background-color: var(--board-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: border-color 0.2s;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+    height: 35px;
+    box-sizing: border-box;
+}
+
+.difficulty-select:hover, .difficulty-select:focus {
+    border-color: var(--primary-color);
+}
+
+.difficulty-select:focus {
+    outline: none;
+    border-color: var(--border-color-focus);
 }
 
 .game-stats {
@@ -314,7 +435,7 @@ body {
 .dpad-center {
     width: 30px;
     height: 30px;
-    background-color: #444;
+    background-color: var(--dpad-center);
     border-radius: 50%;
 }
 
@@ -323,13 +444,13 @@ body {
     height: 50px;
     border: none;
     border-radius: 8px;
-    background: linear-gradient(145deg, #3a3a3a, #2a2a2a);
-    color: #fff;
+    background: linear-gradient(145deg, var(--dpad-btn-gradient-light), var(--dpad-btn-gradient-dark));
+    color: var(--dpad-btn-text);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 0 #1a1a1a, 0 6px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 0 var(--dpad-btn-shadow-dark), 0 6px 10px var(--dpad-btn-shadow);
     transition: all 0.2s ease;
 }
 
@@ -350,9 +471,9 @@ body {
     justify-content: center;
     gap: 30px;
     padding: 15px;
-    background-color: #333;
+    background-color: var(--control-panel-bg);
     border-radius: 50px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 8px var(--shadow-color);
 }
 
 .game-buttons {
@@ -367,15 +488,15 @@ body {
     height: 60px;
     border: none;
     border-radius: 50%;
-    background: linear-gradient(145deg, #ff5252, #d32f2f);
-    color: white;
+    background: linear-gradient(145deg, var(--action-btn-gradient-light), var(--action-btn-gradient-dark));
+    color: var(--action-btn-text);
     font-size: 20px;
     font-weight: bold;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 0 #b71c1c, 0 6px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 0 var(--action-btn-shadow-dark), 0 6px 10px var(--shadow-color);
     transition: all 0.2s ease;
 }
 
@@ -467,50 +588,6 @@ body {
     background-color: var(--reset-button-hover);
 }
 
-.game-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    width: 120px;
-}
-
-.score, .level, .difficulty-select {
-    width: 100%;
-    max-width: 120px;
-}
-
-.difficulty-select {
-    padding: 8px 24px 8px 12px;
-    border-radius: 4px;
-    border: 1px solid var(--board-border);
-    background-color: var(--board-bg);
-    color: var(--text-color);
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: border-color 0.2s;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 14px;
-    height: 35px;
-    box-sizing: border-box;
-}
-
-.difficulty-select:hover, .difficulty-select:focus {
-    border-color: var(--primary-color);
-}
-
-.difficulty-select:focus {
-    outline: none;
-    border-color: var(--border-color-focus);
-}
-
 /* 响应式设计 */
 @media (max-width: 768px) {
     .control-button {
@@ -529,6 +606,14 @@ body {
     .game-sidebar {
         width: 100%;
     }
+
+    .next-piece h3 {
+        font-size: 0.7rem;
+    }
+
+    .score, .level, .difficulty-select {
+        font-size: 0.7rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -536,8 +621,12 @@ body {
         padding: 10px;
     }
     
-    .score, .level {
-        padding: 5px 10px;
-        font-size: 0.9rem;
+    
+    .next-piece h3 {
+        font-size: 0.6rem;
+    }
+
+    .score, .level, .difficulty-select {
+        font-size: 0.6rem;
     }
 }

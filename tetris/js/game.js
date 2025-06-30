@@ -5,13 +5,13 @@ const GAME_CONSTANTS = {
     BLOCK_SIZE: 15,     // 方块大小（像素）
     COLORS: [
         null,
-        '#00bcd4', // I - 青色
-        '#2196f3', // J - 蓝色
-        '#ff9800', // L - 橙色
-        '#ffeb3b', // O - 黄色
-        '#4caf50', // S - 绿色
-        '#9c27b0', // T - 紫色
-        '#f44336'  // Z - 红色
+        getComputedStyle(document.documentElement).getPropertyValue('--tetromino-i-color') || '#00bcd4', // I - 青色
+        getComputedStyle(document.documentElement).getPropertyValue('--tetromino-j-color') || '#2196f3', // J - 蓝色
+        getComputedStyle(document.documentElement).getPropertyValue('--tetromino-l-color') || '#ff9800', // L - 橙色
+        getComputedStyle(document.documentElement).getPropertyValue('--tetromino-o-color') || '#ffeb3b', // O - 黄色
+        getComputedStyle(document.documentElement).getPropertyValue('--tetromino-s-color') || '#4caf50', // S - 绿色
+        getComputedStyle(document.documentElement).getPropertyValue('--tetromino-t-color') || '#9c27b0', // T - 紫色
+        getComputedStyle(document.documentElement).getPropertyValue('--tetromino-z-color') || '#f44336'  // Z - 红色
     ],
     SHAPES: [
         [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], // I
@@ -172,12 +172,12 @@ class Renderer {
         ctx.fillRect(blockX, blockY, this.blockSize, this.blockSize);
         
         // 绘制边框
-        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--block-border');
+        ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--block-border') || 'rgba(0, 0, 0, 0.3)';
         ctx.lineWidth = 1;
         ctx.strokeRect(blockX, blockY, this.blockSize, this.blockSize);
         
         // 绘制高光效果
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--block-highlight') || 'rgba(255, 255, 255, 0.2)';
         ctx.fillRect(blockX, blockY, this.blockSize, this.blockSize / 4);
         ctx.fillRect(blockX, blockY, this.blockSize / 4, this.blockSize);
     }
@@ -204,7 +204,7 @@ class Renderer {
     }
 
     drawGrid() {
-        this.mainCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid-border');
+        this.mainCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--grid-border') || 'rgba(0, 0, 0, 0.1)';
         this.mainCtx.lineWidth = 0.5;
         
         // 绘制水平线
@@ -265,7 +265,7 @@ class Renderer {
                     this.nextCtx.lineWidth = 1;
                     this.nextCtx.strokeRect(blockX, blockY, previewBlockSize, previewBlockSize);
                     
-                    this.nextCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                    this.nextCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--block-highlight') || 'rgba(255, 255, 255, 0.2)';
                     this.nextCtx.fillRect(blockX, blockY, previewBlockSize, previewBlockSize / 4);
                     this.nextCtx.fillRect(blockX, blockY, previewBlockSize / 4, previewBlockSize);
                 }
@@ -274,25 +274,26 @@ class Renderer {
     }
 
     showGameOver(score) {
-        this.mainCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        this.mainCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--game-over-overlay') || 'rgba(0, 0, 0, 0.7)';
         this.mainCtx.fillRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
         
         this.mainCtx.font = 'bold 36px Arial';
-        this.mainCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--game-over-text');
+        this.mainCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--game-over-text') || '#ffffff';
         this.mainCtx.textAlign = 'center';
         this.mainCtx.textBaseline = 'middle';
         this.mainCtx.fillText('游戏结束', this.mainCanvas.width / 2, this.mainCanvas.height / 2 - 30);
         
         this.mainCtx.font = '24px Arial';
+        this.mainCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--game-over-text') || '#ffffff';
         this.mainCtx.fillText(`最终分数: ${score}`, this.mainCanvas.width / 2, this.mainCanvas.height / 2 + 20);
     }
 
     showPause() {
-        this.mainCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.mainCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--pause-overlay') || 'rgba(0, 0, 0, 0.5)';
         this.mainCtx.fillRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
         
         this.mainCtx.font = 'bold 36px Arial';
-        this.mainCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--game-over-text');
+        this.mainCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--game-over-text') || '#ffffff';
         this.mainCtx.textAlign = 'center';
         this.mainCtx.textBaseline = 'middle';
         this.mainCtx.fillText('已暂停', this.mainCanvas.width / 2, this.mainCanvas.height / 2);
