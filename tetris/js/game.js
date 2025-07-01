@@ -182,7 +182,7 @@ class Renderer {
         ctx.fillRect(blockX, blockY, this.blockSize / 4, this.blockSize);
     }
 
-    drawBoard(board, currentPiece) {
+    drawBoard(board, currentPiece, isGameOver = false, score = 0) {
         this.mainCtx.clearRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
         
         // 绘制网格
@@ -200,6 +200,11 @@ class Renderer {
         // 绘制当前方块
         if (currentPiece) {
             this.drawPiece(this.mainCtx, currentPiece);
+        }
+        
+        // 如果游戏结束，绘制游戏结束画面
+        if (isGameOver) {
+            this.showGameOver(score);
         }
     }
 
@@ -454,7 +459,7 @@ class TetrisGame {
         window.addEventListener('resize', () => {
             this.resizeGame();
             // 重新绘制游戏
-            this.renderer.drawBoard(this.board, this.currentPiece);
+            this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
             this.renderer.drawNextPiece(this.nextPiece);
         });
         
@@ -557,7 +562,7 @@ class TetrisGame {
         
         if (this.board.isValidMove(this.currentPiece, -1, 0)) {
             this.currentPiece.x--;
-            this.renderer.drawBoard(this.board, this.currentPiece);
+            this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
         }
     }
 
@@ -566,7 +571,7 @@ class TetrisGame {
         
         if (this.board.isValidMove(this.currentPiece, 1, 0)) {
             this.currentPiece.x++;
-            this.renderer.drawBoard(this.board, this.currentPiece);
+            this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
         }
     }
 
@@ -575,12 +580,18 @@ class TetrisGame {
         
         if (this.board.isValidMove(this.currentPiece, 0, 1)) {
             this.currentPiece.y++;
-            this.renderer.drawBoard(this.board, this.currentPiece);
+            this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
             return true;
         }
         
         // 如果发生碰撞，固定当前方块
-        this.lockPiece();
+        const result = this.board.lockPiece(this.currentPiece);
+        
+        // 检查是否游戏结束
+        if (!result) {
+            this.gameOver();
+            return false;
+        }
         
         // 检查并清除已完成的行
         this.clearLines();
@@ -602,7 +613,7 @@ class TetrisGame {
             this.currentPiece = originalPiece;
         }
         
-        this.renderer.drawBoard(this.board, this.currentPiece);
+        this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
     }
 
     hardDrop() {
@@ -621,19 +632,27 @@ class TetrisGame {
         // 更新分数（每个格子2分）
         this.updateScore(dropDistance * 2);
         
-        // 固定方块并生成新方块
-        this.lockPiece();
+        // 固定方块并检查游戏是否结束
+        if (!this.lockPiece()) {
+            // 游戏结束，不再继续执行
+            this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
+            return;
+        }
+        
+        // 清除完成的行并生成新方块
         this.clearLines();
         this.spawnPiece();
         
-        this.renderer.drawBoard(this.board, this.currentPiece);
+        this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
     }
 
     lockPiece() {
         const result = this.board.lockPiece(this.currentPiece);
         if (!result) {
             this.gameOver();
+            return false;
         }
+        return true;
     }
 
     clearLines() {
@@ -739,7 +758,7 @@ class TetrisGame {
             // 继续游戏
             this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
             this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-            this.renderer.drawBoard(this.board, this.currentPiece);
+            this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
             
             this.showNotification('游戏继续', 1500);
         }
@@ -765,7 +784,7 @@ class TetrisGame {
         this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         
         // 显示游戏结束消息
-        this.renderer.showGameOver(this.score);
+        this.renderer.drawBoard(this.board, this.currentPiece, true, this.score);
         
         // 显示通知
         this.showNotification('游戏结束！', 3000);
@@ -796,7 +815,7 @@ class TetrisGame {
         this.currentPiece = this.generateRandomPiece();
         
         // 绘制游戏板和下一个方块
-        this.renderer.drawBoard(this.board, this.currentPiece);
+        this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
         this.renderer.drawNextPiece(this.nextPiece);
     }
 
