@@ -420,8 +420,9 @@ class TetrisGame {
             document.getElementById('next-piece-canvas'),
             GAME_CONSTANTS.BLOCK_SIZE
         );
-        
+
         this.score = 0;
+        this.highScore = this.loadHighScore();
         this.level = 1;
         this.lines = 0;
         this.gameSpeed = 1000;
@@ -434,8 +435,14 @@ class TetrisGame {
         this.nextPiece = null;
         
         this.scoreElement = document.getElementById('score');
+        this.highScoreElement = document.getElementById('high-score');
         this.levelElement = document.getElementById('level');
         this.playPauseBtn = document.getElementById('play-pause-btn');
+        
+        // 显示最高分
+        if (this.highScoreElement) {
+            this.highScoreElement.textContent = this.highScore;
+        }
         
         // 初始化游戏控制器
         this.controller = new GameController(this);
@@ -655,6 +662,26 @@ class TetrisGame {
     updateScore(points) {
         this.score += points;
         this.scoreElement.textContent = this.score;
+        
+        // 更新最高分
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            if (this.highScoreElement) {
+                this.highScoreElement.textContent = this.highScore;
+            }
+            this.saveHighScore();
+        }
+    }
+    
+    // 加载最高分
+    loadHighScore() {
+        const savedHighScore = localStorage.getItem('tetrisHighScore');
+        return savedHighScore ? parseInt(savedHighScore) : 0;
+    }
+    
+    // 保存最高分
+    saveHighScore() {
+        localStorage.setItem('tetrisHighScore', this.highScore.toString());
     }
 
     levelUp() {

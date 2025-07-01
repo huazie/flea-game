@@ -17,6 +17,8 @@
     --icon-button-hover: #d5d5d5;
     --score-bg: #4CAF50;
     --score-text: #fff;
+    --high-score-bg: #FF9800; /* 高分背景色 - 橙色 */
+    --high-score-text: #fff;
     --level-bg: #2196F3;
     --level-text: #fff;
     --start-button-bg: #4CAF50;
@@ -102,6 +104,8 @@
     --icon-button-hover: #555;
     --score-bg: #2E7D32;
     --score-text: #e0e0e0;
+    --high-score-bg: #F57C00; /* 高分背景色 - 深橙色 */
+    --high-score-text: #e0e0e0;
     --level-bg: #0D47A1;
     --level-text: #e0e0e0;
     --start-button-bg: #388E3C;
@@ -224,7 +228,7 @@ body {
 .game-container::after {
     content: "TETRIS";
     position: absolute;
-    bottom: 0px;
+    bottom: -5px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 14px;
@@ -340,7 +344,7 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
     background-color: var(--board-bg);
     border-radius: 8px;
     padding: 15px;
@@ -368,8 +372,8 @@ body {
     background-color: var(--grid-bg);
 }
 
-.score, .level {
-    padding: 8px 8px;
+.high-score, .score, .level {
+    padding: 4px 8px;
     border-radius: 4px;
     text-align: center;
     font-weight: bold;
@@ -380,12 +384,17 @@ body {
     color: var(--score-text);
 }
 
+.high-score {
+    background-color: var(--high-score-bg);
+    color: var(--high-score-text);
+}
+
 .level {
     background-color: var(--level-bg);
     color: var(--level-text);
 }
 
-.score, .level, .difficulty-select {
+.high-score, .score, .level, .difficulty-select {
     width: 100%;
     max-width: 120px;
     font-size: 0.9rem;
@@ -393,7 +402,7 @@ body {
 }
 
 .difficulty-select {
-    padding: 8px 24px 8px 12px;
+    padding: 4px 24px 4px 12px;
     border-radius: 4px;
     border: 1px solid var(--board-border);
     background-color: var(--board-bg);
@@ -592,7 +601,7 @@ body {
 
 .controls-hint {
     width: 100%;
-    margin-top: 5px;
+    margin-top: 2px;
     padding: 0px;
     background-color: var(--board-bg);
     border-radius: 8px;
@@ -642,13 +651,13 @@ body {
         font-size: 0.7rem;
     }
 
-    .score, .level, .difficulty-select {
+    .high-score, .score, .level, .difficulty-select {
         font-size: 0.7rem;
     }
 
     .controls-hint {
         border-radius: 8px;
-        font-size: 0.6rem;
+        font-size: 0.7rem;
     }
 
     .hint p {
@@ -685,12 +694,12 @@ body {
         font-size: 0.6rem;
     }
 
-    .score, .level, .difficulty-select {
+    .high-score, .score, .level, .difficulty-select {
         font-size: 0.6rem;
     }
 
     .controls-hint {
-        font-size: 0.5rem;
+        font-size: 0.6rem;
     }
     
     .action-btn, .btn {
