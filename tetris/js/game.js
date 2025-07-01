@@ -672,9 +672,6 @@ class TetrisGame {
                 this.levelUp();
             }
             
-            // 显示消息
-            const messages = ['', '单消！', '双消！', '三消！', '四消！'];
-            this.showNotification(messages[linesCleared], 1500);
         }
     }
 
@@ -715,8 +712,6 @@ class TetrisGame {
             clearInterval(this.gameInterval);
             this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
         }
-        
-        this.showNotification(`升级到 ${this.level} 级！`, 2000);
     }
 
     setSpeed(speed) {
@@ -752,8 +747,6 @@ class TetrisGame {
             
             // 显示暂停消息
             this.renderer.showPause();
-            
-            this.showNotification('游戏已暂停', 1500);
         } else {
             // 继续游戏
             this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
@@ -785,9 +778,6 @@ class TetrisGame {
         
         // 显示游戏结束消息
         this.renderer.drawBoard(this.board, this.currentPiece, true, this.score);
-        
-        // 显示通知
-        this.showNotification('游戏结束！', 3000);
     }
 
     reset() {
@@ -820,9 +810,7 @@ class TetrisGame {
     }
 
     showNotification(message, duration = 2000) {
-        if (typeof showToast === 'function') {
-            showToast(message, duration);
-        }
+        Toast.info(message, duration);
     }
 }
 
