@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>俄罗斯方块</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Huazie">
+    <meta name="keywords" content="tetris,俄罗斯方块">
+    <meta name="description" content="俄罗斯方块">
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="../assets/css/notification.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <button id="back-button" class="control-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <button id="theme-button" class="control-button">
+        <i class="fas fa-sun"></i>
+    </button>
+    <div class="game-container">
+        <div class="game-screen">
+            <div class="game-display">
+                <div class="game-board">
+                    <canvas id="tetris-canvas"></canvas>
+                </div>
+                <div class="game-info-panel">
+                    <div class="next-piece">
+                        <h3>下一个方块</h3>
+                        <canvas id="next-piece-canvas"></canvas>
+                    </div>
+                    <div class="game-stats">
+                        <div class="high-score">最高分: <span id="high-score">0</span></div>
+                        <div class="score">分数: <span id="score">0</span></div>
+                        <div class="level">等级: <span id="level">1</span></div>
+                        <select id="difficulty-select" class="difficulty-select">
+                            <option value="1000">简单</option>
+                            <option value="500">中等</option>
+                            <option value="200">困难</option>
+                        </select>
+                    </div>
+                    <div class="controls-hint">
+                        <h3>操作说明：</h3>
+                        <div class="hint">
+                            <p><i class="fas fa-arrow-left"></i> 左移</p>
+                            <p><i class="fas fa-arrow-right"></i> 右移</p>
+                            <p><i class="fas fa-arrow-down"></i> 加速下落</p>
+                            <p><i class="fas fa-arrow-up"></i> 旋转</p>
+                            <p>A 旋转</p>
+                            <p>B 快速落下</p>
+                            <p><i class="fas fa-play"></i> 开始/暂停</p>
+                            <p><i class="fas fa-redo"></i> 重置</p>
+                        </div>
+                        <div class="pc-hint">
+                            <p>空格键快速落下</p>
+                            <p>键盘方向键控制</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="game-dpad">
+            <div class="dpad-container">
+                <button id="up-btn" class="dpad-btn dpad-up"><i class="fas fa-chevron-up"></i></button>
+                <div class="dpad-middle">
+                    <button id="left-btn" class="dpad-btn dpad-left"><i class="fas fa-chevron-left"></i></button>
+                    <div class="dpad-center"></div>
+                    <button id="right-btn" class="dpad-btn dpad-right"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <button id="down-btn" class="dpad-btn dpad-down"><i class="fas fa-chevron-down"></i></button>
+            </div>
+            
+            <div class="action-buttons">
+                <div class="game-buttons">
+                    <button id="rotate-btn" class="action-btn">A</button>
+                    <button id="drop-btn" class="action-btn">B</button>
+                </div>
+                <div class="control-buttons">
+                    <button id="play-pause-btn" class="btn"><i class="fas fa-play"></i></button>
+                    <button id="reset-btn" class="btn"><i class="fas fa-redo"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/common.js"></script>
+    <script src="../assets/js/notification.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

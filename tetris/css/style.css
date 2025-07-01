@@ -1,0 +1,765 @@
+:root {
+    /* 浅色主题变量 */
+    --bg-color: #f5f5f5;
+    --text-color: #333;
+    --primary-color: #4299e1;
+    --board-bg: #fff;
+    --theme-toggle-color: #ffa500;
+    --board-border: #ddd;
+    --game-over-text: #000;
+    --button-bg: #4CAF50;
+    --button-text: #fff;
+    --button-hover: #45a049;
+    --button-hover-bg: #45a049;
+    --button-disabled-bg: #cccccc;
+    --header-bg: #fff;
+    --icon-button-bg: #eaeaea;
+    --icon-button-hover: #d5d5d5;
+    --score-bg: #4CAF50;
+    --score-text: #fff;
+    --high-score-bg: #FF9800; /* 高分背景色 - 橙色 */
+    --high-score-text: #fff;
+    --level-bg: #2196F3;
+    --level-text: #fff;
+    --start-button-bg: #4CAF50;
+    --start-button-text: #fff;
+    --start-button-hover: #45a049;
+    --pause-button-bg: #2196F3;
+    --pause-button-text: #fff;
+    --pause-button-hover: #1976D2;
+    --reset-button-bg: #FF9800;
+    --reset-button-text: #fff;
+    --reset-button-hover: #F57C00;
+    /* 俄罗斯方块特定颜色 */
+    --grid-bg: #e0e0e0;
+    --grid-border: #bbb;
+    --block-border: #555;
+    --block-i: #00bcd4; /* I形方块 - 青色 */
+    --block-j: #2196f3; /* J形方块 - 蓝色 */
+    --block-l: #ff9800; /* L形方块 - 橙色 */
+    --block-o: #ffeb3b; /* O形方块 - 黄色 */
+    --block-s: #4caf50; /* S形方块 - 绿色 */
+    --block-t: #9c27b0; /* T形方块 - 紫色 */
+    --block-z: #f44336; /* Z形方块 - 红色 */
+    
+    /* 游戏机外观颜色 */
+    --console-bg: #444;
+    --console-border: #222;
+    --console-indicator: #f44336;
+    --console-indicator-glow: rgba(255, 0, 0, 0.5);
+    --console-text: #ddd;
+    
+    /* 游戏屏幕颜色 */
+    --screen-bg: #9EAD86;
+    --screen-border: #555;
+    --screen-overlay-light: rgba(255, 255, 255, 0.1);
+    --screen-overlay-mid: rgba(255, 255, 255, 0.05);
+    --screen-overlay-dark: rgba(0, 0, 0, 0.05);
+    
+    /* 控制按钮颜色 */
+    --dpad-center: #555;
+    --dpad-btn-gradient-light: #3a3a3a;
+    --dpad-btn-gradient-dark: #2a2a2a;
+    --dpad-btn-text: #fff;
+    --dpad-btn-shadow-dark: #1a1a1a;
+    --dpad-btn-shadow: rgba(0, 0, 0, 0.3);
+    
+    /* 控制面板颜色 */
+    --control-panel-bg: #333;
+    
+    /* 动作按钮颜色 */
+    --action-btn-gradient-light: #ff5252;
+    --action-btn-gradient-dark: #d32f2f;
+    --action-btn-text: white;
+    --action-btn-shadow-dark: #b71c1c;
+    --action-btn-shadow: rgba(0, 0, 0, 0.3);
+    --action-btn-hover-light: #ff6262;
+    --action-btn-hover-dark: #e33f3f;
+    
+    /* 按钮高光效果 */
+    --btn-highlight: rgba(255, 255, 255, 0.3);
+    
+    /* 阴影颜色 */
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --shadow-color-hover: rgba(0, 0, 0, 0.4);
+    --border-color-focus: var(--primary-color);
+}
+
+/* 深色主题变量 */
+[data-theme="dark"] {
+    --bg-color: #222;
+    --text-color: #f5f5f5;
+    --primary-color: #63b3ed;
+    --board-bg: #1a1a1a;
+    --theme-toggle-color: #f1c40f;
+    --board-border: #444;
+    --game-over-text: #fff;
+    --button-bg: #388E3C;
+    --button-text: #e0e0e0;
+    --button-hover: #2E7D32;
+    --button-hover-bg: #2E7D32;
+    --button-disabled-bg: #333333;
+    --header-bg: #333;
+    --icon-button-bg: #444;
+    --icon-button-hover: #555;
+    --score-bg: #2E7D32;
+    --score-text: #e0e0e0;
+    --high-score-bg: #F57C00; /* 高分背景色 - 深橙色 */
+    --high-score-text: #e0e0e0;
+    --level-bg: #0D47A1;
+    --level-text: #e0e0e0;
+    --start-button-bg: #388E3C;
+    --start-button-text: #e0e0e0;
+    --start-button-hover: #2E7D32;
+    --pause-button-bg: #1565C0;
+    --pause-button-text: #e0e0e0;
+    --pause-button-hover: #0D47A1;
+    --reset-button-bg: #F57C00;
+    --reset-button-text: #e0e0e0;
+    --reset-button-hover: #EF6C00;
+    /* 俄罗斯方块特定颜色 - 深色主题 */
+    --grid-bg: #2a2a2a;
+    --grid-border: #444;
+    --block-border: #777;
+    --block-i: #00acc1; /* I形方块 - 深青色 */
+    --block-j: #1976d2; /* J形方块 - 深蓝色 */
+    --block-l: #f57c00; /* L形方块 - 深橙色 */
+    --block-o: #fdd835; /* O形方块 - 深黄色 */
+    --block-s: #43a047; /* S形方块 - 深绿色 */
+    --block-t: #7b1fa2; /* T形方块 - 深紫色 */
+    --block-z: #d32f2f; /* Z形方块 - 深红色 */
+    
+    /* 游戏机外观颜色 - 深色主题 */
+    --console-bg: #333;
+    --console-border: #111;
+    --console-indicator: #e53935;
+    --console-indicator-glow: rgba(229, 57, 53, 0.5);
+    --console-text: #bbb;
+    
+    /* 游戏屏幕颜色 - 深色主题 */
+    --screen-bg: #8A9A76;
+    --screen-border: #444;
+    --screen-overlay-light: rgba(255, 255, 255, 0.08);
+    --screen-overlay-mid: rgba(255, 255, 255, 0.04);
+    --screen-overlay-dark: rgba(0, 0, 0, 0.08);
+    
+    /* 控制按钮颜色 - 深色主题 */
+    --dpad-center: #444;
+    --dpad-btn-gradient-light: #2a2a2a;
+    --dpad-btn-gradient-dark: #1a1a1a;
+    --dpad-btn-text: #e0e0e0;
+    --dpad-btn-shadow-dark: #000;
+    --dpad-btn-shadow: rgba(0, 0, 0, 0.4);
+    
+    /* 控制面板颜色 - 深色主题 */
+    --control-panel-bg: #222;
+    
+    /* 动作按钮颜色 - 深色主题 */
+    --action-btn-gradient-light: #e53935;
+    --action-btn-gradient-dark: #c62828;
+    --action-btn-text: #e0e0e0;
+    --action-btn-shadow-dark: #8e0000;
+    --action-btn-shadow: rgba(0, 0, 0, 0.4);
+    --action-btn-hover-light: #ef5350;
+    --action-btn-hover-dark: #d32f2f;
+    
+    /* 按钮高光效果 - 深色主题 */
+    --btn-highlight: rgba(255, 255, 255, 0.2);
+    
+    /* 阴影颜色 - 深色主题 */
+    --shadow-color: rgba(0, 0, 0, 0.4);
+    --shadow-color-hover: rgba(0, 0, 0, 0.5);
+    --border-color-focus: var(--primary-color);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s ease;
+}
+
+.game-container {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    background-color: var(--console-bg);
+    border-radius: 20px;
+    box-shadow: 0 10px 25px var(--shadow-color);
+    border: 15px solid var(--console-border);
+    position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* 手持游戏机外观装饰 */
+.game-container::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    left: 20px;
+    width: 8px;
+    height: 8px;
+    background-color: #f44336;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+}
+
+.game-container::after {
+    content: "TETRIS";
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    font-weight: bold;
+    color: #ddd;
+    letter-spacing: 2px;
+}
+
+/* 控制按钮共用样式 */
+.control-button {
+    position: fixed;
+    top: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--bg-color);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.control-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow-color-hover);
+}
+
+.control-button i {
+    font-size: 0.9rem;
+}
+
+/* 返回按钮 */
+#back-button {
+    left: 20px;
+    color: var(--primary-color);
+}
+
+/* 主题切换按钮 */
+#theme-button {
+    right: 20px;
+    color: var(--theme-toggle-color);
+}
+
+.game-screen {
+    width: 100%;
+    max-width: 450px;
+    flex: 1;
+    background-color: var(--screen-bg);  /* 经典LCD屏幕的绿色 */
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: inset 0 0 10px var(--shadow-color);
+    margin-bottom: 20px;
+    border: 8px solid var(--screen-border);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.game-screen::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(0, 0, 0, 0.05) 100%
+    );
+    pointer-events: none;
+}
+
+.game-display {
+    display: flex;
+    background-color: var(--screen-bg);
+    border-radius: 4px;
+    padding: 10px;
+    gap: 10px;
+    box-shadow: inset 0 0 5px var(--shadow-color);
+    flex: 1;
+    overflow: hidden;
+}
+
+.game-board {
+    flex: 3;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+#tetris-canvas {
+    border: 2px solid var(--board-border);
+    background-color: var(--grid-bg);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    display: block; /* 确保canvas正确显示 */
+}
+
+.game-info-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: var(--board-bg);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.next-piece {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.next-piece h3 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+#next-piece-canvas {
+    width: 100%;
+    max-width: 120px;
+    height: auto;
+    border: 1px solid var(--board-border);
+    background-color: var(--grid-bg);
+}
+
+.high-score, .score, .level {
+    padding: 4px 8px;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.score {
+    background-color: var(--score-bg);
+    color: var(--score-text);
+}
+
+.high-score {
+    background-color: var(--high-score-bg);
+    color: var(--high-score-text);
+}
+
+.level {
+    background-color: var(--level-bg);
+    color: var(--level-text);
+}
+
+.high-score, .score, .level, .difficulty-select {
+    width: 100%;
+    max-width: 120px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.difficulty-select {
+    padding: 4px 24px 4px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--board-border);
+    background-color: var(--board-bg);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: border-color 0.2s;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 14px;
+    height: 35px;
+    box-sizing: border-box;
+}
+
+.difficulty-select:hover, .difficulty-select:focus {
+    border-color: var(--primary-color);
+}
+
+.difficulty-select:focus {
+    outline: none;
+    border-color: var(--border-color-focus);
+}
+
+.game-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.game-dpad {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0px;
+}
+
+.dpad-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    margin: 0px 20px; 
+}
+
+.dpad-middle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.dpad-center {
+    width: 30px;
+    height: 30px;
+    background-color: var(--dpad-center);
+    border-radius: 50%;
+}
+
+.dpad-btn {
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(145deg, var(--dpad-btn-gradient-light), var(--dpad-btn-gradient-dark));
+    color: var(--dpad-btn-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 var(--dpad-btn-shadow-dark), 0 6px 10px var(--dpad-btn-shadow);
+    transition: all 0.2s ease;
+}
+
+.dpad-btn:active, .dpad-btn.active {
+    transform: translateY(4px) !important;
+    box-shadow: 0 1px 0 #1a1a1a, 0 2px 3px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+    transition: none;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-right: 20px;
+}
+
+.control-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 30px;
+    padding: 15px;
+    background-color: var(--control-panel-bg);
+    border-radius: 50px;
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.game-buttons {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 20px;
+}
+
+.action-btn {
+    width: 60px;
+    height: 60px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #ff5252, #d32f2f);
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 #b71c1c, 0 6px 10px rgba(0, 0, 0, 0.3);
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.1s ease;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(145deg, #ff6262, #e33f3f);
+}
+
+.action-btn:active, .action-btn.active {
+    transform: translateY(4px) !important;
+    box-shadow: 0 1px 0 #b71c1c, 0 2px 3px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(145deg, #d32f2f, #c62828);
+    transition: none;
+}
+
+.btn {
+    width: 60px;
+    height: 60px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: linear-gradient(145deg, #ff5252, #d32f2f);
+    color: white;
+    box-shadow: 0 4px 0 #b71c1c, 0 6px 10px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.btn::after {
+    content: "";
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    width: 30%;
+    height: 30%;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+}
+
+.btn i {
+    font-size: 20px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(145deg, #ff6262, #e33f3f);
+}
+
+.btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #b71c1c, 0 3px 5px rgba(0, 0, 0, 0.3);
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+    background-color: var(--button-disabled-bg);
+}
+
+.controls-hint {
+    width: 100%;
+    margin-top: 2px;
+    padding: 0px;
+    background-color: var(--board-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-size: 0.7rem;
+    color: var(--text-color);
+    text-align: center;
+    padding-bottom: 2px;
+}
+
+.hint p {
+    text-align: left;
+    padding-left: 4px;
+}
+
+.pc-hint {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .game-body {
+        flex-direction: column;
+    }
+    
+    .game-container {
+        border-width: 10px;
+        padding: 15px;
+    }
+    
+    .game-screen {
+        flex: 1;
+        margin-bottom: 5px;
+        padding: 10px;
+    }
+    
+    #tetris-canvas {
+        width: 100%;
+        height: auto;
+        max-height: 100%;
+    }
+    
+    .game-sidebar {
+        width: 100%;
+    }
+
+    .next-piece h3 {
+        font-size: 0.7rem;
+    }
+
+    .high-score, .score, .level, .difficulty-select {
+        font-size: 0.7rem;
+    }
+
+    .controls-hint {
+        border-radius: 8px;
+        font-size: 0.7rem;
+    }
+
+    .hint p {
+        padding-left: 3px;
+    }
+
+    .pc-hint {
+        display: none;
+    }
+    
+    .action-btn, .btn {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-container {
+        padding: 10px;
+        border-width: 8px;
+    }
+    
+    .game-screen {
+        padding: 8px;
+        border-width: 5px;
+    }
+    
+    .game-display {
+        padding: 5px;
+        gap: 5px;
+    }
+    
+    .next-piece h3 {
+        font-size: 0.6rem;
+    }
+
+    .high-score, .score, .level, .difficulty-select {
+        font-size: 0.6rem;
+    }
+
+    .controls-hint {
+        font-size: 0.6rem;
+    }
+    
+    .action-btn, .btn {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .dpad-btn {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* 添加高度适应的媒体查询 */
+@media (max-height: 700px) {
+    .game-container {
+        border-width: 8px;
+        padding: 10px;
+    }
+    
+    .game-screen {
+        padding: 8px;
+        margin-bottom: 5px;
+    }
+    
+    .action-btn, .btn {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .dpad-btn {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+@media (max-height: 600px) {
+    .game-container {
+        border-width: 5px;
+        padding: 5px;
+    }
+    
+    .game-screen {
+        padding: 5px;
+        margin-bottom: 5px;
+        border-width: 5px;
+    }
+    
+    .action-btn, .btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .dpad-btn {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .control-buttons {
+        padding: 10px;
+        gap: 20px;
+    }
+}

@@ -86,8 +86,8 @@
       "id": "tetris",
       "name": "俄罗斯方块",
       "description": "经典的方块堆叠游戏，挑战你的空间思维！",
-      "link": "#",
-      "status": "coming_soon",
+      "link": "tetris/",
+      "status": "active",
       "categories": ["classic", "puzzle"],
       "images": {
         "light": "assets/images/tetris.png",
