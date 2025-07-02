@@ -105,6 +105,18 @@
         "light": "assets/images/gomoku.png",
         "dark": "assets/images/gomoku-dark.png"
       }
+    },
+    {
+      "id": "match3",
+      "name": "消消乐",
+      "description": "经典的三消游戏，连接相同图案消除方块！",
+      "link": "#",
+      "status": "coming_soon",
+      "categories": ["puzzle", "classic"],
+      "images": {
+        "light": "assets/images/match3.png",
+        "dark": "assets/images/match3-dark.png"
+      }
     }
   ]
 }
