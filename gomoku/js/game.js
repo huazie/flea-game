@@ -602,18 +602,20 @@ class Gomoku {
             event.preventDefault();
             
             const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
             let x, y;
             
             // 判断是触摸事件还是鼠标事件
             if (event.type === 'touchstart' || event.type === 'touchend') {
                 // 触摸事件
                 const touch = event.changedTouches[0];
-                x = touch.clientX - rect.left;
-                y = touch.clientY - rect.top;
+                x = (touch.clientX - rect.left) * scaleX;
+                y = (touch.clientY - rect.top) * scaleY;
             } else {
                 // 鼠标事件
-                x = event.clientX - rect.left;
-                y = event.clientY - rect.top;
+                x = (event.clientX - rect.left) * scaleX;
+                y = (event.clientY - rect.top) * scaleY;
             }
             
             // 计算点击的格子坐标
