@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>五子棋</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Huazie">
+    <meta name="keywords" content="五子棋">
+    <meta name="description" content="五子棋">
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <button id="back-button" class="control-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <button id="theme-button" class="control-button">
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <div id="mode-select" class="mode-select">
+        <img id="mode-image">
+        <div class="mode-buttons">
+            <button id="free-mode-btn" class="mode-select-button">自由对战</button>
+            <button id="ai-mode-btn" class="mode-select-button">人机对战</button>
+        </div>
+    </div>
+
+    <div class="container" style="display:none">
+        <div class="header">
+            <h1 class="title">五子棋</h1>
+            <div class="mode-display" id="current-mode-display"></div>
+            <div class="scores-container">
+                <div class="score-box">
+                    <span>黑方</span>
+                    <div id="black-score">0</div>
+                </div>
+                <div class="score-box">
+                    <span>白方</span>
+                    <div id="white-score">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-intro-controls">
+            <div class="game-intro">
+                <div class="game-info">当前回合: <span id="current-player">黑方</span></div>
+            </div>
+            <div class="game-controls">
+                <button id="new-game-button" class="restart-button">新游戏</button>
+                <button id="undo-button" class="undo-button">悔棋</button>
+            </div>
+        </div>
+
+        <div class="game-container">
+            <div class="board-container">
+                <canvas id="gomoku-board" width="450" height="450"></canvas>
+                <div id="ghost-piece"></div>
+                <div class="game-message">
+                    <p></p>
+                    <div class="lower">
+                        <a class="retry-button">再来一局</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="game-explanation">
+            <strong>游戏规则:</strong> 黑白双方交替落子，先在棋盘上形成五子连珠者获胜。
+        </p>
+    </div>
+
+    <script src="../assets/js/common.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

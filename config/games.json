@@ -98,8 +98,8 @@
       "id": "gomoku",
       "name": "五子棋",
       "description": "经典的策略对战游戏，五子连珠获胜！",
-      "link": "#",
-      "status": "coming_soon",
+      "link": "gomoku/",
+      "status": "active",
       "categories": ["strategy", "classic"],
       "images": {
         "light": "assets/images/gomoku.png",
