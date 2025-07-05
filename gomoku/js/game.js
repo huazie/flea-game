@@ -6,8 +6,6 @@ class Gomoku {
         
         // 初始化颜色配置
         this.colors = {};
-        // 确保使用当前主题的颜色
-        this.updateColors();
         
         // 棋盘大小和格子数
         this.boardSize = 450;
@@ -51,6 +49,8 @@ class Gomoku {
             this.resetGame();
         }
         
+        // 初始化时更新颜色，然后绘制棋盘
+        this.updateColors();
         this.drawBoard();
         this.updateCurrentPlayerDisplay();
         
@@ -85,13 +85,14 @@ class Gomoku {
             pieceShadow: "rgba(0, 0, 0, 0.5)",
             starPoint: this.getCssVariable('--board-line')
         };
-        console.log("###" + this.colors.boardBackground);
     }
 
     // 绘制棋盘
-    drawBoard() {
-        // 确保使用最新颜色
-        this.updateColors();
+    drawBoard(forceUpdateColors = false) {
+        // 只在必要时更新颜色
+        if (forceUpdateColors) {
+            this.updateColors();
+        }
         // 清空画布
         this.ctx.clearRect(0, 0, this.boardSize, this.boardSize);
         
@@ -334,8 +335,8 @@ class Gomoku {
         this.gridSize = this.boardSize / this.gridCount;
         this.pieceRadius = this.gridSize * 0.4;
         
-        // 重绘棋盘
-        this.drawBoard();
+        // 重绘棋盘，但不强制更新颜色
+        this.drawBoard(false);
     }
     
     // 设置事件监听器
@@ -416,8 +417,7 @@ class Gomoku {
         
         // 监听主题变化事件
         document.addEventListener('themeChanged', () => {
-            this.updateColors();
-            this.drawBoard();
+            this.drawBoard(true); // 强制更新颜色
         });
     }
 }

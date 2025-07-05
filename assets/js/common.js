@@ -69,7 +69,4 @@ class CommonManager {
     }
 }
 
-// 当页面加载完成后初始化主题管理器
-window.addEventListener('load', () => {
-    new CommonManager();
-});
+new CommonManager();
