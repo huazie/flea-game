@@ -72,10 +72,9 @@ class Gomoku {
         // 设置初始画布大小
         this.resizeBoard();
         
-        // 分数
-        const savedScores = this.storage.loadGameScores();
-        this.blackScore = savedScores.black;
-        this.whiteScore = savedScores.white;
+        // 分数 - 初始化为0，会在startGame时根据模式加载
+        this.blackScore = 0;
+        this.whiteScore = 0;
         
         // 初始化游戏
         this.initGame();
@@ -379,7 +378,7 @@ class Gomoku {
                 this.whiteScore++;
             }
             this.updateScoreDisplay();
-            this.storage.saveGameScores(this.blackScore, this.whiteScore);
+            this.storage.saveGameScores(this.gameMode, this.blackScore, this.whiteScore);
             this.showGameOverMessage();
         } else {
             // 切换玩家
@@ -483,6 +482,13 @@ class Gomoku {
     
     // 更新分数显示
     updateScoreDisplay() {
+        // 更新模式显示
+        const modeDisplay = document.getElementById('current-mode-display');
+        if (modeDisplay) {
+            modeDisplay.textContent = this.gameMode === 'free' ? '自由对战' : '人机对战';
+        }
+        
+        // 更新分数显示
         document.getElementById("black-score").textContent = this.blackScore;
         document.getElementById("white-score").textContent = this.whiteScore;
     }
@@ -579,9 +585,15 @@ class Gomoku {
         const containerRect = this.container.getBoundingClientRect();
         const canvasRect = this.canvas.getBoundingClientRect();
         
+        // 加载当前模式的分数
+        const scores = this.storage.loadGameScores(this.gameMode);
+        this.blackScore = scores.black;
+        this.whiteScore = scores.white;
+        
         this.resetGame();
         this.drawBoard(true); // 强制重绘
         this.updateCurrentPlayerDisplay();
+        this.updateScoreDisplay();
     }
 
     // 显示模式选择页面

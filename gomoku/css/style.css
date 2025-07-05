@@ -175,8 +175,15 @@ body {
     display: block;
 }
 
+.mode-display {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-main);
+}
+
 .scores-container {
     display: flex;
+    align-items: center;
     gap: 5px;
 }
 

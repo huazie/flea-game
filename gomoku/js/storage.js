@@ -41,22 +41,46 @@ class GameStorage {
     }
 
     // 保存游戏分数
-    saveGameScores(blackScore, whiteScore) {
+    saveGameScores(mode, blackScore, whiteScore) {
         if (this.localStorageSupported) {
-            const scores = {
+            // 加载现有分数
+            let allScores = this.loadAllGameScores();
+            
+            // 更新指定模式的分数
+            allScores[mode] = {
                 black: blackScore,
                 white: whiteScore
             };
-            window.localStorage.setItem("gomokuScores", JSON.stringify(scores));
+            
+            window.localStorage.setItem("gomokuScores", JSON.stringify(allScores));
         }
     }
 
-    // 加载游戏分数
-    loadGameScores() {
+    // 加载指定模式的游戏分数
+    loadGameScores(mode) {
+        const allScores = this.loadAllGameScores();
+        return allScores[mode] || { black: 0, white: 0 };
+    }
+    
+    // 加载所有模式的游戏分数
+    loadAllGameScores() {
         if (this.localStorageSupported) {
             const scoresJSON = window.localStorage.getItem("gomokuScores");
-            return scoresJSON ? JSON.parse(scoresJSON) : { black: 0, white: 0 };
+            if (scoresJSON) {
+                // 处理旧数据结构迁移
+                const parsed = JSON.parse(scoresJSON);
+                if (parsed.black !== undefined) { // 旧格式
+                    return {
+                        free: { black: parsed.black, white: parsed.white },
+                        ai: { black: 0, white: 0 }
+                    };
+                }
+                return parsed;
+            }
         }
-        return { black: 0, white: 0 };
+        return {
+            free: { black: 0, white: 0 },
+            ai: { black: 0, white: 0 }
+        };
     }
 }
