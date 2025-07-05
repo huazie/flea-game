@@ -1,8 +1,55 @@
 class Gomoku {
     constructor() {
+        // 确保viewport meta标签存在
+        if (!document.querySelector('meta[name="viewport"]')) {
+            const meta = document.createElement('meta');
+            meta.name = 'viewport';
+            meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+            document.head.appendChild(meta);
+        }
+
         this.canvas = document.getElementById("gomoku-board");
         this.ctx = this.canvas.getContext("2d");
+        
+        // 确保画布元素存在
+        if (!this.canvas) {
+            console.error('Canvas element not found!');
+            return;
+        }
+
+        // 确保画布在移动设备上有基本样式
+        if (window.innerWidth <= 768) {
+            this.canvas.style.width = '100%';
+            this.canvas.style.maxWidth = '500px';
+            this.canvas.style.height = 'auto';
+        }
+        
+        // 设置画布尺寸 - 与CSS保持一致
+        const boardContainer = document.querySelector('.board-container');
+        if (boardContainer) {
+            const rect = boardContainer.getBoundingClientRect();
+            this.canvas.width = rect.width;
+            this.canvas.height = rect.height;
+            // 设置画布尺寸
+        } else {
+            // 回退设置
+            this.canvas.width = 450;
+            this.canvas.height = 450;
+        }
+        
+        // 确保画布可见
+        this.canvas.style.display = 'block';
+        this.canvas.style.visibility = 'visible';
+        
         this.storage = new GameStorage();
+        
+        // 初始化UI元素
+        this.modeSelect = document.getElementById("mode-select");
+        this.container = document.querySelector(".container");
+        
+        // 初始化页面显示状态
+        this.modeSelect.style.display = 'flex';
+        this.container.style.display = 'none';
         
         // 初始化颜色配置
         this.colors = {};
@@ -20,6 +67,7 @@ class Gomoku {
         this.currentPlayer = 1; // 1: 黑棋, 2: 白棋
         this.gameOver = false;
         this.moveHistory = [];
+        this.gameMode = 'free';
         
         // 设置初始画布大小
         this.resizeBoard();
@@ -35,6 +83,136 @@ class Gomoku {
         this.updateScoreDisplay();
     }
     
+    // AI落子逻辑
+    makeAIMove() {
+        // 评分系统: 评估每个空位置的得分
+        let bestScore = -1;
+        let bestMoves = [];
+        
+        for (let i = 0; i < this.gridCount; i++) {
+            for (let j = 0; j < this.gridCount; j++) {
+                if (this.board[i][j] === 0) {
+                    // 评估这个位置的得分
+                    const score = this.evaluatePosition(i, j);
+                    
+                    // 记录最佳位置
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMoves = [{x: i, y: j}];
+                    } else if (score === bestScore) {
+                        bestMoves.push({x: i, y: j});
+                    }
+                }
+            }
+        }
+        
+        // 如果有多个最佳位置，随机选择一个
+        if (bestMoves.length > 0) {
+            const bestMove = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+            this.placePiece(bestMove.x, bestMove.y);
+        }
+    }
+    
+    // 评估位置得分
+    evaluatePosition(x, y) {
+        // 模拟落子
+        this.board[x][y] = 2; // AI是白棋(2)
+        
+        // 检查AI是否能直接获胜
+        if (this.checkWin(x, y)) {
+            this.board[x][y] = 0; // 恢复空位置
+            return 1000; // 最高优先级
+        }
+        
+        // 检查玩家是否能直接获胜(需要防守)
+        this.board[x][y] = 1; // 假设玩家(黑棋)落子
+        if (this.checkWin(x, y)) {
+            this.board[x][y] = 0; // 恢复空位置
+            return 900; // 高优先级防守
+        }
+        this.board[x][y] = 0; // 恢复空位置
+        
+        // 评估棋型得分
+        let score = 0;
+        const directions = [
+            [1, 0], [0, 1], [1, 1], [1, -1] // 水平、垂直、对角线
+        ];
+        
+        for (const [dx, dy] of directions) {
+            // 评估AI棋型
+            score += this.evaluateLine(x, y, dx, dy, 2) * 2;
+            
+            // 评估玩家棋型(防守)
+            score += this.evaluateLine(x, y, dx, dy, 1);
+        }
+        
+        // 中心位置加分(开局策略)
+        const centerDist = Math.abs(x - 7) + Math.abs(y - 7);
+        score += (14 - centerDist) * 2;
+        
+        return score;
+    }
+    
+    // 评估一条线上的棋型
+    evaluateLine(x, y, dx, dy, player) {
+        let score = 0;
+        let count = 1; // 当前连续棋子数
+        let emptyEnds = 0; // 开放端数量
+        
+        // 正向检查
+        for (let i = 1; i < 5; i++) {
+            const nx = x + dx * i;
+            const ny = y + dy * i;
+            
+            if (nx >= 0 && nx < this.gridCount && ny >= 0 && ny < this.gridCount) {
+                if (this.board[nx][ny] === player) {
+                    count++;
+                } else if (this.board[nx][ny] === 0) {
+                    emptyEnds++;
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        
+        // 反向检查
+        for (let i = 1; i < 5; i++) {
+            const nx = x - dx * i;
+            const ny = y - dy * i;
+            
+            if (nx >= 0 && nx < this.gridCount && ny >= 0 && ny < this.gridCount) {
+                if (this.board[nx][ny] === player) {
+                    count++;
+                } else if (this.board[nx][ny] === 0) {
+                    emptyEnds++;
+                    break;
+                } else {
+                    break;
+                }
+            }
+        }
+        
+        // 根据棋型评分
+        if (count >= 4) {
+            score += 100; // 活四或冲四
+        } else if (count === 3) {
+            if (emptyEnds === 2) {
+                score += 50; // 活三
+            } else if (emptyEnds === 1) {
+                score += 30; // 眠三
+            }
+        } else if (count === 2) {
+            if (emptyEnds === 2) {
+                score += 10; // 活二
+            } else if (emptyEnds === 1) {
+                score += 5; // 眠二
+            }
+        }
+        
+        return score;
+    }
+
     // 初始化游戏
     initGame() {
         // 尝试加载保存的游戏状态
@@ -207,6 +385,13 @@ class Gomoku {
             // 切换玩家
             this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
             this.updateCurrentPlayerDisplay();
+            
+            // 在AI模式下，玩家落子后自动触发AI落子
+            if (!this.gameOver && this.gameMode === 'ai' && this.currentPlayer === 2) {
+                setTimeout(() => {
+                    this.makeAIMove();
+                }, 500);
+            }
         }
         
         // 保存游戏状态
@@ -317,14 +502,42 @@ class Gomoku {
         messageContainer.classList.remove("game-over");
     }
     
-    // 调整棋盘大小
+    // 调整棋盘大小 - 手机端优化
     resizeBoard() {
         const boardContainer = this.canvas.parentElement;
-        const containerWidth = boardContainer.clientWidth;
-        const containerHeight = boardContainer.clientHeight;
         
-        // 使用容器的较小边作为棋盘的大小
-        const size = Math.min(containerWidth, containerHeight);
+        // 确保容器存在且已渲染
+        if (!boardContainer || boardContainer.clientWidth === 0) {
+            // 最多重试5次，每次间隔100ms
+            if (this.resizeRetryCount === undefined) {
+                this.resizeRetryCount = 0;
+            } else if (this.resizeRetryCount >= 5) {
+                console.warn('Failed to get container size after multiple retries');
+                return;
+            }
+            this.resizeRetryCount++;
+            setTimeout(() => this.resizeBoard(), 100);
+            return;
+        }
+        this.resizeRetryCount = 0;
+        
+        // 计算可用空间
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        
+        // 确保最小尺寸
+        const minSize = 300; // 最小棋盘尺寸
+        const maxSize = Math.min(windowWidth, 500) - 40; // 最大尺寸减去边距
+        
+        // 计算最终尺寸
+        let size = minSize; // 默认最小尺寸
+        if (boardContainer.clientWidth > 0 && boardContainer.clientHeight > 0) {
+            size = Math.min(
+                Math.min(boardContainer.clientWidth, boardContainer.clientHeight),
+                maxSize
+            );
+            size = Math.max(size, minSize); // 确保不小于最小尺寸
+        }
         
         // 设置画布大小
         this.canvas.width = size;
@@ -337,8 +550,46 @@ class Gomoku {
         
         // 重绘棋盘，但不强制更新颜色
         this.drawBoard(false);
+        
+        // 手机端额外处理
+        if (window.innerWidth <= 768) {
+            this.canvas.style.touchAction = 'none'; // 禁用默认触摸行为
+            this.canvas.style.webkitTapHighlightColor = 'transparent'; // 移除点击高亮
+            this.canvas.style.width = '100%';
+            this.canvas.style.maxWidth = '500px';
+            this.canvas.style.height = 'auto';
+            this.canvas.style.margin = '0 auto';
+        }
     }
     
+    // 开始游戏
+    startGame(mode) {
+        this.gameMode = mode;
+        this.modeSelect.style.display = 'none';
+        this.container.style.display = 'block';
+        
+        // 确保画布可见
+        this.canvas.style.display = 'block';
+        this.canvas.style.visibility = 'visible';
+        
+        // 重置画布尺寸
+        this.resizeBoard();
+        
+        // 检查容器和画布的实际尺寸
+        const containerRect = this.container.getBoundingClientRect();
+        const canvasRect = this.canvas.getBoundingClientRect();
+        
+        this.resetGame();
+        this.drawBoard(true); // 强制重绘
+        this.updateCurrentPlayerDisplay();
+    }
+
+    // 显示模式选择页面
+    showModeSelect() {
+        this.modeSelect.style.display = 'flex';
+        this.container.style.display = 'none';
+    }
+
     // 设置事件监听器
     setupEventListeners() {
         // 处理点击或触摸事件的通用函数
@@ -414,10 +665,27 @@ class Gomoku {
             this.drawBoard();
             this.updateCurrentPlayerDisplay();
         });
+
+        // 模式选择按钮
+        document.getElementById("free-mode-btn").addEventListener("click", () => {
+            this.startGame('free');
+        });
+        
+        document.getElementById("ai-mode-btn").addEventListener("click", () => {
+            this.startGame('ai');
+        });
         
         // 监听主题变化事件
         document.addEventListener('themeChanged', () => {
             this.drawBoard(true); // 强制更新颜色
+        });
+
+        // 监听beforeBack事件
+        window.addEventListener('beforeBack', (e) => {
+            if (this.container.style.display !== 'none') {
+                this.showModeSelect();
+                e.detail.defaultPrevented = true;
+            }
         });
     }
 }

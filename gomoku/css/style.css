@@ -18,6 +18,8 @@
     --board-line: #000000;
     --stone-black: #000000;
     --stone-white: #ffffff;
+
+    --mode-image: url("../../assets/images/gomoku.png");
 }
 
 /* 深色模式颜色变量 */
@@ -41,6 +43,8 @@
     --board-line: #888888;
     --stone-black: #222222;
     --stone-white: #dddddd;
+
+    --mode-image: url("../../assets/images/gomoku-dark.png");
 }
 
 * {
@@ -97,6 +101,58 @@ body {
 #theme-button {
     right: 20px;
     color: var(--theme-toggle-color);
+}
+
+/* 模式选择页面样式 */
+.mode-select {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    gap: 2rem;
+}
+
+#mode-image {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 1rem;
+    object-fit: contain;
+    background-image: var(--mode-image);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.mode-select .title {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+}
+
+.mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 300px;
+}
+
+.mode-select-button {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    background-color: var(--btn-bg);
+    color: var(--text-light);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    text-align: center;
+}
+
+.mode-select-button:hover {
+    background-color: var(--btn-hover);
+    transform: translateY(-2px);
 }
 
 .container {

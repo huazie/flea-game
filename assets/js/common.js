@@ -63,9 +63,25 @@ class CommonManager {
         }
     }
     
+    /**
+     * 返回操作处理 - 基于事件机制
+     */
     goBack() {
-        // 返回到游戏列表页面
-        window.location.href = '../';
+        // 创建并派发beforeBack事件
+        const beforeEvent = new CustomEvent('beforeBack', {
+            cancelable: true,
+            detail: { defaultPrevented: false }
+        });
+        window.dispatchEvent(beforeEvent);
+
+        // 检查是否阻止默认行为
+        if (!beforeEvent.detail.defaultPrevented) {
+            window.location.href = '../';
+            
+            // 创建并派发afterBack事件
+            const afterEvent = new CustomEvent('afterBack');
+            window.dispatchEvent(afterEvent);
+        }
     }
 }
 
