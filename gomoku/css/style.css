@@ -274,6 +274,29 @@ body {
     touch-action: none;
 }
 
+/* 棋子虚影 */
+#ghost-piece {
+    display: none;
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 5;
+    transform: translate(-50%, -50%);
+}
+
+#ghost-piece.black {
+    background-color: var(--stone-black);
+    display: block;
+}
+
+#ghost-piece.white {
+    background-color: var(--stone-white);
+    display: block;
+}
+
 /* 游戏消息 */
 .game-message {
     display: none;

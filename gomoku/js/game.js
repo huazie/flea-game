@@ -16,6 +16,10 @@ class Gomoku {
             console.error('Canvas element not found!');
             return;
         }
+        
+        // 鼠标悬停位置
+        this.hoverX = -1;
+        this.hoverY = -1;
 
         // 确保画布在移动设备上有基本样式
         if (window.innerWidth <= 768) {
@@ -242,6 +246,8 @@ class Gomoku {
         this.currentPlayer = 1;
         this.gameOver = false;
         this.moveHistory = [];
+        this.hoverX = -1;
+        this.hoverY = -1;
         this.hideGameOverMessage();
         this.storage.clearGameState();
     }
@@ -311,6 +317,9 @@ class Gomoku {
                 }
             }
         }
+        
+        // 绘制鼠标悬停位置的棋子虚影
+        this.drawHoverPiece(this.hoverX, this.hoverY);
     }
     
     // 绘制星位点
@@ -358,6 +367,35 @@ class Gomoku {
             this.ctx.arc(centerX, centerY, this.pieceRadius, 0, Math.PI * 2);
             this.ctx.stroke();
         }
+    }
+    
+    // 绘制棋子虚影
+    drawHoverPiece(x, y) {
+        if (x < 0 || x >= this.gridCount || y < 0 || y >= this.gridCount || this.board[x][y] !== 0 || this.gameOver) {
+            return;
+        }
+        
+        const centerX = x * this.gridSize + this.gridSize / 2;
+        const centerY = y * this.gridSize + this.gridSize / 2;
+        
+        // 绘制半透明的棋子虚影
+        this.ctx.globalAlpha = 0.5;
+        this.ctx.fillStyle = this.currentPlayer === 1 ? this.colors.blackPiece : this.colors.whitePiece;
+        this.ctx.beginPath();
+        this.ctx.arc(centerX, centerY, this.pieceRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 如果是白棋，添加高光效果
+        if (this.currentPlayer === 2) {
+            this.ctx.strokeStyle = this.colors.whitePieceBorder;
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.arc(centerX, centerY, this.pieceRadius, 0, Math.PI * 2);
+            this.ctx.stroke();
+        }
+        
+        // 恢复透明度
+        this.ctx.globalAlpha = 1.0;
     }
     
     // 处理落子
@@ -655,6 +693,34 @@ class Gomoku {
         this.canvas.addEventListener("touchstart", (event) => {
             event.preventDefault();
         }, { passive: false });
+        
+        // 添加鼠标移动事件监听器
+        this.canvas.addEventListener("mousemove", (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            // 计算鼠标所在的格子坐标
+            const gridX = Math.floor(x / this.gridSize);
+            const gridY = Math.floor(y / this.gridSize);
+            
+            // 如果鼠标位置改变，重绘棋盘
+            if (this.hoverX !== gridX || this.hoverY !== gridY) {
+                this.hoverX = gridX;
+                this.hoverY = gridY;
+                this.drawBoard();
+            }
+        });
+        
+        // 添加鼠标离开事件监听器
+        this.canvas.addEventListener("mouseleave", () => {
+            // 鼠标离开画布时，清除悬停位置并重绘棋盘
+            this.hoverX = -1;
+            this.hoverY = -1;
+            this.drawBoard();
+        });
         
         // 窗口大小调整事件
         window.addEventListener("resize", () => {
