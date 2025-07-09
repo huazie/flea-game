@@ -691,13 +691,99 @@ class TetrisGame {
     
     // 加载最高分
     loadHighScore() {
-        const savedHighScore = localStorage.getItem('tetrisHighScore');
-        return savedHighScore ? parseInt(savedHighScore) : 0;
+        return GameStorage.loadHighScore();
     }
     
     // 保存最高分
     saveHighScore() {
-        localStorage.setItem('tetrisHighScore', this.highScore.toString());
+        GameStorage.saveHighScore(this.highScore);
+    }
+    
+    // 保存游戏进度
+    saveGameProgress() {
+        try {
+            if (!GameStorage || typeof GameStorage.saveGameProgress !== 'function') {
+                console.error('GameStorage对象或saveGameProgress方法不存在');
+                return false;
+            }
+            
+            // 创建游戏状态对象
+            const gameState = {
+                board: this.board.grid,
+                score: this.score,
+                level: this.level,
+                lines: this.lines,
+                gameSpeed: this.gameSpeed,
+                currentPiece: this.currentPiece ? {
+                    shape: this.currentPiece.shape,
+                    x: this.currentPiece.x,
+                    y: this.currentPiece.y
+                } : null,
+                nextPiece: this.nextPiece ? {
+                    shape: this.nextPiece.shape,
+                    x: this.nextPiece.x,
+                    y: this.nextPiece.y
+                } : null
+            };
+            
+            // 保存游戏状态
+            const result = GameStorage.saveGameProgress(gameState);
+            if (!result) {
+                console.warn('保存游戏进度失败');
+            }
+            return result;
+        } catch (error) {
+            console.error('保存游戏进度时出错:', error);
+            return false;
+        }
+    }
+    
+    // 加载游戏进度
+    loadGameProgress() {
+        const gameState = GameStorage.loadGameProgress();
+        if (!gameState) return false;
+        
+        try {
+            // 恢复游戏板状态
+            this.board.grid = gameState.board;
+            
+            // 恢复游戏状态
+            this.score = gameState.score;
+            this.level = gameState.level;
+            this.lines = gameState.lines;
+            this.gameSpeed = gameState.gameSpeed;
+            
+            // 恢复当前方块
+            if (gameState.currentPiece) {
+                this.currentPiece = new Piece(
+                    gameState.currentPiece.shape,
+                    gameState.currentPiece.x,
+                    gameState.currentPiece.y
+                );
+            }
+            
+            // 恢复下一个方块
+            if (gameState.nextPiece) {
+                this.nextPiece = new Piece(
+                    gameState.nextPiece.shape,
+                    gameState.nextPiece.x,
+                    gameState.nextPiece.y
+                );
+            }
+            
+            // 更新UI
+            this.updateScore(0);
+            this.levelElement.textContent = this.level;
+            
+            // 重新绘制游戏
+            this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
+            this.renderer.drawNextPiece(this.nextPiece);
+            
+            return true;
+        } catch (error) {
+            console.error('恢复游戏进度失败:', error);
+            return false;
+        }
     }
 
     levelUp() {
@@ -723,17 +809,17 @@ class TetrisGame {
         }
     }
 
-    togglePlayPause() {
+    async togglePlayPause() {
         // 如果游戏结束，重置并开始新游戏
         if (this.isGameOver) {
             this.reset();
-            this.startGame();
+            await this.startGame();
             return;
         }
         
         // 如果游戏尚未开始，开始游戏
         if (!this.isGameStarted) {
-            this.startGame();
+            await this.startGame();
             return;
         }
         
@@ -747,6 +833,10 @@ class TetrisGame {
             
             // 显示暂停消息
             this.renderer.showPause();
+            
+            // 保存游戏进度
+            this.saveGameProgress();
+            this.showNotification('游戏已暂停并保存进度', 2000);
         } else {
             // 继续游戏
             this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
@@ -757,16 +847,59 @@ class TetrisGame {
         }
     }
     
-    startGame() {
-        // 开始游戏循环
-        this.isGameStarted = true;
-        this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
+    async startGame() {
+        try {
+            // 检查是否有保存的游戏进度
+            let hasProgress = false;
+            try {
+                hasProgress = !this.isGameStarted && GameStorage && GameStorage.hasGameProgress && GameStorage.hasGameProgress();
+            } catch (e) {
+                console.error('检查游戏进度时出错:', e);
+                hasProgress = false;
+            }
+            
+            if (hasProgress) {
+                // 使用await等待用户确认
+                const shouldRestore = await Dialog.confirm('检测到保存的游戏进度，是否恢复？');
+                
+                if (shouldRestore) {
+                    if (this.loadGameProgress()) {
+                        this.isGameStarted = true;
+                        this.isPaused = false;
+                        this.isGameOver = false;
+                    
+                        this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
+                        this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                    
+                        this.showNotification('游戏进度已恢复', 2000);
+                        return;
+                    }
+                } else {
+                    // 如果用户选择不恢复，则清除保存的游戏进度
+                    try {
+                        GameStorage.clearGameProgress();
+                    } catch (e) {
+                        console.error('清除游戏进度时出错:', e);
+                    }
+                }
+            }
         
-        // 更新按钮状态
-        this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            // 开始游戏循环
+            this.isGameStarted = true;
+            this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
         
-        // 显示通知
-        this.showNotification('游戏开始！', 1500);
+            // 更新按钮状态
+            this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        
+            // 显示通知
+            this.showNotification('游戏开始！', 1500);
+        } catch (error) {
+            console.error('启动游戏时出错:', error);
+            // 确保游戏至少能启动
+            this.isGameStarted = true;
+            this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
+            this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        }
     }
 
     gameOver() {
