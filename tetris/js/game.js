@@ -309,11 +309,35 @@ class Renderer {
 class GameController {
     constructor(game) {
         this.game = game;
+        this.moveDelay = 100; // 移动间隔时间（毫秒）
+        this.initialDelay = 200; // 首次移动前的延迟（毫秒）
+        
+        // 为每个方向创建单独的定时器和超时器
+        this.moveIntervals = {
+            left: null,
+            right: null,
+            down: null
+        };
+        
+        this.moveTimeouts = {
+            left: null,
+            right: null,
+            down: null
+        };
+        
+        this.keyStates = {
+            left: false,
+            right: false,
+            down: false
+        };
+        
         this.setupEventListeners();
     }
 
     setupEventListeners() {
-        document.addEventListener('keydown', this.handleKeyPress.bind(this));
+        // 键盘按下和释放事件
+        document.addEventListener('keydown', this.handleKeyDown.bind(this));
+        document.addEventListener('keyup', this.handleKeyUp.bind(this));
         
         const playPauseBtn = document.getElementById('play-pause-btn');
         const resetBtn = document.getElementById('reset-btn');
@@ -337,46 +361,15 @@ class GameController {
         const rotateBtn = document.getElementById('rotate-btn');
         const dropBtn = document.getElementById('drop-btn');
 
-        // 添加触摸和点击事件
-        const addButtonEvents = (button, action) => {
-            if (!button) return;
-            
-            // 移动设备触摸事件
-            button.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                button.classList.add('active');
-                action();
-            });
-            
-            button.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                button.classList.remove('active');
-            });
-            
-            // 桌面点击事件
-            button.addEventListener('mousedown', (e) => {
-                button.classList.add('active');
-                action();
-            });
-            
-            button.addEventListener('mouseup', () => {
-                button.classList.remove('active');
-            });
-            
-            button.addEventListener('mouseleave', () => {
-                button.classList.remove('active');
-            });
-        };
-
-        // 绑定方向键事件
-        addButtonEvents(leftBtn, () => this.game.moveLeft());
-        addButtonEvents(rightBtn, () => this.game.moveRight());
-        addButtonEvents(downBtn, () => this.game.moveDown());
-        addButtonEvents(upBtn, () => this.game.rotatePiece());
-
-        // 绑定动作按钮事件
-        addButtonEvents(rotateBtn, () => this.game.rotatePiece());
-        addButtonEvents(dropBtn, () => this.game.hardDrop());
+        // 添加单次触发按钮事件（旋转和硬降）
+        this.addButtonEvents(upBtn, () => this.game.rotatePiece());
+        this.addButtonEvents(rotateBtn, () => this.game.rotatePiece());
+        this.addButtonEvents(dropBtn, () => this.game.hardDrop());
+        
+        // 添加支持长按的按钮事件（左、右、下）
+        this.addLongPressButtonEvents(leftBtn, 'left');
+        this.addLongPressButtonEvents(rightBtn, 'right');
+        this.addLongPressButtonEvents(downBtn, 'down');
 
         // 防止长按时触发浏览器的默认行为
         document.querySelectorAll('.dpad-btn, .action-btn').forEach(button => {
@@ -384,34 +377,232 @@ class GameController {
             button.addEventListener('contextmenu', (e) => e.preventDefault());
         });
     }
+    
+    // 普通按钮事件（单次触发）
+    addButtonEvents(button, action) {
+        if (!button) return;
+        
+        // 移动设备触摸事件
+        button.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            button.classList.add('active');
+            action();
+        });
+        
+        button.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            button.classList.remove('active');
+        });
+        
+        // 桌面点击事件
+        button.addEventListener('mousedown', (e) => {
+            button.classList.add('active');
+            action();
+        });
+        
+        button.addEventListener('mouseup', () => {
+            button.classList.remove('active');
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.classList.remove('active');
+        });
+    }
+    
+    // 停止指定方向的移动
+    stopMovement(direction) {
+        if (this.moveTimeouts[direction]) {
+            clearTimeout(this.moveTimeouts[direction]);
+            this.moveTimeouts[direction] = null;
+        }
+        
+        if (this.moveIntervals[direction]) {
+            clearInterval(this.moveIntervals[direction]);
+            this.moveIntervals[direction] = null;
+        }
+        
+        this.keyStates[direction] = false;
+    }
+    
+    // 停止所有方向的移动
+    stopAllMovement() {
+        ['left', 'right', 'down'].forEach(dir => {
+            this.stopMovement(dir);
+        });
+    }
+    
+    // 支持长按的按钮事件
+    addLongPressButtonEvents(button, direction) {
+        if (!button) return;
+        
+        const startMoving = () => {
+            button.classList.add('active');
+            
+            // 停止其他方向的移动
+            this.stopAllMovement();
+            
+            // 立即执行一次动作
+            this.performDirectionAction(direction);
+            
+            // 设置延迟后的持续移动
+            this.keyStates[direction] = true;
+            this.moveTimeouts[direction] = setTimeout(() => {
+                if (this.keyStates[direction]) {
+                    this.moveIntervals[direction] = setInterval(() => {
+                        this.performDirectionAction(direction);
+                    }, this.moveDelay);
+                }
+            }, this.initialDelay);
+        };
+        
+        const stopMoving = () => {
+            button.classList.remove('active');
+            this.stopMovement(direction);
+        };
+        
+        // 移动设备触摸事件
+        button.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startMoving();
+        });
+        
+        button.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            stopMoving();
+        });
+        
+        button.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            stopMoving();
+        });
+        
+        // 桌面点击事件
+        button.addEventListener('mousedown', () => {
+            startMoving();
+        });
+        
+        button.addEventListener('mouseup', () => {
+            stopMoving();
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            stopMoving();
+        });
+    }
+    
+    // 执行方向动作
+    performDirectionAction(direction) {
+        if (this.game.isPaused || this.game.isGameOver || !this.game.isGameStarted) return;
+        
+        switch (direction) {
+            case 'left':
+                this.game.moveLeft();
+                break;
+            case 'right':
+                this.game.moveRight();
+                break;
+            case 'down':
+                this.game.moveDown();
+                break;
+        }
+    }
 
-    handleKeyPress(event) {
+    handleKeyDown(event) {
         if (this.game.isGameOver) return;
         
         switch (event.keyCode) {
             case 37: // 左箭头
-                this.game.moveLeft();
+                if (!this.keyStates.left) {
+                    // 停止其他方向的移动
+                    this.stopAllMovement();
+                    
+                    // 立即执行一次左移
+                    this.game.moveLeft();
+                    
+                    // 设置延迟后的持续移动
+                    this.keyStates.left = true;
+                    this.moveTimeouts.left = setTimeout(() => {
+                        if (this.keyStates.left) {
+                            this.moveIntervals.left = setInterval(() => {
+                                this.game.moveLeft();
+                            }, this.moveDelay);
+                        }
+                    }, this.initialDelay);
+                }
                 break;
+                
             case 39: // 右箭头
-                this.game.moveRight();
+                if (!this.keyStates.right) {
+                    // 停止其他方向的移动
+                    this.stopAllMovement();
+                    
+                    // 立即执行一次右移
+                    this.game.moveRight();
+                    
+                    // 设置延迟后的持续移动
+                    this.keyStates.right = true;
+                    this.moveTimeouts.right = setTimeout(() => {
+                        if (this.keyStates.right) {
+                            this.moveIntervals.right = setInterval(() => {
+                                this.game.moveRight();
+                            }, this.moveDelay);
+                        }
+                    }, this.initialDelay);
+                }
                 break;
+                
             case 40: // 下箭头
-                this.game.moveDown();
+                if (!this.keyStates.down) {
+                    // 停止其他方向的移动
+                    this.stopAllMovement();
+                    
+                    // 立即执行一次下移
+                    this.game.moveDown();
+                    
+                    // 设置延迟后的持续移动
+                    this.keyStates.down = true;
+                    this.moveTimeouts.down = setTimeout(() => {
+                        if (this.keyStates.down) {
+                            this.moveIntervals.down = setInterval(() => {
+                                this.game.moveDown();
+                            }, this.moveDelay);
+                        }
+                    }, this.initialDelay);
+                }
                 break;
+                
             case 38: // 上箭头
                 this.game.rotatePiece();
                 break;
+                
             case 32: // 空格键
                 this.game.hardDrop();
                 break;
+                
             case 80: // P键
                 this.game.togglePlayPause();
                 break;
         }
         
-        // 防止空格键触发页面滚动
-        if (event.keyCode === 32) {
+        // 防止方向键和空格键触发页面滚动
+        if ([32, 37, 38, 39, 40].includes(event.keyCode)) {
             event.preventDefault();
+        }
+    }
+    
+    handleKeyUp(event) {
+        switch (event.keyCode) {
+            case 37: // 左箭头
+                this.stopMovement('left');
+                break;
+                
+            case 39: // 右箭头
+                this.stopMovement('right');
+                break;
+                
+            case 40: // 下箭头
+                this.stopMovement('down');
+                break;
         }
     }
 }
@@ -911,6 +1102,10 @@ class TetrisGame {
         
         // 显示游戏结束消息
         this.renderer.drawBoard(this.board, this.currentPiece, true, this.score);
+        
+        // 删除暂存的游戏
+        GameStorage.clearGameProgress();
+        this.showNotification('游戏结束，已清除暂存游戏', 2000);
     }
 
     reset() {
