@@ -91,17 +91,17 @@ class Game2048 {
 
         // 触摸事件
         let touchStartX, touchStartY;
-        this.gameBoard.addEventListener('touchstart', (e) => {
+        document.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
             e.preventDefault();
         }, { passive: false });
 
-        this.gameBoard.addEventListener('touchmove', (e) => {
+        document.addEventListener('touchmove', (e) => {
             e.preventDefault();
         }, { passive: false });
 
-        this.gameBoard.addEventListener('touchend', (e) => {
+        document.addEventListener('touchend', (e) => {
             if (this.gameOver) return;
 
             const touchEndX = e.changedTouches[0].clientX;
