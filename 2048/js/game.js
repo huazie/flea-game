@@ -91,18 +91,49 @@ class Game2048 {
 
         // 触摸事件
         let touchStartX, touchStartY;
+        let isSwiping = false;
+        
         document.addEventListener('touchstart', (e) => {
+            // 检查是否点击了按钮或消息容器
+            const target = e.target;
+            if (target.closest('button') || target.closest('.game-message')) {
+                // 如果点击了按钮或消息容器，不阻止默认行为
+                return;
+            }
+            
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
-            e.preventDefault();
-        }, { passive: false });
+            isSwiping = false;
+        }, { passive: true });
 
         document.addEventListener('touchmove', (e) => {
-            e.preventDefault();
+            // 如果已经确定是滑动操作，则阻止默认行为
+            if (isSwiping) {
+                e.preventDefault();
+            } else {
+                // 检查是否是滑动操作
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                const dx = touchX - touchStartX;
+                const dy = touchY - touchStartY;
+                
+                // 如果移动距离超过阈值，认为是滑动操作
+                if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+                    isSwiping = true;
+                    e.preventDefault();
+                }
+            }
         }, { passive: false });
 
         document.addEventListener('touchend', (e) => {
-            if (this.gameOver) return;
+            // 检查是否点击了按钮或消息容器
+            const target = e.target;
+            if (target.closest('button') || target.closest('.game-message')) {
+                // 如果点击了按钮或消息容器，不处理滑动
+                return;
+            }
+            
+            if (this.gameOver && !this.won) return;
 
             const touchEndX = e.changedTouches[0].clientX;
             const touchEndY = e.changedTouches[0].clientY;
@@ -110,6 +141,7 @@ class Game2048 {
             const dx = touchEndX - touchStartX;
             const dy = touchEndY - touchStartY;
             
+            // 只有在移动距离超过阈值时才处理滑动
             if (Math.abs(dx) > 20 || Math.abs(dy) > 20) {
                 let moved = false;
                 if (Math.abs(dx) > Math.abs(dy)) {
