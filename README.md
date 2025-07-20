@@ -12,7 +12,7 @@ Flea Game是一个基于Web技术的小游戏合集项目，旨在提供一系�
 | [记忆翻牌](./memory/) | 考验记忆力的翻牌游戏，找出所有配对 | 🛠️ | 🎮🎮 | ✅ 已完成 |
 | [扫雷](./minesweeper/) | 经典的逻辑推理游戏，小心地雷 | 🛠️🛠️🛠️ | 🎮🎮🎮 | ✅ 已完成 |
 | [俄罗斯方块](./tetris/) | 经典的方块堆叠游戏，挑战你的空间思维 | 🛠️🛠️🛠️ | 🎮🎮🎮 | ✅ 已完成 |
-| [五子棋](./gobang/) | 经典的策略对战游戏，五子连珠获胜 | 🛠️🛠️🛠️ | 🎮🎮🎮🎮 | ✅ 已完成 |
+| [五子棋](./gomoku/) | 经典的策略对战游戏，五子连珠获胜 | 🛠️🛠️🛠️ | 🎮🎮🎮🎮 | ✅ 已完成 |
 | [消消乐](./match3/) | 经典的三消游戏，连接相同元素获得高分 | 🛠️🛠️ | 🎮🎮 | 🚧 开发中 |
 
 ### 开发难度（🛠️）
@@ -31,7 +31,7 @@ Flea Game是一个基于Web技术的小游戏合集项目，旨在提供一系�
 
 1. 克隆项目
 ```bash
-git clone https://github.com/yourusername/flea-game.git
+git clone https://github.com/huazie/flea-game.git
 cd flea-game
 ```
 
@@ -51,7 +51,7 @@ npm run dev
 
 ## 📂 项目结构
 
-```
+```txt
 flea-game/
 ├── assets/          # 静态资源
 │   ├── css/         # 样式文件
@@ -61,6 +61,12 @@ flea-game/
 │   └── games.json   # 游戏配置
 ├── shudu/           # 数独游戏
 ├── 2048/            # 2048游戏
+├── snake/           # 贪吃蛇游戏
+├── memory/          # 记忆翻牌游戏
+├── minesweeper/     # 扫雷游戏
+├── tetris/          # 俄罗斯方块游戏
+├── gomoku/          # 五子棋游戏
+├── match3/          # 消消乐游戏
 └── index.html       # 入口页面
 ```
 
