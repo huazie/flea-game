@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <title>消消乐</title>    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Huazie">
+    <meta name="keywords" content="消消乐,Match3">
+    <meta name="description" content="消消乐小游戏">
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <button id="back-button" class="control-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <button id="theme-button" class="control-button">
+        <i class="fas fa-sun"></i>
+    </button>
+    
+    <div class="game-container">
+        <div class="header">
+            <div class="header-content">
+                <h1>消消乐</h1>
+                <div class="scores-container">
+                    <div class="score-container">
+                        <div class="score-label">分数</div>
+                        <div id="score">90</div>
+                    </div>
+                    <div class="best-container">
+                        <div class="score-label">最高分</div>
+                        <div id="best-score">90</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="new-game-button" class="button">新游戏</button>
+            <div class="level-info">
+                <span class="level-label">关卡:</span>
+                <span id="current-level">1</span>
+            </div>
+            <div class="moves-info">
+                <span class="moves-label">剩余步数:</span>
+                <span id="moves-left">30</span>
+            </div>
+        </div>
+
+        <div class="game-board">
+            <!-- 游戏网格，将由JS动态填充 -->
+        </div>
+
+        <div class="game-intro">
+            <p>交换相邻的方块，连接三个或更多相同图案的方块来消除它们。</p>
+        </div>
+
+        <div class="game-message">
+            <p></p>
+            <div class="game-message-buttons">
+                <button id="retry-button" class="button">再试一次</button>
+                <button id="next-level-button" class="button">下一关</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/common.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
