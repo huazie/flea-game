@@ -1,0 +1,877 @@
+﻿/* ================================================
+   消消乐 - Modern Match-3 游戏样式
+   ================================================ */
+
+/* CSS Variables */
+:root {
+    /* 背景与面板 */
+    --bg-main: #1a1a2e;
+    --bg-board: #16213e;
+    --bg-card: #0f3460;
+    --bg-cell: rgba(255, 255, 255, 0.05);
+    --bg-cell-hover: rgba(255, 255, 255, 0.12);
+
+    /* 文字颜色 */
+    --text-primary: #eaeaea;
+    --text-secondary: #a0a0a0;
+    --text-accent: #f9d423;
+
+    /* 主题切换按钮 */
+    --btn-gem: #e94560;
+    --btn-hover: #ff6b81;
+
+    /* 宝石颜色（亮色主题） */
+    --gem-red-bg: #ff4b4b;
+    --gem-red-light: #ff8a8a;
+    --gem-blue-bg: #4a90e2;
+    --gem-blue-light: #7ab8ff;
+    --gem-green-bg: #2ecc71;
+    --gem-green-light: #7ee2a4;
+    --gem-yellow-bg: #f1c40f;
+    --gem-yellow-light: #f9e076;
+    --gem-purple-bg: #9b59b6;
+    --gem-purple-light: #c39bd3;
+    --gem-orange-bg: #e67e22;
+    --gem-orange-light: #f5b041;
+
+    /* 特效 */
+    --glow-red: 0 0 15px rgba(255, 75, 75, 0.6);
+    --glow-blue: 0 0 15px rgba(74, 144, 226, 0.6);
+    --glow-green: 0 0 15px rgba(46, 204, 113, 0.6);
+    --glow-yellow: 0 0 15px rgba(241, 196, 15, 0.6);
+    --glow-purple: 0 0 15px rgba(155, 89, 182, 0.6);
+    --glow-orange: 0 0 15px rgba(230, 126, 34, 0.6);
+
+    /* 特殊宝石 */
+    --striped-color: rgba(255, 255, 255, 0.85);
+    --bomb-color: #ff4757;
+    --rainbow-border: linear-gradient(135deg, #ff4b4b, #f1c40f, #2ecc71, #4a90e2, #9b59b6);
+
+    /* 分数气泡 */
+    --score-bubble-bg: rgba(255, 215, 0, 0.95);
+
+    /* 按钮 */
+    --btn-bg: #e94560;
+    --btn-bg-dark: #533483;
+    --btn-start: linear-gradient(135deg, #667eea, #764ba2);
+    --btn-glow: 0 4px 20px rgba(233, 69, 96, 0.4);
+}
+
+/* 深色主题（默认） */
+html[data-theme="dark"] {
+    --bg-main: #0a0a1a;
+    --bg-board: #12122a;
+    --bg-card: #1a1a3e;
+    --bg-cell: rgba(255, 255, 255, 0.04);
+    --bg-cell-hover: rgba(255, 255, 255, 0.10);
+    --text-primary: #f0f0f0;
+    --text-secondary: #888;
+    --text-accent: #f9d423;
+    --btn-gem: #e94560;
+    --btn-hover: #ff6b81;
+}
+
+/* 亮色主题 */
+html[data-theme="light"] {
+    --bg-main: #f0f4ff;
+    --bg-board: #e8eeff;
+    --bg-card: #ffffff;
+    --bg-cell: rgba(0, 0, 0, 0.04);
+    --bg-cell-hover: rgba(0, 0, 0, 0.08);
+    --text-primary: #1a1a2e;
+    --text-secondary: #666;
+    --text-accent: #f9d423;
+    --btn-gem: #e94560;
+    --btn-hover: #ff6b81;
+}
+
+/* 全局样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg-main);
+    font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', 'Arial', sans-serif;
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+/* ============ 固定按钮 ============ */
+.control-button {
+    position: fixed;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-size: 18px;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+#back-button {
+    top: 16px;
+    left: 16px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+}
+
+#theme-button {
+    top: 16px;
+    right: 16px;
+    background: var(--bg-card);
+    color: var(--text-accent);
+}
+
+.control-button:hover {
+    transform: scale(1.12) translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.control-button:active {
+    transform: scale(0.95);
+}
+
+/* ============ 游戏容器 ============ */
+.game-wrapper {
+    width: 100%;
+    max-width: 480px;
+    padding: 70px 12px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ============ 顶部状态栏 ============ */
+.top-bar {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 12px 18px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.game-title {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #f9d423, #ff4b4b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 1px;
+}
+
+.stat-group {
+    display: flex;
+    gap: 10px;
+}
+
+.stat-box {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+    padding: 6px 14px;
+    text-align: center;
+    min-width: 72px;
+}
+
+.stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-accent);
+}
+
+/* ============ 关卡目标栏 ============ */
+.level-bar {
+    width: 100%;
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.level-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.level-badge {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.level-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.moves-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.moves-icon {
+    font-size: 16px;
+}
+
+.moves-count {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    transition: color 0.3s, transform 0.3s;
+}
+
+.moves-count.warning {
+    color: #ff4757;
+    animation: pulse-warn 0.6s infinite;
+}
+
+.moves-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+/* ============ 道具栏 ============ */
+.power-bar {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.power-btn {
+    background: var(--bg-card);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 8px 18px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.power-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--btn-gem);
+    transform: translateY(-2px);
+}
+
+.power-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.power-btn .count {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 12px;
+}
+
+.power-btn .emoji {
+    font-size: 16px;
+}
+
+/* ============ 游戏面板 ============ */
+.board-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1;
+}
+
+.game-board {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-board);
+    border-radius: 16px;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    gap: 4px;
+    box-shadow:
+        0 8px 40px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 棋盘装饰背景 */
+.game-board::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(118, 75, 162, 0.08) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.grid-cell {
+    background: var(--bg-cell);
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.grid-cell:hover {
+    background: var(--bg-cell-hover);
+}
+
+/* ============ 宝石样式 ============ */
+.gem {
+    width: 92%;
+    height: 92%;
+    border-radius: 50%;
+    position: absolute;
+    top: 4%;
+    left: 4%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(min(5vw, 28px));
+    cursor: pointer;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.25),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 普通宝石 - 6种颜色 */
+.gem-red {
+    background: radial-gradient(circle at 35% 35%, var(--gem-red-light), var(--gem-red-bg));
+    box-shadow: var(--glow-red), 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+}
+.gem-blue {
+    background: radial-gradient(circle at 35% 35%, var(--gem-blue-light), var(--gem-blue-bg));
+    box-shadow: var(--glow-blue), 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+}
+.gem-green {
+    background: radial-gradient(circle at 35% 35%, var(--gem-green-light), var(--gem-green-bg));
+    box-shadow: var(--glow-green), 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+}
+.gem-yellow {
+    background: radial-gradient(circle at 35% 35%, var(--gem-yellow-light), var(--gem-yellow-bg));
+    box-shadow: var(--glow-yellow), 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+}
+.gem-purple {
+    background: radial-gradient(circle at 35% 35%, var(--gem-purple-light), var(--gem-purple-bg));
+    box-shadow: var(--glow-purple), 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+}
+.gem-orange {
+    background: radial-gradient(circle at 35% 35%, var(--gem-orange-light), var(--gem-orange-bg));
+    box-shadow: var(--glow-orange), 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.3), inset 0 -2px 4px rgba(0,0,0,0.2);
+}
+
+/* 选中状态 */
+.gem.selected {
+    transform: scale(1.12);
+    z-index: 10;
+    filter: brightness(1.3);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.7), 0 0 20px rgba(255, 255, 255, 0.4);
+}
+
+/* ============ 特殊宝石样式 ============ */
+
+/* 横条纹宝石 - 半透明横纹叠加 + 左右箭头 */
+.gem.striped-h {
+    box-shadow:
+        0 0 10px rgba(255,255,255,0.5),
+        0 3px 6px rgba(0,0,0,0.25),
+        inset 0 2px 4px rgba(255,255,255,0.25) !important;
+    position: relative;
+    color: transparent;
+}
+
+.gem.striped-h::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(255,255,255,0.35) 0px,
+        rgba(255,255,255,0.35) 5px,
+        transparent 5px,
+        transparent 10px
+    );
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.gem.striped-h::before {
+    content: '↔';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(min(5vw, 22px));
+    color: rgba(255,255,255,0.95);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* 竖条纹宝石 - 半透明竖纹叠加 + 上下箭头 */
+.gem.striped-v {
+    box-shadow:
+        0 0 10px rgba(255,255,255,0.5),
+        0 3px 6px rgba(0,0,0,0.25),
+        inset 0 2px 4px rgba(255,255,255,0.25) !important;
+    position: relative;
+    color: transparent;
+}
+
+.gem.striped-v::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,0.35) 0px,
+        rgba(255,255,255,0.35) 5px,
+        transparent 5px,
+        transparent 10px
+    );
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.gem.striped-v::before {
+    content: '↕';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(min(5vw, 22px));
+    color: rgba(255,255,255,0.95);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* 炸弹宝石 */
+.gem.bomb {
+    color: transparent;
+    box-shadow: 0 0 16px rgba(255, 215, 0, 0.7), 0 4px 8px rgba(0,0,0,0.3) !important;
+    animation: bomb-pulse 1.2s ease-in-out infinite;
+}
+@keyframes bomb-pulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(255, 215, 0, 0.7), 0 4px 8px rgba(0,0,0,0.3); }
+    50% { box-shadow: 0 0 24px rgba(255, 215, 0, 1), 0 4px 8px rgba(0,0,0,0.3); }
+}
+.gem.bomb::before {
+    content: '💥';
+    color: #333;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(min(5vw, 22px));
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* 彩虹宝石 */
+.gem.rainbow {
+    background: conic-gradient(from 0deg, #ff4b4b, #f1c40f, #2ecc71, #4a90e2, #9b59b6, #ff4b4b) !important;
+    box-shadow: 0 0 20px rgba(155, 89, 182, 0.7), 0 4px 8px rgba(0,0,0,0.3) !important;
+    animation: rainbow-spin 3s linear infinite;
+}
+
+/* ============ 宝石动画 ============ */
+
+/* 入场弹入 */
+@keyframes gem-pop {
+    0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+    60%  { transform: scale(1.15) rotate(3deg); opacity: 1; }
+    80%  { transform: scale(0.92) rotate(-1deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.gem-new {
+    animation: gem-pop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+/* 下落 */
+@keyframes gem-fall {
+    0%   { transform: translateY(-120%) scale(0.9); opacity: 0.5; }
+    60%  { opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.gem-falling {
+    animation: gem-fall 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 交换滑动 */
+@keyframes gem-swap-right {
+    0%   { transform: translateX(0); }
+    50%  { transform: translateX(110%); }
+    100% { transform: translateX(0); }
+}
+@keyframes gem-swap-left {
+    0%   { transform: translateX(0); }
+    50%  { transform: translateX(-110%); }
+    100% { transform: translateX(0); }
+}
+@keyframes gem-swap-down {
+    0%   { transform: translateY(0); }
+    50%  { transform: translateY(110%); }
+    100% { transform: translateY(0); }
+}
+@keyframes gem-swap-up {
+    0%   { transform: translateY(0); }
+    50%  { transform: translateY(-110%); }
+    100% { transform: translateY(0); }
+}
+
+/* 匹配闪烁 */
+@keyframes gem-match-pulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    30%  { transform: scale(1.2); filter: brightness(1.8); }
+    60%  { transform: scale(0.9); filter: brightness(0.8); }
+}
+.gem-matched {
+    animation: gem-match-pulse 0.35s ease-in-out forwards !important;
+    z-index: 5;
+}
+
+/* 消除爆炸 */
+@keyframes gem-explode {
+    0%   { transform: scale(1); opacity: 1; }
+    40%  { transform: scale(1.5); opacity: 0.8; filter: brightness(2) blur(2px); }
+    100% { transform: scale(0) rotate(180deg); opacity: 0; }
+}
+.gem-removing {
+    animation: gem-explode 0.4s ease-out forwards !important;
+    pointer-events: none;
+}
+
+/* 无效交换抖动 */
+@keyframes gem-shake {
+    0%, 100% { transform: translateX(0); }
+    20%  { transform: translateX(-6px); }
+    40%  { transform: translateX(6px); }
+    60%  { transform: translateX(-4px); }
+    80%  { transform: translateX(4px); }
+}
+.gem-invalid {
+    animation: gem-shake 0.4s ease-in-out !important;
+}
+
+/* 提示发光 */
+@keyframes gem-hint {
+    0%, 100% { transform: scale(1); box-shadow: inherit; }
+    50%       { transform: scale(1.08); filter: brightness(1.4); }
+}
+.gem-hint {
+    animation: gem-hint 0.7s ease-in-out 2 !important;
+    z-index: 8;
+}
+
+/* 彩虹旋转 */
+@keyframes rainbow-spin {
+    0%   { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+/* 警告脉冲 */
+@keyframes pulse-warn {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.15); color: #ff6b6b; }
+}
+
+/* 分数气泡动画 */
+@keyframes score-bubble-rise {
+    0%   { transform: translateY(0) scale(0.5); opacity: 0; }
+    20%  { transform: translateY(-8px) scale(1.1); opacity: 1; }
+    60%  { transform: translateY(-30px) scale(1); opacity: 1; }
+    100% { transform: translateY(-60px) scale(0.8); opacity: 0; }
+}
+
+/* 粒子动画 */
+@keyframes particle-fly {
+    0%   { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+}
+
+/* 连击文字动画 */
+@keyframes combo-pop {
+    0%   { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+    40%  { transform: scale(1.2) rotate(3deg); opacity: 1; }
+    70%  { transform: scale(0.95) rotate(-1deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); opacity: 0; }
+}
+
+/* ============ 分数气泡 ============ */
+.score-bubble {
+    position: absolute;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    background: var(--score-bubble-bg);
+    border-radius: 20px;
+    padding: 4px 10px;
+    pointer-events: none;
+    z-index: 50;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    animation: score-bubble-rise 0.9s ease-out forwards;
+}
+
+/* ============ 连击提示 ============ */
+.combo-banner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 28px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow:
+        0 0 10px rgba(249, 212, 35, 0.8),
+        0 0 20px rgba(255, 107, 107, 0.6),
+        2px 2px 0 rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    z-index: 60;
+    animation: combo-pop 0.8s ease-out forwards;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* ============ 遮罩消息 ============ */
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 80;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s;
+    backdrop-filter: blur(4px);
+}
+
+.overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.overlay-title {
+    font-size: 30px;
+    font-weight: 900;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.overlay-title.win {
+    background: linear-gradient(135deg, #f9d423, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.overlay-title.lose {
+    color: #a0a0a0;
+}
+
+.overlay-score {
+    font-size: 18px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.overlay-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.overlay-btn {
+    background: var(--btn-bg);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 24px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: var(--btn-glow);
+}
+
+.overlay-btn:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 6px 25px rgba(233, 69, 96, 0.5);
+}
+
+.overlay-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    box-shadow: none;
+}
+
+.overlay-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+}
+
+/* ============ 底部操作区 ============ */
+.bottom-bar {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    gap: 10px;
+}
+
+.bottom-btn {
+    flex: 1;
+    background: var(--bg-card);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.3s;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.bottom-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--btn-gem);
+    transform: translateY(-2px);
+}
+
+.bottom-btn .emoji {
+    font-size: 16px;
+}
+
+/* ============ 星级显示 ============ */
+.stars-display {
+    display: flex;
+    gap: 4px;
+    font-size: 22px;
+}
+
+.star {
+    transition: all 0.3s;
+}
+
+.star.earned {
+    filter: drop-shadow(0 0 4px #f9d423);
+}
+
+.star.empty {
+    opacity: 0.25;
+}
+
+/* ============ 粒子容器 ============ */
+.particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 40;
+    animation: particle-fly 0.6s ease-out forwards;
+}
+
+/* ============ 响应式 ============ */
+@media (max-width: 420px) {
+    .game-wrapper {
+        padding: 65px 8px 12px;
+    }
+
+    .top-bar {
+        padding: 10px 14px;
+    }
+
+    .game-title {
+        font-size: 18px;
+    }
+
+    .stat-box {
+        min-width: 60px;
+        padding: 5px 10px;
+    }
+
+    .stat-value {
+        font-size: 16px;
+    }
+
+    .level-bar {
+        padding: 8px 14px;
+    }
+
+    .game-board {
+        padding: 6px;
+        gap: 3px;
+    }
+
+    .gem {
+        font-size: calc(min(5.5vw, 24px));
+    }
+
+    .overlay-title {
+        font-size: 24px;
+    }
+}
