@@ -1,68 +1,99 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
 <head>
-    <title>消消乐</title>    
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="author" content="Huazie">
-    <meta name="keywords" content="消消乐,Match3">
-    <meta name="description" content="消消乐小游戏">
+    <meta name="keywords" content="消消乐,Match3,益智游戏">
+    <meta name="description" content="消消乐 - 现代化三消游戏">
     <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+
+    <!-- 返回按钮 -->
     <button id="back-button" class="control-button">
         <i class="fas fa-arrow-left"></i>
     </button>
+
+    <!-- 主题切换 -->
     <button id="theme-button" class="control-button">
         <i class="fas fa-sun"></i>
     </button>
-    
-    <div class="game-container">
-        <div class="header">
-            <div class="header-content">
-                <h1>消消乐</h1>
-                <div class="scores-container">
-                    <div class="score-container">
-                        <div class="score-label">分数</div>
-                        <div id="score">90</div>
-                    </div>
-                    <div class="best-container">
-                        <div class="score-label">最高分</div>
-                        <div id="best-score">90</div>
-                    </div>
+
+    <!-- 游戏主体 -->
+    <div class="game-wrapper">
+
+        <!-- 顶部状态栏 -->
+        <div class="top-bar">
+            <div class="game-title">消消乐</div>
+            <div class="stat-group">
+                <div class="stat-box">
+                    <div class="stat-label">分数</div>
+                    <div class="stat-value" id="score">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">最高</div>
+                    <div class="stat-value" id="best-score">0</div>
                 </div>
             </div>
         </div>
 
-        <div class="controls">
-            <button id="new-game-button" class="button">新游戏</button>
+        <!-- 关卡信息栏 -->
+        <div class="level-bar">
             <div class="level-info">
-                <span class="level-label">关卡:</span>
-                <span id="current-level">1</span>
+                <span class="level-badge" id="level-num">1</span>
+                <span class="level-desc">关卡目标: <strong id="target-score">1,000</strong></span>
             </div>
             <div class="moves-info">
-                <span class="moves-label">剩余步数:</span>
-                <span id="moves-left">30</span>
+                <span class="moves-icon">👣</span>
+                <div>
+                    <div class="moves-count" id="moves-count">25</div>
+                    <div class="moves-label">剩余步数</div>
+                </div>
             </div>
         </div>
 
-        <div class="game-board">
-            <!-- 游戏网格，将由JS动态填充 -->
+        <!-- 道具栏 -->
+        <div class="power-bar">
+            <button class="power-btn" id="hint-btn" title="显示提示">
+                <span>💡</span> 提示 <span class="count">3</span>
+            </button>
+            <button class="power-btn" id="shuffle-btn" title="重新洗牌">
+                <span>🔀</span> 洗牌 <span class="count">1</span>
+            </button>
+            <button class="power-btn" id="new-game-btn">
+                <span class="emoji">🎮</span> 新游戏
+            </button>
         </div>
 
-        <div class="game-intro">
-            <p>交换相邻的方块，连接三个或更多相同图案的方块来消除它们。</p>
-        </div>
+        <!-- 游戏棋盘 -->
+        <div class="board-wrapper">
+            <div class="game-board">
+                <!-- 8×8 grid-cell 由 JS 动态生成 -->
+            </div>
 
-        <div class="game-message">
-            <p></p>
-            <div class="game-message-buttons">
-                <button id="retry-button" class="button">再试一次</button>
-                <button id="next-level-button" class="button">下一关</button>
+            <!-- 遮罩结束画面 -->
+            <div class="overlay" id="overlay">
+                <div class="overlay-title">🎉 恭喜过关！</div>
+                <div class="overlay-score">本局得分: 0</div>
+                <div class="overlay-buttons">
+                    <button class="overlay-btn secondary" id="retry-btn">🔄 重来</button>
+                    <button class="overlay-btn" id="next-btn">下一关 ➜</button>
+                </div>
+            </div>
+
+            <!-- 通关庆祝页面 -->
+            <div class="overlay" id="victory-overlay">
+                <div class="overlay-title">🏆 恭喜通关全部5关！</div>
+                <div class="overlay-score" id="victory-score">最终得分: 0</div>
+                <div class="overlay-buttons">
+                    <button class="overlay-btn" id="restart-btn">🎮 重新开始</button>
+                </div>
             </div>
         </div>
+
     </div>
 
     <script src="../assets/js/common.js"></script>
