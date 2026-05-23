@@ -716,6 +716,7 @@ body {
     font-weight: 900;
     margin-bottom: 8px;
     text-align: center;
+    color: #fff;  /* 强制白色，确保在深色overlay上可见 */
 }
 
 .overlay-title.win {
@@ -726,12 +727,12 @@ body {
 }
 
 .overlay-title.lose {
-    color: #a0a0a0;
+    color: #ccc;  /* 亮灰色，确保在深色overlay上可见 */
 }
 
 .overlay-score {
     font-size: 18px;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.9);  /* 浅白色，确保在深色overlay上可见 */
     margin-bottom: 20px;
 }
 
