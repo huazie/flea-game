@@ -46,7 +46,7 @@ class SnakeGame {
         
         // 添加主题变化的监听
         document.addEventListener('themeChanged', () => {
-            const currentTheme = document.body.dataset.theme || 'light';
+            const currentTheme = document.documentElement.dataset.theme || 'light';
             this.draw(); // 重新绘制画布以应用新主题
         });
         

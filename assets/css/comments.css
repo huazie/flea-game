@@ -1,0 +1,254 @@
+/* =========================================================================
+ * Flea Game 悬浮评论组件样式（右下角评论按钮 + 右侧滑出抽屉）
+ * 通过 assets/js/comments.js 自动注入 <head>，无需在各页面手动引入。
+ *
+ * 配色采用组件自带的 --flea-* 变量（:root 亮色 + [data-theme="dark"] 暗色），
+ * 不依赖站点 CSS 变量：各游戏页的 css/style.css 未定义 --card-bg/--text-color
+ * 等变量，若引用站点变量会导致抽屉在游戏页恒为浅色。自带变量后，
+ * 无论门户（data-theme 标在 <html>）还是游戏页（标在 <body>）均能正确适配明暗。
+ * ========================================================================= */
+
+/* ---------- 组件配色变量 ---------- */
+:root {
+    --flea-fab-bg: #3498db;            /* FAB 背景（亮色） */
+    --flea-fab-bg-hover: #2980b9;      /* FAB hover/打开 */
+    --flea-fab-text: #ffffff;          /* FAB 图标 */
+    --flea-fab-border: transparent;    /* FAB 描边（亮色无） */
+    --flea-drawer-bg: #ffffff;         /* 抽屉背景 */
+    --flea-drawer-header-bg: #f7f8fa;  /* 抽屉头背景 */
+    --flea-text: #333333;              /* 正文文字 */
+    --flea-text-title: #2c3e50;        /* 标题文字 */
+    --flea-text-muted: #666666;        /* 次要文字 */
+    --flea-border: rgba(0, 0, 0, 0.1); /* 分隔线 */
+    --flea-hover-bg: rgba(0, 0, 0, 0.08); /* 悬浮底 */
+    --flea-accent: #3498db;            /* 强调色（标题图标） */
+    --flea-shadow: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] {
+    --flea-fab-bg: #2d2d2d;            /* FAB 背景（暗色：深灰） */
+    --flea-fab-bg-hover: #3a3a3a;
+    --flea-fab-text: #ffffff;
+    --flea-fab-border: rgba(255, 255, 255, 0.14);
+    --flea-drawer-bg: #2d2d2d;
+    --flea-drawer-header-bg: #242424;
+    --flea-text: #e0e0e0;
+    --flea-text-title: #ffffff;
+    --flea-text-muted: #bbbbbb;
+    --flea-border: rgba(255, 255, 255, 0.12);
+    --flea-hover-bg: rgba(255, 255, 255, 0.1);
+    --flea-accent: #5dade2;
+    --flea-shadow: rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- 悬浮评论按钮 (FAB) ---------- */
+.flea-comments-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 2100;
+    width: 56px;
+    height: 56px;
+    border: 1px solid var(--flea-fab-border);
+    border-radius: 50%;
+    background: var(--flea-fab-bg);
+    color: var(--flea-fab-text);
+    cursor: pointer;
+    box-shadow: 0 6px 18px var(--flea-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background-color 0.2s ease,
+        opacity 0.2s ease, box-shadow 0.2s ease;
+    animation: flea-fab-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.flea-comments-fab:hover {
+    transform: scale(1.08);
+    background: var(--flea-fab-bg-hover);
+    box-shadow: 0 10px 24px var(--flea-shadow);
+}
+
+.flea-comments-fab:active {
+    transform: scale(0.94);
+}
+
+/* 内联 SVG 图标（不依赖 Font Awesome）：fill 继承按钮 color，避免默认黑色 */
+.flea-comments-fab svg {
+    width: 26px;
+    height: 26px;
+    display: block;
+    fill: currentColor;
+}
+
+/* 抽屉打开时：图标切换为“关闭”，并保持可见可点击 */
+.flea-comments-fab .fab-icon-close {
+    display: none;
+}
+
+.flea-comments-fab.is-active {
+    background: var(--flea-fab-bg-hover);
+}
+
+.flea-comments-fab.is-active .fab-icon-open {
+    display: none;
+}
+
+.flea-comments-fab.is-active .fab-icon-close {
+    display: block;
+}
+
+.flea-comments-fab.is-active:hover {
+    transform: scale(1.08) rotate(90deg);
+}
+
+@keyframes flea-fab-in {
+    from { opacity: 0; transform: scale(0.4) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ---------- 遮罩 ---------- */
+.flea-comments-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.flea-comments-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ---------- 右侧抽屉 ---------- */
+.flea-comments-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 2050;
+    width: min(440px, 92vw);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--flea-drawer-bg);
+    color: var(--flea-text);
+    box-shadow: -8px 0 30px var(--flea-shadow);
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.flea-comments-drawer.is-open {
+    transform: translateX(0);
+}
+
+/* 抽屉头部 */
+.flea-comments-drawer-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--flea-border);
+    background: var(--flea-drawer-header-bg);
+}
+
+.flea-comments-drawer-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--flea-text-title);
+}
+
+.flea-comments-drawer-title .drawer-title-icon {
+    display: flex;
+    color: var(--flea-accent);
+}
+
+.flea-comments-drawer-title .drawer-title-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.flea-comments-drawer-close {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--flea-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.flea-comments-drawer-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.flea-comments-drawer-close:hover {
+    background: var(--flea-hover-bg);
+}
+
+/* 抽屉内容区（可滚动） */
+.flea-comments-drawer-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px 18px 28px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.flea-comments-drawer-body #diversity-comments {
+    min-height: 220px;
+}
+
+.flea-comments-drawer-body #diversity-comments:empty::before {
+    content: "评论加载中…";
+    display: block;
+    padding: 2rem 0;
+    text-align: center;
+    color: var(--flea-text-muted);
+    font-size: 0.95rem;
+}
+
+/* ---------- 手机端适配：抽屉全宽 ---------- */
+@media (max-width: 768px) {
+    .flea-comments-drawer {
+        width: 100%;
+        box-shadow: none;
+    }
+
+    .flea-comments-fab {
+        right: 16px;
+        bottom: 16px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .flea-comments-fab svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    .flea-comments-drawer-body {
+        padding: 14px 14px 24px;
+    }
+}
+
+/* ---------- 尊重用户的减少动效偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .flea-comments-fab,
+    .flea-comments-drawer,
+    .flea-comments-backdrop {
+        animation: none !important;
+        transition: none !important;
+    }
+}

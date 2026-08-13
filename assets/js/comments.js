@@ -1,0 +1,472 @@
+/**
+ * Flea Game 公共评论接入模块（悬浮抽屉版）
+ * =========================================================================
+ * 基于 Diversity Comments SDK（聚合六大评论系统，iframe 沙箱隔离）。
+ * 参考：https://blog.huazie.com/demo/#card-quickstart
+ *
+ * 交互形态：
+ *   - 右下角悬浮评论按钮（FAB），点击滑出右侧抽屉，再次点击收起
+ *   - 点遮罩 / 关闭按钮 / Esc 也可收起（PC 约 440px 宽，手机全宽）
+ *   - 跟随站点明暗主题（由 common.js 统一把 data-theme 标在 <html>，SDK 只读 <html>）
+ *   - 图标用内联 SVG，不依赖 Font Awesome
+ *
+ * 零侵入：模块自动创建 FAB / 遮罩 / 抽屉，自动加载 SDK 与样式。
+ * 页面只需一行：<script>FleaComments.init('shudu');</script>
+ * =========================================================================
+ */
+(function (global) {
+    'use strict';
+
+    /* ---------- 常量 ---------- */
+    var SDK_URL = 'https://huazie.github.io/js/diversity-comments.1.0.0.min.js';
+    var SDK_LOAD_TIMEOUT = 8000; // 外部 CDN 挂起兜底：超时即放弃，不影响页面
+    var CONTAINER_ID = 'diversity-comments';
+    var STYLE_ID = 'flea-comments-style';
+    var STYLE_HREF = resolveStyleHref();
+    var FAB_ID = 'flea-comments-fab';
+    var BACKDROP_ID = 'flea-comments-backdrop';
+    var DRAWER_ID = 'flea-comments-drawer';
+
+    /* 内联 SVG 图标：不依赖 Font Awesome，CDN 挂起时图标依然可见 */
+    /* 注意：path 必须 fill="currentColor"，否则 SVG 默认黑色填充，不继承按钮颜色 */
+    var ICON_CHAT =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>';
+    var ICON_CLOSE =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">' +
+        '<path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 ' +
+        '17.59 19 19 17.59 13.41 12z"/></svg>';
+
+    /**
+     * 评论系统统一配置（公共接入的唯一配置来源）。
+     * - 默认启用 Utterances：只需 `repo`（GitHub 仓库名），无需任何密钥，开箱即用。
+     * - 其它系统默认关闭。如需启用，请在对应处填入你的凭据，并把 `enable` 改为 true。
+     */
+    var COMMENT_CONFIG = {
+        /* 评论区通用配置 */
+        style: 'tabs',        // 显示模式：tabs（选项卡） / dropdown（下拉）
+        active: 'utterances', // 默认激活的评论系统
+        lazyload: false,      // 抽屉初始在屏外，关闭懒加载以保打开即见
+        storage: true,        // 记住用户选择的评论系统
+        lang: 'zh-CN',
+
+        /* —— Utterances（默认启用，仅需仓库名） —— */
+        utterances: {
+            enable: true,
+            repo: 'huazie/flea-game',   // TODO: 替换为你自己的 GitHub 仓库
+            issue_term: 'pathname',
+            theme: 'github-light',
+            dark: 'github-dark'
+        },
+
+        /* —— Giscus（启用前需填写 repo_id / category_id） —— */
+        giscus: {
+            enable: false,
+            repo: 'huazie/flea-game',
+            repo_id: 'YOUR_GISCUS_REPO_ID',
+            category: 'Announcements',
+            category_id: 'YOUR_GISCUS_CATEGORY_ID',
+            mapping: 'pathname',
+            reactions_enabled: 1,
+            lang: 'zh-CN',
+            input_position: 'bottom'
+        },
+
+        /* —— Gitalk（需 GitHub OAuth App 的 client_id / client_secret） —— */
+        gitalk: {
+            enable: false,
+            github_id: 'huazie',
+            repo: 'flea-game',
+            client_id: 'YOUR_GITHUB_OAUTH_CLIENT_ID',
+            client_secret: 'YOUR_GITHUB_OAUTH_CLIENT_SECRET',
+            admin_user: 'huazie',
+            distraction_free_mode: true,
+            issue_term: 'pathname',
+            language: 'zh-CN'
+        },
+
+        /* —— Twikoo（需云函数地址 env_id） —— */
+        twikoo: {
+            enable: false,
+            env_id: 'YOUR_TWIKOO_ENV_ID',
+            lang: 'zh-CN'
+        },
+
+        /* —— Gitment（需 GitHub OAuth App 的 client_id / client_secret） —— */
+        gitment: {
+            enable: false,
+            owner: 'huazie',
+            repo: 'flea-game',
+            client_id: 'YOUR_GITHUB_OAUTH_CLIENT_ID',
+            client_secret: 'YOUR_GITHUB_OAUTH_CLIENT_SECRET',
+            issue_term: 'pathname',
+            gitmint: true,
+            lang: 'zh-CN'
+        },
+
+        /* —— Waline（需服务端地址 server_url） —— */
+        waline: {
+            enable: false,
+            server_url: 'YOUR_WALINE_SERVER_URL',
+            lang: 'zh-CN',
+            dark: '.dark-theme',
+            reaction: true,
+            page_size: 10
+        }
+    };
+
+    /* 状态 */
+    var instance = null;
+    var initialized = false;
+    var drawerOpen = false;
+    var dom = {};
+    var prevBodyOverflow = '';
+    var themeObserver = null;
+    var lastScheme = null; // 上次已下发的主题，避免重复调用 setColorScheme / 重建
+    var sdkReady = false;  // SDK 是否已完成初始化（iframe 就绪）
+    var state = { pageId: null, options: null, initTheme: null }; // 用于主题变化后重建 widget
+
+    /* ---------- 工具函数 ---------- */
+
+    /** 解析 comments.css 路径：页面均为同步引入，取当前脚本 src 即可 */
+    function resolveStyleHref() {
+        var src = '';
+        try {
+            src = (document.currentScript && document.currentScript.src) || '';
+        } catch (e) { /* ignore */ }
+        if (!src) return '../assets/css/comments.css';
+        return src.replace(/\/js\/comments\.js(\?.*)?$/, '/css/comments.css');
+    }
+
+    function currentTheme() {
+        var t = document.documentElement.dataset.theme;
+        return t === 'dark' ? 'dark' : 'light';
+    }
+
+    /**
+     * 应用站点主题到评论模块。
+     * 主题的 DOM 标记（<html data-theme>）由 common.js 统一负责，此处只负责通知 SDK：
+     * 1. 调用 DiversityComments.setColorScheme(scheme) 尝试轻量换肤（主要影响 SDK 外壳）。
+     * 2. 对 Utterances 等 iframe 子系统，setColorScheme 无法驱动其内部内容换肤
+     *    （截图证实：外壳已亮，Utterances 内容仍暗）。因此 SDK ready 后若主题真的变了，
+     *    必须销毁旧 widget 并用新主题重新 init，让 iframe src 拿到正确 theme 参数。
+     * 仅在主题真正变化时才重建，避免 openDrawer / kickThemeSync 反复调用导致多次加载。
+     */
+    function applyColorScheme(scheme) {
+        var target = (scheme === 'dark') ? 'dark' : 'light';
+        if (lastScheme === target) return; // 主题未变，跳过
+        lastScheme = target;
+        // 轻量尝试：通知 SDK 更新外壳主题
+        try {
+            if (global.DiversityComments &&
+                typeof global.DiversityComments.setColorScheme === 'function') {
+                global.DiversityComments.setColorScheme(scheme);
+            }
+        } catch (e) { /* ignore */ }
+        // 可靠兜底：销毁并重建 widget，确保 iframe 内部主题正确
+        if (sdkReady && state.pageId) {
+            rebuildComments(state.pageId, state.options);
+        }
+    }
+
+    /**
+     * SDK 的 setColorScheme 在评论 iframe 尚未就绪（聚合页握手完成）时会直接忽略，
+     * 因此用多次延迟重试覆盖 iframe 慢就绪的场景，确保主题最终落地。
+     */
+    function kickThemeSync() {
+        [0, 500, 1500, 3000, 5000, 8000].forEach(function (delay) {
+            setTimeout(function () { applyColorScheme(currentTheme()); }, delay);
+        });
+    }
+
+    /**
+     * 监听站点明暗变化：所有页面统一把 data-theme 标在 <html>，
+     * 故只需监听 <html>；不支持 MutationObserver 时回退到 themeChanged 事件。
+     */
+    function observeThemeChange() {
+        if (themeObserver) return; // 只注册一次
+        if (typeof MutationObserver === 'undefined') {
+            document.addEventListener('themeChanged', function () {
+                applyColorScheme(currentTheme());
+            });
+            return;
+        }
+        themeObserver = new MutationObserver(function () {
+            applyColorScheme(currentTheme());
+        });
+        themeObserver.observe(document.documentElement,
+            { attributes: true, attributeFilter: ['data-theme'] });
+    }
+
+    function ensureStyleInjected() {
+        if (document.getElementById(STYLE_ID)) return;
+        var link = document.createElement('link');
+        link.id = STYLE_ID;
+        link.rel = 'stylesheet';
+        link.href = STYLE_HREF;
+        document.head.appendChild(link);
+    }
+
+    /* ---------- 悬浮 UI ---------- */
+
+    function buildUi() {
+        if (document.getElementById(FAB_ID)) return; // 已构建则跳过
+
+        // 悬浮按钮（FAB）
+        var fab = document.createElement('button');
+        fab.id = FAB_ID;
+        fab.type = 'button';
+        fab.className = 'flea-comments-fab';
+        fab.setAttribute('aria-label', '打开评论');
+        fab.innerHTML =
+            '<span class="fab-icon-open" aria-hidden="true">' + ICON_CHAT + '</span>' +
+            '<span class="fab-icon-close" aria-hidden="true">' + ICON_CLOSE + '</span>';
+        fab.addEventListener('click', toggleDrawer);
+        document.body.appendChild(fab);
+
+        // 遮罩
+        var backdrop = document.createElement('div');
+        backdrop.id = BACKDROP_ID;
+        backdrop.className = 'flea-comments-backdrop';
+        backdrop.addEventListener('click', closeDrawer);
+        document.body.appendChild(backdrop);
+
+        // 抽屉
+        var drawer = document.createElement('aside');
+        drawer.id = DRAWER_ID;
+        drawer.className = 'flea-comments-drawer';
+        drawer.setAttribute('role', 'dialog');
+        drawer.setAttribute('aria-modal', 'true');
+        drawer.setAttribute('aria-label', '评论');
+        drawer.innerHTML =
+            '<div class="flea-comments-drawer-header">' +
+                '<span class="flea-comments-drawer-title">' +
+                    '<span class="drawer-title-icon" aria-hidden="true">' +
+                        ICON_CHAT + '</span> 游戏评论' +
+                '</span>' +
+                '<button type="button" class="flea-comments-drawer-close" ' +
+                    'aria-label="关闭评论">' + ICON_CLOSE + '</button>' +
+            '</div>' +
+            '<div class="flea-comments-drawer-body">' +
+                '<div id="' + CONTAINER_ID + '"></div>' +
+            '</div>';
+        document.body.appendChild(drawer);
+
+        drawer.querySelector('.flea-comments-drawer-close')
+            .addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && drawerOpen) closeDrawer();
+        });
+
+        dom.fab = fab;
+        dom.backdrop = backdrop;
+        dom.drawer = drawer;
+        dom.container = drawer.querySelector('#' + CONTAINER_ID);
+    }
+
+    function openDrawer() {
+        if (!dom.drawer) return;
+        drawerOpen = true;
+        dom.drawer.classList.add('is-open');
+        dom.backdrop.classList.add('is-open');
+        dom.fab.classList.add('is-active');
+        dom.fab.setAttribute('aria-label', '关闭评论');
+        // 锁定背景滚动
+        prevBodyOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        // 同步主题（若 SDK 已就绪）。注意：不要在此调用 refresh()，否则每次打开抽屉
+        // 都会让评论 iframe 重新渲染、重复加载评论内容。
+        applyColorScheme(currentTheme());
+    }
+
+    function closeDrawer() {
+        if (!dom.drawer || !drawerOpen) return;
+        drawerOpen = false;
+        dom.drawer.classList.remove('is-open');
+        dom.backdrop.classList.remove('is-open');
+        dom.fab.classList.remove('is-active');
+        dom.fab.setAttribute('aria-label', '打开评论');
+        document.body.style.overflow = prevBodyOverflow || '';
+    }
+
+    /** 切换抽屉：打开则收起，收起则打开 */
+    function toggleDrawer() {
+        if (drawerOpen) closeDrawer();
+        else openDrawer();
+    }
+
+    /* ---------- SDK 初始化 ---------- */
+
+    function buildConfig(pageId, options) {
+        var cfg = Object.assign({}, COMMENT_CONFIG, options || {});
+        return {
+            container: '#' + CONTAINER_ID,
+            comments: {
+                pageId: pageId,
+                style: cfg.style,
+                active: cfg.active,
+                lazyload: cfg.lazyload,
+                storage: cfg.storage,
+                lang: cfg.lang
+            },
+            utterances: cfg.utterances,
+            giscus: cfg.giscus,
+            gitalk: cfg.gitalk,
+            twikoo: cfg.twikoo,
+            gitment: cfg.gitment,
+            waline: cfg.waline,
+            onReady: function (iframe, active) {
+                sdkReady = true;
+                lastScheme = currentTheme(); // 此时已是最新主题，避免 kickThemeSync 重复动作
+                // 轻量同步一次 SDK 外壳主题
+                try {
+                    if (global.DiversityComments &&
+                        typeof global.DiversityComments.setColorScheme === 'function') {
+                        global.DiversityComments.setColorScheme(currentTheme());
+                    }
+                } catch (e) { /* ignore */ }
+                // 如果 init 期间用户切了主题，widget 是按旧主题创建的，需要重建
+                if (currentTheme() !== state.initTheme) {
+                    rebuildComments(state.pageId, state.options);
+                }
+                kickThemeSync();
+                if (typeof cfg.onReady === 'function') cfg.onReady(iframe, active);
+            },
+            onError: function (msg) {
+                console.error('[FleaComments] 评论加载失败: ' + msg);
+                if (typeof cfg.onError === 'function') cfg.onError(msg);
+            },
+            onActiveChange: function (active) {
+                if (typeof cfg.onActiveChange === 'function') cfg.onActiveChange(active);
+            }
+        };
+    }
+
+    /**
+     * 挂载评论 widget。
+     * 在 init 配置里把主题定死（darkMode + utterances.theme），让 iframe 从一开始就
+     * 按正确主题创建；运行时的主题切换由 applyColorScheme 处理（setColorScheme 轻量
+     * 更新外壳 + 必要时 rebuild 确保 iframe 内部主题正确）。
+     */
+    function mountComments(pageId, options) {
+        if (typeof global.DiversityComments === 'undefined') return;
+        var isDark = (currentTheme() === 'dark');
+        var config = buildConfig(pageId, options);
+        // 关键：直接在 init 配置里把主题定死
+        // ① darkMode 直接按站点主题定死（不依赖 SDK 的 auto / 系统 prefers-color-scheme）；
+        // ② Utterances 主题设为站点主题对应的 github-dark/github-light，
+        //    让 iframe 从一开始就按正确主题创建。
+        config.comments.darkMode = isDark ? 'dark' : 'light';
+        config.utterances = Object.assign({}, config.utterances, {
+            theme: isDark
+                ? (config.utterances.dark || 'github-dark')
+                : (config.utterances.theme || 'github-light')
+        });
+        try {
+            instance = global.DiversityComments.init(config);
+        } catch (e) {
+            console.error('[FleaComments] 初始化异常: ' + e.message);
+            return;
+        }
+        observeThemeChange();
+        kickThemeSync(); // 多次延迟重试，确保主题在 iframe 就绪后落地
+    }
+
+    /**
+     * 用当前站点主题重建评论 widget（销毁旧实例 + 清空容器 + 重新 init）。
+     * 用于主题真正变化后，确保 Utterances 等 iframe 子系统内部按新主题重新加载。
+     */
+    function rebuildComments(pageId, options) {
+        if (typeof global.DiversityComments === 'undefined') return;
+        // 销毁旧实例，避免 iframe 叠加
+        if (global.DiversityComments &&
+            typeof global.DiversityComments.destroy === 'function') {
+            try { global.DiversityComments.destroy(); } catch (e) { /* ignore */ }
+        }
+        if (dom.container) dom.container.innerHTML = '';
+        state.initTheme = currentTheme();
+        mountComments(pageId, options);
+    }
+
+    function doInit(pageId, options) {
+        if (typeof global.DiversityComments === 'undefined') {
+            console.error('[FleaComments] DiversityComments SDK 未加载');
+            return;
+        }
+        sdkReady = false;
+        state.pageId = pageId;
+        state.options = options || null;
+        state.initTheme = currentTheme();
+        lastScheme = currentTheme(); // 避免 init 阶段触发不必要的重建
+        mountComments(pageId, options);
+    }
+
+    /**
+     * 加载 SDK。async + 8s 超时兜底：外部 CDN 挂起时不阻塞页面，
+     * 超时即移除挂起的脚本并放弃（评论暂不可用，页面不受影响）。
+     */
+    function ensureSdkLoaded(callback) {
+        if (typeof global.DiversityComments !== 'undefined') {
+            callback();
+            return;
+        }
+        var settled = false;
+        var sdk = document.createElement('script');
+        sdk.src = SDK_URL;
+        sdk.async = true;
+        function settle() {
+            if (settled) return;
+            settled = true;
+            sdk.onload = sdk.onerror = null;
+            if (typeof global.DiversityComments !== 'undefined') callback();
+            else console.error('[FleaComments] 无法加载 DiversityComments SDK: ' + SDK_URL);
+        }
+        sdk.onload = settle;
+        sdk.onerror = settle;
+        document.head.appendChild(sdk);
+        setTimeout(function () {
+            if (!settled && sdk.parentNode) sdk.parentNode.removeChild(sdk); // 超时移除挂起的脚本
+            settle();
+        }, SDK_LOAD_TIMEOUT);
+    }
+
+    /* ---------- 公共接口 ---------- */
+
+    /**
+     * 初始化评论（悬浮按钮 + 右侧抽屉）。
+     * @param {string} pageId  页面唯一标识（如 'shudu'、'2048'、'home'）
+     * @param {object} [options] 覆盖 COMMENT_CONFIG 中的字段
+     */
+    function init(pageId, options) {
+        if (!pageId) {
+            console.error('[FleaComments] 缺少 pageId 参数');
+            return;
+        }
+        if (initialized) {
+            console.warn('[FleaComments] 已初始化，忽略重复调用（pageId=' + pageId + '）');
+            return;
+        }
+        ensureStyleInjected();
+        buildUi();
+        initialized = true;
+        // 关键：SDK 只在页面 load 之后加载。
+        // 原因：浏览器 window.load 会等待所有 async 脚本加载完成；若在页面解析期间就
+        // 创建指向外部 CDN 的脚本，而该 CDN 挂起/不可达，load 将永不触发，标签页
+        // 一直转圈（“无响应”）。推迟到 load 之后：load 只等本地资源 → 立即触发
+        // → 页面正常；SDK 随后后台加载（async + 8s 超时兜底），挂起也不影响页面。
+        var start = function () {
+            ensureSdkLoaded(function () { doInit(pageId, options); });
+        };
+        if (document.readyState === 'complete') start();
+        else window.addEventListener('load', start);
+    }
+
+    global.FleaComments = {
+        init: init,
+        config: COMMENT_CONFIG,
+        /** 打开评论抽屉 */
+        open: openDrawer,
+        /** 关闭评论抽屉 */
+        close: closeDrawer
+    };
+})(window);

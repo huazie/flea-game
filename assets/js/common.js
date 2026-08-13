@@ -13,17 +13,21 @@ class CommonManager {
         this.bindEvents();
     }
     
+    /**
+     * 统一写入主题：所有页面都把 data-theme 标在 <html>(documentElement)。
+     * 门户 main.js 与游戏页 common.js 一致，SDK（评论）、canvas 取色等
+     * 从 document.documentElement 读主题的代码都能正确拿到。
+     */
+    applyTheme(theme) {
+        document.documentElement.dataset.theme = theme;
+    }
+
     initTheme() {
         // 从本地存储加载主题设置
         const savedTheme = localStorage.getItem(this.themeKey);
-        
-        if (savedTheme === 'dark') {
-            document.body.dataset.theme = 'dark';
-            this.updateThemeIcon(true);
-        } else {
-            document.body.dataset.theme = 'light';
-            this.updateThemeIcon(false);
-        }
+        const theme = (savedTheme === 'dark') ? 'dark' : 'light';
+        this.applyTheme(theme);
+        this.updateThemeIcon(theme === 'dark');
     }
     
     bindEvents() {
@@ -35,18 +39,18 @@ class CommonManager {
     }
     
     toggleTheme() {
-        // 检查当前主题是否为深色
-        const currentIsDark = document.body.dataset.theme === 'dark';
+        // 检查当前主题是否为深色（主题统一标在 <html>）
+        const currentIsDark = document.documentElement.dataset.theme === 'dark';
         // 切换到相反的主题
         const newTheme = currentIsDark ? 'light' : 'dark';
-        document.body.dataset.theme = newTheme;
-        
+        this.applyTheme(newTheme);
+
         // 保存主题设置到本地存储
         localStorage.setItem(this.themeKey, newTheme);
-        
+
         // 更新图标 - 传入新主题是否为深色
         this.updateThemeIcon(!currentIsDark);
-        
+
         // 触发自定义事件，通知游戏画布重绘
         document.dispatchEvent(new CustomEvent('themeChanged'));
     }
