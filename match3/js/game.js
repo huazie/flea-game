@@ -90,16 +90,6 @@ class Match3Game {
             window.location.href = '../index.html';
         });
 
-        // 主题切换
-        document.getElementById('theme-button')?.addEventListener('click', () => {
-            const html = document.documentElement;
-            const currentIsDark = html.getAttribute('data-theme') === 'dark';
-            const next = currentIsDark ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            localStorage.setItem('color_scheme', next);
-            this._updateThemeIcon(!currentIsDark);
-        });
-
         // 提示
         this.$hintBtn?.addEventListener('click', () => this._showHint());
 
