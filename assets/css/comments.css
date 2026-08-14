@@ -43,12 +43,16 @@
 
 /* ---------- 悬浮评论按钮 (FAB) ---------- */
 .flea-comments-fab {
+    /* 响应式尺寸：手机最小 42px，桌面最大 50px，随视口宽度平滑缩放 */
+    --flea-fab-size: clamp(42px, 12vw, 50px);
+    /* 边距随视口缩放，并避让刘海屏/灵动岛/底部安全区（iPhone 等） */
+    --flea-fab-gap: clamp(16px, 4vw, 24px);
     position: fixed;
-    right: 24px;
-    bottom: 24px;
+    right: max(var(--flea-fab-gap), env(safe-area-inset-right, 0px));
+    bottom: max(var(--flea-fab-gap), env(safe-area-inset-bottom, 0px));
     z-index: 2100;
-    width: 56px;
-    height: 56px;
+    width: var(--flea-fab-size);
+    height: var(--flea-fab-size);
     border: 1px solid var(--flea-fab-border);
     border-radius: 50%;
     background: var(--flea-fab-bg);
@@ -75,8 +79,10 @@
 
 /* 内联 SVG 图标（不依赖 Font Awesome）：fill 继承按钮 color，避免默认黑色 */
 .flea-comments-fab svg {
-    width: 26px;
-    height: 26px;
+    width: calc(var(--flea-fab-size) * 0.46);
+    height: calc(var(--flea-fab-size) * 0.46);
+    max-width: 26px;
+    max-height: 26px;
     display: block;
     fill: currentColor;
 }
@@ -226,20 +232,16 @@
         box-shadow: none;
     }
 
-    .flea-comments-fab {
-        right: 16px;
-        bottom: 16px;
-        width: 52px;
-        height: 52px;
-    }
-
-    .flea-comments-fab svg {
-        width: 24px;
-        height: 24px;
-    }
-
     .flea-comments-drawer-body {
         padding: 14px 14px 24px;
+    }
+}
+
+/* ---------- 横屏小屏（手机横放）：缩短高度时缩小按钮，避免遮挡 ---------- */
+@media (max-height: 430px) and (orientation: landscape) {
+    .flea-comments-fab {
+        --flea-fab-size: clamp(36px, 10vw, 44px);
+        --flea-fab-gap: 14px;
     }
 }
 
