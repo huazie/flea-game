@@ -9,14 +9,15 @@ let currentCategory = 'all';
 
 // 页面加载完成后执行
 document.addEventListener('DOMContentLoaded', function() {
-    // 初始化主题
-    initTheme();
-    
     // 初始化搜索功能
     initSearch();
     
     // 加载游戏配置并生成游戏卡片
     loadGamesConfig();
+    
+    // 主题切换已统一交由 common.js（CommonManager）处理。
+    // 此处仅监听主题变化事件，重新渲染游戏卡片（卡片含明暗主题对应的图片）。
+    document.addEventListener('themeChanged', refreshGameCards);
     
     // 添加页面加载动画
     document.body.style.opacity = '0';
@@ -105,36 +106,6 @@ function initSearch() {
             refreshGameCards(); // 如果搜索框被清空，重新加载所有游戏
         }
     });
-}
-
-// 初始化主题
-function initTheme() {
-    const themeToggle = document.getElementById('themeToggle');
-    const themeIcon = themeToggle.querySelector('i'); // 修改：直接从按钮中获取图标元素
-    
-    // 从localStorage获取主题设置
-    const currentTheme = localStorage.getItem('color_scheme') || 'light';
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    updateThemeIcon(themeIcon, currentTheme);
-    
-    // 添加主题切换事件监听器
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        
-        // 更新主题
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('color_scheme', newTheme);
-        updateThemeIcon(themeIcon, newTheme);
-        
-        // 重新生成游戏卡片（不重新加载配置）
-        refreshGameCards();
-    });
-}
-
-// 更新主题图标
-function updateThemeIcon(iconElement, theme) {
-    iconElement.className = theme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
 // 加载游戏配置

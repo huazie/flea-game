@@ -17,15 +17,33 @@
 (function (global) {
     'use strict';
 
-    /* ---------- 常量 ---------- */
+    /* ============================================================
+     * 1. 常量与资源
+     * ============================================================ */
     var SDK_URL = 'https://huazie.github.io/js/diversity-comments.1.0.0.min.js';
     var SDK_LOAD_TIMEOUT = 8000; // 外部 CDN 挂起兜底：超时即放弃，不影响页面
     var CONTAINER_ID = 'diversity-comments';
     var STYLE_ID = 'flea-comments-style';
+
+    /** 解析 comments.css 路径：页面均为同步引入，取当前脚本 src 即可 */
+    function resolveStyleHref() {
+        var src = '';
+        try {
+            src = (document.currentScript && document.currentScript.src) || '';
+        } catch (e) { /* ignore */ }
+        if (!src) return '../assets/css/comments.css';
+        return src.replace(/\/js\/comments\.js(\?.*)?$/, '/css/comments.css');
+    }
     var STYLE_HREF = resolveStyleHref();
+
     var FAB_ID = 'flea-comments-fab';
     var BACKDROP_ID = 'flea-comments-backdrop';
     var DRAWER_ID = 'flea-comments-drawer';
+
+    // config 目录下的评论配置文件（优先于内置默认）。地址推算交给公共模块 FleaCommon。
+    var COMMENT_CONFIG_URL = (global.FleaCommon && typeof global.FleaCommon.resolveConfigUrl === 'function')
+        ? global.FleaCommon.resolveConfigUrl('comments.json')
+        : 'config/comments.json';
 
     /* 内联 SVG 图标：不依赖 Font Awesome，CDN 挂起时图标依然可见 */
     /* 注意：path 必须 fill="currentColor"，否则 SVG 默认黑色填充，不继承按钮颜色 */
@@ -37,10 +55,14 @@
         '<path fill="currentColor" d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 ' +
         '17.59 19 19 17.59 13.41 12z"/></svg>';
 
+    /* ============================================================
+     * 2. 默认评论配置（占位值；实际仓库 / 凭据由 config/comments.json 覆盖）
+     * ============================================================ */
     /**
-     * 评论系统统一配置（公共接入的唯一配置来源）。
+     * 评论系统统一配置（公共接入的唯一默认来源）。
      * - 默认启用 Utterances：只需 `repo`（GitHub 仓库名），无需任何密钥，开箱即用。
      * - 其它系统默认关闭。如需启用，请在对应处填入你的凭据，并把 `enable` 改为 true。
+     * - 真实仓库 / 凭据统一放在 config/comments.json，经深合并覆盖此处的占位值。
      */
     var COMMENT_CONFIG = {
         /* 评论区通用配置 */
@@ -52,8 +74,8 @@
 
         /* —— Utterances（默认启用，仅需仓库名） —— */
         utterances: {
-            enable: true,
-            repo: 'huazie/flea-game',   // TODO: 替换为你自己的 GitHub 仓库
+            enable: false,
+            repo: 'YOUR_GITHUB_OWNER/YOUR_GITHUB_REPO',   // 默认占位（owner/repo 格式），实际仓库由 config/comments.json 提供
             issue_term: 'pathname',
             theme: 'github-light',
             dark: 'github-dark'
@@ -62,7 +84,7 @@
         /* —— Giscus（启用前需填写 repo_id / category_id） —— */
         giscus: {
             enable: false,
-            repo: 'huazie/flea-game',
+            repo: 'YOUR_GITHUB_OWNER/YOUR_GITHUB_REPO',
             repo_id: 'YOUR_GISCUS_REPO_ID',
             category: 'Announcements',
             category_id: 'YOUR_GISCUS_CATEGORY_ID',
@@ -75,11 +97,11 @@
         /* —— Gitalk（需 GitHub OAuth App 的 client_id / client_secret） —— */
         gitalk: {
             enable: false,
-            github_id: 'huazie',
-            repo: 'flea-game',
+            github_id: 'YOUR_GITHUB_OWNER',
+            repo: 'YOUR_GITHUB_REPO',
             client_id: 'YOUR_GITHUB_OAUTH_CLIENT_ID',
             client_secret: 'YOUR_GITHUB_OAUTH_CLIENT_SECRET',
-            admin_user: 'huazie',
+            admin_user: 'YOUR_GITHUB_OWNER',
             distraction_free_mode: true,
             issue_term: 'pathname',
             language: 'zh-CN'
@@ -95,8 +117,8 @@
         /* —— Gitment（需 GitHub OAuth App 的 client_id / client_secret） —— */
         gitment: {
             enable: false,
-            owner: 'huazie',
-            repo: 'flea-game',
+            owner: 'YOUR_GITHUB_OWNER',
+            repo: 'YOUR_GITHUB_REPO',
             client_id: 'YOUR_GITHUB_OAUTH_CLIENT_ID',
             client_secret: 'YOUR_GITHUB_OAUTH_CLIENT_SECRET',
             issue_term: 'pathname',
@@ -115,7 +137,9 @@
         }
     };
 
-    /* 状态 */
+    /* ============================================================
+     * 3. 模块状态
+     * ============================================================ */
     var instance = null;
     var initialized = false;
     var drawerOpen = false;
@@ -124,24 +148,58 @@
     var themeObserver = null;
     var lastScheme = null; // 上次已下发的主题，避免重复调用 setColorScheme / 重建
     var sdkReady = false;  // SDK 是否已完成初始化（iframe 就绪）
+    var mergedConfig = null; // 从 config/comments.json 加载并与默认深合并后的生效配置（优先于内置默认）
+    var configLoaded = false; // config/comments.json 是否已发起过加载（保证只加载一次）
     var state = { pageId: null, options: null, initTheme: null }; // 用于主题变化后重建 widget
 
-    /* ---------- 工具函数 ---------- */
+    /* ============================================================
+     * 4. 工具函数
+     * ============================================================ */
 
-    /** 解析 comments.css 路径：页面均为同步引入，取当前脚本 src 即可 */
-    function resolveStyleHref() {
-        var src = '';
-        try {
-            src = (document.currentScript && document.currentScript.src) || '';
-        } catch (e) { /* ignore */ }
-        if (!src) return '../assets/css/comments.css';
-        return src.replace(/\/js\/comments\.js(\?.*)?$/, '/css/comments.css');
+    /** 取得当前生效配置：合并后的远程配置优先，否则用内置默认 */
+    function getConfig() {
+        return mergedConfig != null ? mergedConfig : COMMENT_CONFIG;
     }
 
+    /** 读取站点当前主题（统一标在 <html data-theme>），缺省视为 light */
     function currentTheme() {
         var t = document.documentElement.dataset.theme;
         return t === 'dark' ? 'dark' : 'light';
     }
+
+    /* ============================================================
+     * 5. 远程配置加载（config/comments.json 深合并覆盖默认）
+     * ============================================================ */
+
+    /**
+     * 优先从 config/comments.json 加载评论配置，深合并覆盖内置默认配置。
+     * 加载 + 合并 + 缓存 + 失败兜底统一交给公共模块 window.FleaCommon.loadConfig
+     * （见 assets/js/common.js）：
+     * - 加载成功：远程配置与默认配置深合并后作为生效配置。
+     * - 加载失败 / 超时 / 无公共模块：回退内置默认，不阻塞评论初始化。
+     */
+    function loadRemoteConfig(done) {
+        if (configLoaded) { done(); return; }
+        configLoaded = true;
+        var Common = global.FleaCommon;
+        if (!Common || typeof Common.loadConfig !== 'function') {
+            done(); // 兜底：公共模块缺失时直接退回默认配置
+            return;
+        }
+        var sep = COMMENT_CONFIG_URL.indexOf('?') === -1 ? '?' : '&';
+        var url = COMMENT_CONFIG_URL + sep + 't=' + Date.now(); // 绕过缓存
+
+        Common.loadConfig(url, COMMENT_CONFIG, { timeout: 5000 })
+            .then(function (merged) {
+                mergedConfig = merged;
+                if (global.FleaComments) global.FleaComments.config = merged;
+            })
+            .then(done, done); // 无论成功失败都继续初始化
+    }
+
+    /* ============================================================
+     * 6. 主题处理
+     * ============================================================ */
 
     /**
      * 应用站点主题到评论模块。
@@ -198,6 +256,13 @@
             { attributes: true, attributeFilter: ['data-theme'] });
     }
 
+    /* ============================================================
+     * 7. 样式注入
+     * ============================================================ */
+
+    /**
+     * 注入 comments.css（只注入一次：靠 STYLE_ID 检测是否已存在，避免重复加载）。
+     */
     function ensureStyleInjected() {
         if (document.getElementById(STYLE_ID)) return;
         var link = document.createElement('link');
@@ -207,7 +272,9 @@
         document.head.appendChild(link);
     }
 
-    /* ---------- 悬浮 UI ---------- */
+    /* ============================================================
+     * 8. 悬浮 UI（FAB / 遮罩 / 抽屉的构建与开合）
+     * ============================================================ */
 
     function buildUi() {
         if (document.getElementById(FAB_ID)) return; // 已构建则跳过
@@ -295,10 +362,13 @@
         else openDrawer();
     }
 
-    /* ---------- SDK 初始化 ---------- */
+    /* ============================================================
+     * 9. 评论 widget（配置构建 / 挂载 / 重建 / 初始化 / SDK 加载）
+     * ============================================================ */
 
     function buildConfig(pageId, options) {
-        var cfg = Object.assign({}, COMMENT_CONFIG, options || {});
+        // 优先使用远程配置（config/comments.json 深合并后的结果），否则回退内置默认
+        var cfg = Object.assign({}, getConfig(), options || {});
         return {
             container: '#' + CONTAINER_ID,
             comments: {
@@ -430,7 +500,9 @@
         }, SDK_LOAD_TIMEOUT);
     }
 
-    /* ---------- 公共接口 ---------- */
+    /* ============================================================
+     * 10. 公共接口 + 导出
+     * ============================================================ */
 
     /**
      * 初始化评论（悬浮按钮 + 右侧抽屉）。
@@ -455,7 +527,12 @@
         // 一直转圈（“无响应”）。推迟到 load 之后：load 只等本地资源 → 立即触发
         // → 页面正常；SDK 随后后台加载（async + 8s 超时兜底），挂起也不影响页面。
         var start = function () {
-            ensureSdkLoaded(function () { doInit(pageId, options); });
+            // 优先加载 config/comments.json 并深合并覆盖内置默认；
+            // 加载成功/失败/超时（5s 兜底）后，再继续 SDK 加载与 widget 构建，
+            // 确保 buildConfig 拿到的是合并后的生效配置。
+            loadRemoteConfig(function () {
+                ensureSdkLoaded(function () { doInit(pageId, options); });
+            });
         };
         if (document.readyState === 'complete') start();
         else window.addEventListener('load', start);
