@@ -1,0 +1,59 @@
+{
+  "style": "tabs",
+  "active": "utterances",
+  "lazyload": false,
+  "storage": true,
+  "lang": "zh-CN",
+  "utterances": {
+    "enable": true,
+    "repo": "huazie/flea-game",
+    "issue_term": "pathname",
+    "theme": "github-light",
+    "dark": "github-dark"
+  },
+  "giscus": {
+    "enable": true,
+    "repo": "huazie/flea-game",
+    "repo_id": "R_kgDOO3txyQ",
+    "category": "Announcements",
+    "category_id": "DIC_kwDOO3txyc4DBhoI",
+    "mapping": "pathname",
+    "reactions_enabled": 1,
+    "lang": "zh-CN",
+    "input_position": "bottom"
+  },
+  "gitalk": {
+    "enable": true,
+    "github_id": "huazie",
+    "repo": "flea-game",
+    "client_id": "Ov23liEVwe07jix2CUOD",
+    "client_secret": "f5c6570717e6575dc09f0fce2046d3172251e2a4",
+    "admin_user": "huazie",
+    "distraction_free_mode": true,
+    "issue_term": "pathname",
+    "language": "zh-CN"
+  },
+  "twikoo": {
+    "enable": true,
+    "env_id": "https://huazie.netlify.app/.netlify/functions/twikoo",
+    "lang": "zh-CN"
+  },
+  "gitment": {
+    "enable": true,
+    "owner": "huazie",
+    "repo": "flea-game",
+    "client_id": "Ov23liEVwe07jix2CUOD",
+    "client_secret": "f5c6570717e6575dc09f0fce2046d3172251e2a4",
+    "issue_term": "pathname",
+    "gitmint": true,
+    "lang": "zh-CN"
+  },
+  "waline": {
+    "enable": true,
+    "server_url": "https://huazie-waline.netlify.app/.netlify/functions/comment",
+    "lang": "zh-CN",
+    "dark": ".dark-theme",
+    "reaction": true,
+    "page_size": 10
+  }
+}
