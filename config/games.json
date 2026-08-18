@@ -117,6 +117,18 @@
         "light": "assets/images/match3.png",
         "dark": "assets/images/match3-dark.png"
       }
+    },
+    {
+      "id": "sokoban",
+      "name": "推箱子",
+      "description": "经典的推箱子益智游戏，把所有箱子推到目标点！",
+      "link": "sokoban/",
+      "status": "active",
+      "categories": ["logic", "puzzle"],
+      "images": {
+        "light": "assets/images/sokoban.svg",
+        "dark": "assets/images/sokoban-dark.svg"
+      }
     }
   ]
 }

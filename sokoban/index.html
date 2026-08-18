@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>推箱子</title>    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Huazie">
+    <meta name="keywords" content="推箱子,Sokoban">
+    <meta name="description" content="经典推箱子小游戏">
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" media="print" onload="this.media='all'">
+</head>
+<body>
+    <button id="back-button" class="control-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <button id="theme-button" class="control-button">
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <div class="home-container">
+        <div class="home-header">
+            <h1>推箱子</h1>
+            <p class="subtitle">把所有箱子推到目标点</p>
+        </div>
+
+        <div class="entry-list">
+            <button class="entry-btn" data-target="game.html">
+                <span class="entry-icon"><i class="fas fa-play"></i></span>
+                <span class="entry-text">
+                    <span class="entry-title">开始游戏</span>
+                    <span class="entry-desc">进入默认关卡，挑战推箱解谜</span>
+                </span>
+            </button>
+            <button class="entry-btn" data-target="levels.html">
+                <span class="entry-icon"><i class="fas fa-th-list"></i></span>
+                <span class="entry-text">
+                    <span class="entry-title">查看关卡</span>
+                    <span class="entry-desc">浏览默认与自制关卡简图，可试玩 / 分享</span>
+                </span>
+            </button>
+            <button class="entry-btn" data-target="editor.html">
+                <span class="entry-icon"><i class="fas fa-paint-brush"></i></span>
+                <span class="entry-text">
+                    <span class="entry-title">制作关卡</span>
+                    <span class="entry-desc">拖拽设计你自己的关卡，BFS 验证可解</span>
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <script src="../assets/js/common.js"></script>
+    <script src="js/home.js"></script>
+
+    <script src="../assets/js/comments.js"></script>
+    <script>FleaComments.init('sokoban-home');</script>
+</body>
+</html>

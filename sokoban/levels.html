@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>查看关卡 - 推箱子</title>    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Huazie">
+    <meta name="keywords" content="推箱子,Sokoban,关卡">
+    <meta name="description" content="浏览推箱子默认与自制关卡的简图">
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="css/levels.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" media="print" onload="this.media='all'">
+</head>
+<body>
+    <button id="back-button" class="control-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <button id="theme-button" class="control-button">
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <div class="levels-container">
+        <div class="header">
+            <h1>查看关卡</h1>
+            <p class="subtitle">浏览默认与自制关卡的简图，可试玩 / 分享</p>
+        </div>
+
+        <div class="toolbar">
+            <button id="upload-btn" class="button"><i class="fas fa-upload"></i> 上传关卡</button>
+            <input type="file" id="level-file" accept=".json,.txt,application/json,text/plain" style="display:none">
+            <input type="text" id="import-input" class="text-input" placeholder="粘贴分享码或分享链接">
+            <button id="import-btn" class="button"><i class="fas fa-link"></i> 导入分享</button>
+        </div>
+
+        <div class="search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="search" id="level-search" class="search-input" placeholder="搜索关卡名称…">
+        </div>
+
+        <section class="level-section">
+            <h2 class="section-title">默认关卡 <span class="badge badge-default">官方</span></h2>
+            <div id="default-levels" class="level-grid"></div>
+        </section>
+
+        <section class="level-section" id="user-section">
+            <h2 class="section-title">我的关卡 <span class="badge badge-user">自定义</span></h2>
+            <div id="user-levels" class="level-grid"></div>
+            <p id="user-empty" class="empty-tip">还没有自制关卡，去「制作关卡」创作或上传 / 导入分享吧。</p>
+        </section>
+
+        <p id="search-empty" class="empty-tip" style="display:none">没有找到相关关卡，换个关键词试试。</p>
+    </div>
+
+    <div id="level-toast" class="level-toast"></div>
+
+    <div id="page-loading" class="page-loading">
+        <div class="spinner"></div>
+        <span class="page-loading-text">加载关卡中…</span>
+    </div>
+
+    <script src="../assets/js/common.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/solver.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/userlevels.js"></script>
+    <script src="js/viewer.js"></script>
+
+    <script src="../assets/js/comments.js"></script>
+    <script>FleaComments.init('sokoban-levels');</script>
+</body>
+</html>
