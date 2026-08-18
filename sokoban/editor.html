@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>制作关卡 - 推箱子</title>    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Huazie">
+    <meta name="keywords" content="推箱子,Sokoban,制作关卡">
+    <meta name="description" content="拖拽设计你自己的推箱子关卡，BFS 验证可解">
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <link rel="stylesheet" href="css/editor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" media="print" onload="this.media='all'">
+</head>
+<body>
+    <button id="back-button" class="control-button">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <button id="theme-button" class="control-button">
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <div class="editor-container">
+        <div class="header">
+            <h1>制作关卡</h1>
+            <p class="subtitle">拖拽绘制，BFS 验证可解后保存 / 试玩</p>
+        </div>
+
+        <!-- 元素工具盘 -->
+        <div class="toolbar palette">
+            <button class="tool active" data-tool="wall"><i class="fas fa-cube"></i><span>墙</span></button>
+            <button class="tool" data-tool="floor"><i class="fas fa-square"></i><span>地板</span></button>
+            <button class="tool" data-tool="target"><i class="fas fa-square-xmark"></i><span>目标</span></button>
+            <button class="tool" data-tool="box"><i class="fas fa-box"></i><span>箱子</span></button>
+            <button class="tool" data-tool="player"><i class="fas fa-person"></i><span>玩家</span></button>
+            <button class="tool" data-tool="erase"><i class="fas fa-eraser"></i><span>橡皮</span></button>
+        </div>
+
+        <!-- 尺寸与辅助 -->
+        <div class="size-row">
+            <label>行 <input id="rows-input" type="number" min="3" max="20" value="10"></label>
+            <label>列 <input id="cols-input" type="number" min="3" max="20" value="10"></label>
+            <button id="apply-size" class="button">应用尺寸</button>
+            <button id="clear-btn" class="button">清空</button>
+            <button id="sample-btn" class="button">示例</button>
+        </div>
+
+        <div class="editor-main">
+            <div class="board-area">
+                <div id="board" class="edit-board"></div>
+                <p class="hint">在画布上按住并拖动即可连续绘制（手机端手指拖动同样支持）。玩家全局只能放置一个；箱子、玩家可叠加在目标点上。</p>
+            </div>
+
+            <div class="side">
+                <div class="preview-box">
+                    <div class="preview-label">实时简图</div>
+                    <div id="preview" class="mini-map"></div>
+                </div>
+                <div class="meta-row">
+                    <label class="name-label">关卡名称</label>
+                    <input id="level-name-input" type="text" class="text-input" placeholder="我的关卡" maxlength="30">
+                </div>
+                <div class="actions">
+                    <button id="validate-btn" class="button">验证可解</button>
+                    <button id="save-btn" class="button">保存</button>
+                    <button id="play-btn" class="button">试玩</button>
+                </div>
+                <div id="validate-result" class="validate-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="level-toast" class="level-toast"></div>
+
+    <script src="../assets/js/common.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/levels.js"></script>
+    <script src="js/solver.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/userlevels.js"></script>
+    <script src="js/editor.js"></script>
+
+    <script src="../assets/js/comments.js"></script>
+    <script>FleaComments.init('sokoban-editor');</script>
+</body>
+</html>

@@ -1,0 +1,553 @@
+/* ===== 查看关卡页主题变量 ===== */
+:root {
+    --bg-main: #f3f1ea;
+    --text-main: #4a4a4a;
+
+    --board-bg: #cdc6b8;
+    --cell-bg: #e7e1d6;
+
+    --btn-bg: #8a7a66;
+    --btn-hover: #9a8a76;
+    --btn-text: #ffffff;
+
+    --wall-bg: #6b5d4f;
+    --wall-border: #564a3e;
+
+    --target-color: #c0392b;
+
+    --box-bg: #cf934f;
+    --box-border: #a06a30;
+    --box-on-bg: #5cb85c;
+    --box-on-border: #4cae4c;
+
+    --player-bg: #3498db;
+    --player-border: #2980b9;
+
+    /* 玩家「小人」剪影（随格子百分比缩放，mask 用 --player-bg 着色） */
+    --person-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Ccircle%20cx='12'%20cy='7'%20r='4'/%3E%3Cpath%20d='M12%2013c-4%200-7%202.5-7%206h14c0-3.5-3-6-7-6z'/%3E%3C/svg%3E");
+
+    /* 目标点「箱子 + ❌」（圆角框内叉号，mask 用 --target-color 着色） */
+    --target-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Crect%20x='1.5'%20y='1.5'%20width='21'%20height='21'%20rx='3'%20fill='none'%20stroke='white'%20stroke-width='2.5'/%3E%3Cpath%20d='M6%206L18%2018M18%206L6%2018'%20stroke='white'%20stroke-width='2.5'%20stroke-linecap='round'/%3E%3C/svg%3E");
+
+    --card-bg: #ffffff;
+    --card-border: #e3ddd0;
+    --danger: #c0392b;
+
+    --theme-toggle-color: #ffa500;
+}
+
+[data-theme="dark"] {
+    --bg-main: #1f1f1f;
+    --text-main: #e0e0e0;
+
+    --board-bg: #2c2c2c;
+    --cell-bg: #3a3a3a;
+
+    --btn-bg: #4a4a4a;
+    --btn-hover: #5a5a5a;
+    --btn-text: #ffffff;
+
+    --wall-bg: #4a4a4a;
+    --wall-border: #2a2a2a;
+
+    --target-color: #e74c3c;
+
+    --box-bg: #b5743a;
+    --box-border: #8a5a28;
+    --box-on-bg: #4caf50;
+    --box-on-border: #388e3c;
+
+    --player-bg: #3498db;
+    --player-border: #2980b9;
+
+    --card-bg: #2c2c2c;
+    --card-border: #3a3a3a;
+    --danger: #e74c3c;
+
+    --theme-toggle-color: #f1c40f;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Clear Sans", "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    touch-action: manipulation;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== 控制按钮（返回 / 主题）===== */
+.control-button {
+    position: fixed;
+    top: 20px;
+    background: var(--btn-bg);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 20px;
+    z-index: 1000;
+    transition: background-color 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.control-button:hover {
+    background: var(--btn-hover);
+}
+
+#back-button {
+    left: 20px;
+    color: var(--btn-text);
+}
+
+#theme-button {
+    right: 20px;
+    color: var(--theme-toggle-color);
+}
+
+/* ===== 容器 ===== */
+.levels-container {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 70px 16px 40px;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-size: 38px;
+    font-weight: bold;
+    color: var(--text-main);
+}
+
+.subtitle {
+    margin-top: 6px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* ===== 工具条 ===== */
+.toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 28px;
+}
+
+.button {
+    background: var(--btn-bg);
+    border-radius: 6px;
+    padding: 10px 16px;
+    color: var(--btn-text);
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+}
+
+.button:hover {
+    background: var(--btn-hover);
+}
+
+.button.small {
+    padding: 7px 12px;
+    font-size: 13px;
+}
+
+.button.danger {
+    background: var(--danger);
+}
+
+.button.danger:hover {
+    background: var(--danger);
+    opacity: 0.9;
+}
+
+.text-input {
+    flex: 1 1 240px;
+    min-width: 200px;
+    max-width: 360px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-main);
+    font-size: 14px;
+    outline: none;
+}
+
+/* ===== 搜索框 ===== */
+.search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 420px;
+    margin: 0 auto 26px;
+    padding: 9px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    transition: border-color 0.2s ease;
+}
+
+.search-wrap:focus-within {
+    border-color: var(--btn-bg);
+}
+
+.search-wrap > i {
+    color: var(--text-main);
+    opacity: 0.55;
+    font-size: 14px;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.search-input::placeholder {
+    opacity: 0.6;
+}
+
+.search-input::-webkit-search-cancel-button {
+    cursor: pointer;
+}
+
+/* ===== 区段 ===== */
+.level-section {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 20px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.badge {
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 10px;
+    border-radius: 999px;
+    color: #fff;
+}
+
+.badge-default {
+    background: var(--btn-bg);
+}
+
+.badge-user {
+    background: var(--player-bg);
+}
+
+.empty-tip {
+    font-size: 14px;
+    opacity: 0.7;
+    text-align: center;
+    padding: 18px;
+}
+
+/* ===== 关卡卡片网格 ===== */
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 16px;
+}
+
+.level-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+
+.level-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.level-card.unsolvable {
+    border-color: var(--danger);
+}
+
+/* 简图（由 map.js 渲染：grid 子元素 cell/entity 等） */
+.mini-map {
+    display: grid;
+    gap: 2px;
+    background: var(--board-bg);
+    border-radius: 6px;
+    padding: 6px;
+    width: 100%;
+}
+
+.mini-map .cell {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-map .cell.floor {
+    background: var(--cell-bg);
+}
+
+.mini-map .cell.wall {
+    background: var(--wall-bg);
+    border: 2px solid var(--wall-border);
+    border-radius: 2px;
+}
+
+.mini-map .cell.target {
+    background: var(--cell-bg);
+}
+
+.mini-map .entity {
+    width: 76%;
+    height: 76%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-map .box {
+    background: var(--box-bg);
+    border: 3px solid var(--box-border);
+    border-radius: 5px;
+}
+
+.mini-map .box.on-target {
+    background: var(--box-on-bg);
+    border-color: var(--box-on-border);
+}
+
+.mini-map .player {
+    background-color: var(--player-bg);
+    -webkit-mask: var(--person-mask) center / contain no-repeat;
+    mask: var(--person-mask) center / contain no-repeat;
+}
+
+.mini-map .target-mark {
+    background-color: var(--target-color);
+    -webkit-mask: var(--target-mask) center / contain no-repeat;
+    mask: var(--target-mask) center / contain no-repeat;
+}
+
+.level-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.level-name {
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    word-break: break-all;
+}
+
+/* 卡片内徽章比区段标题的更小一号 */
+.badge-card {
+    font-size: 10px;
+    padding: 1px 7px;
+    flex-shrink: 0;
+}
+
+.level-warn {
+    font-size: 12px;
+    color: var(--danger);
+    text-align: center;
+}
+
+.level-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* 试玩：整卡主操作，独占一行 */
+.level-actions .btn-play {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* 分享 / 导出 / 删除：独立一行，自动等分列 */
+.secondary-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 8px;
+}
+
+/* 次按钮统一撑满各自的 Grid 单元 */
+.secondary-actions .button,
+.secondary-actions .export-wrap,
+.secondary-actions .export-wrap .button {
+    width: 100%;
+}
+
+/* 次要按钮紧凑化 + 严格居中（flex 而非 text-align，避免内联图标+空格被推偏） */
+.secondary-actions .button.small {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 4px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* 导出下拉菜单 */
+.export-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.export-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    display: none;
+    flex-direction: column;
+    min-width: 116px;
+    z-index: 1200;
+    overflow: hidden;
+}
+
+.export-menu.open {
+    display: flex;
+}
+
+.export-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.export-menu-item:hover {
+    background: var(--cell-bg);
+}
+
+/* ===== 提示 ===== */
+.level-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--wall-bg);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 2000;
+    max-width: 86vw;
+    text-align: center;
+}
+
+.level-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ===== 全页加载遮罩 ===== */
+.page-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 1500;
+    transition: opacity 0.3s ease;
+}
+
+.page-loading.hide {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 44px;
+    height: 44px;
+    border: 4px solid var(--card-border);
+    border-top-color: var(--btn-bg);
+    border-radius: 50%;
+    animation: sk-spin 0.8s linear infinite;
+}
+
+.page-loading-text {
+    font-size: 15px;
+    color: var(--text-main);
+    opacity: 0.85;
+}
+
+@keyframes sk-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .levels-container { padding: 64px 12px 32px; }
+    .header h1 { font-size: 30px; }
+    .level-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .control-button { width: 44px; height: 44px; font-size: 18px; }
+}

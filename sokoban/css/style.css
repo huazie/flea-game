@@ -1,0 +1,537 @@
+/* ===== 主题变量（明 / 暗）===== */
+:root {
+    --bg-main: #f3f1ea;
+    --text-main: #4a4a4a;
+
+    --board-bg: #cdc6b8;
+    --cell-bg: #e7e1d6;
+
+    --btn-bg: #8a7a66;
+    --btn-hover: #9a8a76;
+    --btn-text: #ffffff;
+
+    --wall-bg: #6b5d4f;
+    --wall-border: #564a3e;
+
+    --target-color: #c0392b;
+
+    --box-bg: #cf934f;
+    --box-border: #a06a30;
+    --box-on-bg: #5cb85c;
+    --box-on-border: #4cae4c;
+
+    --player-bg: #3498db;
+    --player-border: #2980b9;
+
+    /* 玩家「小人」剪影（随格子百分比缩放，mask 用 --player-bg 着色） */
+    --person-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Ccircle%20cx='12'%20cy='7'%20r='4'/%3E%3Cpath%20d='M12%2013c-4%200-7%202.5-7%206h14c0-3.5-3-6-7-6z'/%3E%3C/svg%3E");
+
+    /* 目标点「箱子 + ❌」（圆角框内叉号，mask 用 --target-color 着色） */
+    --target-mask: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%3E%3Crect%20x='1.5'%20y='1.5'%20width='21'%20height='21'%20rx='3'%20fill='none'%20stroke='white'%20stroke-width='2.5'/%3E%3Cpath%20d='M6%206L18%2018M18%206L6%2018'%20stroke='white'%20stroke-width='2.5'%20stroke-linecap='round'/%3E%3C/svg%3E");
+
+    --message-bg: rgba(243, 241, 234, 0.9);
+    --message-text: #4a4a4a;
+
+    --theme-toggle-color: #ffa500;
+}
+
+[data-theme="dark"] {
+    --bg-main: #1f1f1f;
+    --text-main: #e0e0e0;
+
+    --board-bg: #2c2c2c;
+    --cell-bg: #3a3a3a;
+
+    --btn-bg: #4a4a4a;
+    --btn-hover: #5a5a5a;
+    --btn-text: #ffffff;
+
+    --wall-bg: #4a4a4a;
+    --wall-border: #2a2a2a;
+
+    --target-color: #e74c3c;
+
+    --box-bg: #b5743a;
+    --box-border: #8a5a28;
+    --box-on-bg: #4caf50;
+    --box-on-border: #388e3c;
+
+    --player-bg: #3498db;
+    --player-border: #2980b9;
+
+    --message-bg: rgba(31, 31, 31, 0.92);
+    --message-text: #e0e0e0;
+
+    --theme-toggle-color: #f1c40f;
+}
+
+/* ===== 全局 ===== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Clear Sans", "Helvetica Neue", Arial, "Microsoft YaHei", sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    touch-action: manipulation;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== 控制按钮（返回 / 主题）===== */
+.control-button {
+    position: fixed;
+    top: 20px;
+    background: var(--btn-bg);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 20px;
+    z-index: 1000;
+    transition: background-color 0.3s ease;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.control-button:hover {
+    background: var(--btn-hover);
+}
+
+#back-button {
+    left: 20px;
+    color: var(--btn-text);
+}
+
+#theme-button {
+    right: 20px;
+    color: var(--theme-toggle-color);
+}
+
+/* ===== 容器 ===== */
+.game-container {
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+h1 {
+    font-size: 44px;
+    font-weight: bold;
+    margin: 0;
+    color: var(--text-main);
+}
+
+.stats {
+    display: flex;
+    gap: 10px;
+}
+
+.stat {
+    background: var(--board-bg);
+    border-radius: 6px;
+    padding: 6px 12px;
+    text-align: center;
+    min-width: 56px;
+    color: var(--message-text);
+}
+
+.stat-label {
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.stat-value {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* 关卡名：单独成行，居中显示，不再挤在关卡 stat 里 */
+.level-title {
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--text-main);
+    margin: -4px 0 14px;
+    overflow-wrap: break-word;
+}
+
+/* ===== 控制按钮（游戏内）===== */
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.button {
+    background: var(--btn-bg);
+    border-radius: 6px;
+    padding: 10px 16px;
+    color: var(--btn-text);
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+}
+
+.button:hover {
+    background: var(--btn-hover);
+}
+
+/* ===== 棋盘 ===== */
+.board-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.game-board {
+    display: grid;
+    gap: 4px;
+    background: var(--board-bg);
+    border-radius: 8px;
+    padding: 10px;
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    touch-action: none;
+}
+
+.cell {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cell.floor {
+    background: var(--cell-bg);
+}
+
+.cell.wall {
+    background: var(--wall-bg);
+    border: 2px solid var(--wall-border);
+    border-radius: 3px;
+}
+
+.cell.target {
+    background: var(--cell-bg);
+}
+
+/* 实体（玩家 / 箱子 / 目标标记）均绝对居中 */
+.entity {
+    width: 76%;
+    height: 76%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.box {
+    background: var(--box-bg);
+    border: 3px solid var(--box-border);
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.15);
+}
+
+.box.on-target {
+    background: var(--box-on-bg);
+    border-color: var(--box-on-border);
+}
+
+.player {
+    background-color: var(--player-bg);
+    -webkit-mask: var(--person-mask) center / contain no-repeat;
+    mask: var(--person-mask) center / contain no-repeat;
+}
+
+.target-mark {
+    background-color: var(--target-color);
+    -webkit-mask: var(--target-mask) center / contain no-repeat;
+    mask: var(--target-mask) center / contain no-repeat;
+}
+
+/* ===== 说明 ===== */
+.game-intro {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.pc-instruction, .mobile-instruction {
+    display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .pc-instruction { display: block; }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .mobile-instruction { display: block; }
+}
+
+/* ===== 过关遮罩 ===== */
+.game-message {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: var(--message-bg);
+    z-index: 50;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-radius: 8px;
+    color: var(--message-text);
+}
+
+.game-message.show {
+    display: flex;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.game-message p {
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 18px;
+    padding: 0 12px;
+}
+
+.game-message-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+    .game-container {
+        padding: 8px;
+        max-width: 100%;
+    }
+
+    h1 {
+        font-size: 26px;
+    }
+
+    /* 手机端：header 改为上下堆叠居中，避免 stats 钻进固定的主题按钮底下 */
+    .header {
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .stats {
+        gap: 6px;
+        justify-content: center;
+    }
+
+    .stat {
+        min-width: 48px;
+        padding: 5px 8px;
+    }
+
+    .level-title {
+        font-size: 14px;
+        margin: -2px 0 10px;
+    }
+
+    .game-board {
+        padding: 8px;
+        gap: 3px;
+    }
+
+    .control-button {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* ===== 上传提示 ===== */
+.level-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--wall-bg);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 2000;
+    max-width: 86vw;
+    text-align: center;
+}
+
+.level-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ===== 关卡简图（小地图）===== */
+.map-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 1500;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.map-overlay.show {
+    display: flex;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.map-card {
+    background: var(--bg-main);
+    color: var(--text-main);
+    border-radius: 12px;
+    padding: 18px;
+    width: min(92vw, 420px);
+    max-height: 92vh;
+    overflow: auto;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.map-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 12px;
+}
+
+.map-card-head h2 {
+    font-size: 17px;
+    margin: 0;
+}
+
+.map-close {
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    border: none;
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.map-close:hover {
+    background: var(--btn-hover);
+}
+
+.map-board {
+    display: grid;
+    gap: 2px;
+    background: var(--board-bg);
+    border-radius: 6px;
+    padding: 8px;
+    margin: 0 auto;
+    width: min(82vw, 340px);
+}
+
+.map-board .cell {
+    border-radius: 2px;
+    min-width: 0;
+}
+
+.map-board .entity {
+    width: 84%;
+    height: 84%;
+}
+
+.map-legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 14px;
+    font-size: 12px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.sw-player {
+    background-color: var(--player-bg);
+    -webkit-mask: var(--person-mask) center / contain no-repeat;
+    mask: var(--person-mask) center / contain no-repeat;
+}
+
+.sw-box {
+    background: var(--box-bg);
+    border: 2px solid var(--box-border);
+    box-sizing: border-box;
+}
+
+.sw-target {
+    background: transparent;
+    border: 3px solid var(--target-color);
+    box-sizing: border-box;
+}
+
+.sw-wall {
+    background: var(--wall-bg);
+    border: 1px solid var(--wall-border);
+}
+
+@media (max-width: 768px) {
+    .map-close { width: 32px; height: 32px; font-size: 15px; }
+    .map-card-head h2 { font-size: 16px; }
+}
