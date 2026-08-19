@@ -26,15 +26,20 @@
         </div>
 
         <div class="toolbar">
-            <button id="upload-btn" class="button"><i class="fas fa-upload"></i> 上传关卡</button>
-            <input type="file" id="level-file" accept=".json,.txt,application/json,text/plain" style="display:none">
-            <input type="text" id="import-input" class="text-input" placeholder="粘贴分享码或分享链接">
-            <button id="import-btn" class="button"><i class="fas fa-link"></i> 导入分享</button>
-        </div>
-
-        <div class="search-wrap">
-            <i class="fas fa-search"></i>
-            <input type="search" id="level-search" class="search-input" placeholder="搜索关卡名称…">
+            <!-- 第一行：导入链接 -->
+            <div class="toolbar-row import-row">
+                <input type="text" id="import-input" class="text-input" placeholder="粘贴分享码或分享链接">
+                <button id="import-btn" class="button"><i class="fas fa-link"></i> 导入分享</button>
+            </div>
+            <!-- 第二行：搜索 + 上传关卡 -->
+            <div class="toolbar-row action-row">
+                <div class="search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="search" id="level-search" class="search-input" placeholder="搜索关卡名称…">
+                </div>
+                <button id="upload-btn" class="button"><i class="fas fa-upload"></i> 上传关卡</button>
+                <input type="file" id="level-file" accept=".json,.txt,application/json,text/plain" style="display:none">
+            </div>
         </div>
 
         <section class="level-section">
@@ -45,7 +50,7 @@
         <section class="level-section" id="user-section">
             <h2 class="section-title">我的关卡 <span class="badge badge-user">自定义</span></h2>
             <div id="user-levels" class="level-grid"></div>
-            <p id="user-empty" class="empty-tip">还没有自制关卡，去「制作关卡」创作或上传 / 导入分享吧。</p>
+            <p id="user-empty" class="empty-tip" style="display:none">还没有自制关卡，去「制作关卡」创作或上传 / 导入分享吧。</p>
         </section>
 
         <p id="search-empty" class="empty-tip" style="display:none">没有找到相关关卡，换个关键词试试。</p>

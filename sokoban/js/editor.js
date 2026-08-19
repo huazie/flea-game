@@ -269,8 +269,13 @@
         var lvl = validate();
         if (!lvl) return;
         try {
-            SokobanUserLevels.saveUserLevel(lvl);
-            toast('已保存到「我的关卡」');
+            if (editId) {
+                SokobanUserLevels.updateUserLevel(editId, lvl);
+                toast('已更新「' + (lvl.name || '我的关卡') + '」');
+            } else {
+                SokobanUserLevels.saveUserLevel(lvl);
+                toast('已保存到「我的关卡」');
+            }
         } catch (e) {
             toast('保存失败：' + (e && e.message ? e.message : e));
         }
@@ -283,11 +288,13 @@
         window.location.href = 'game.html?from=editor';
     });
 
-    // ── 启动：分享链接 ?import= 直接载入编辑 ──
+    // ── 启动：分享链接 ?import= 直接载入编辑；?edit=<id> 表示编辑既有自制关卡（保存时覆盖）──
+    var mEdit = (typeof location !== 'undefined' && location.search) ? location.search.match(/[?&]edit=([^&]+)/) : null;
+    var editId = mEdit ? decodeURIComponent(mEdit[1]) : null;
     var imported = SokobanUserLevels.parseImportFromUrl();
     if (imported && Array.isArray(imported.map) && imported.map.length) {
         loadGrid(imported.map, imported.name || '导入关卡');
-        toast('已导入分享关卡，可编辑后保存');
+        toast(editId ? '已载入关卡，编辑后保存将覆盖原关卡' : '已导入分享关卡，可编辑后保存');
         if (history.replaceState) history.replaceState(null, '', location.pathname);
     } else {
         setSize(10, 10);
