@@ -13,6 +13,9 @@
     --wall-bg: #6b5d4f;
     --wall-border: #564a3e;
 
+    /* 砖块墙体纹理：错缝砖 16×16（砖色/缝色与 wall 变量一致，两套主题各定义一份） */
+    --wall-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%23564a3e'/%3E%3Crect x='0' y='0' width='14' height='6' fill='%236b5d4f'/%3E%3Crect x='8' y='8' width='8' height='6' fill='%236b5d4f'/%3E%3Crect x='0' y='8' width='6' height='6' fill='%236b5d4f'/%3E%3C/svg%3E");
+
     --target-color: #c0392b;
 
     --box-bg: #cf934f;
@@ -50,6 +53,8 @@
 
     --wall-bg: #4a4a4a;
     --wall-border: #2a2a2a;
+
+    --wall-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='16' height='16' fill='%232a2a2a'/%3E%3Crect x='0' y='0' width='14' height='6' fill='%234a4a4a'/%3E%3Crect x='8' y='8' width='8' height='6' fill='%234a4a4a'/%3E%3Crect x='0' y='8' width='6' height='6' fill='%234a4a4a'/%3E%3C/svg%3E");
 
     --target-color: #e74c3c;
 
@@ -264,7 +269,9 @@ body {
 }
 
 .edit-board .cell.wall {
-    background: var(--wall-bg);
+    background-color: var(--wall-bg);
+    background-image: var(--wall-texture);
+    background-size: 16px 16px;
     border: 2px solid var(--wall-border);
     border-radius: 2px;
 }
@@ -361,7 +368,9 @@ body {
 }
 
 .mini-map .cell.wall {
-    background: var(--wall-bg);
+    background-color: var(--wall-bg);
+    background-image: var(--wall-texture);
+    background-size: 16px 16px;
     border: 2px solid var(--wall-border);
     border-radius: 2px;
 }
