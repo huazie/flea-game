@@ -99,6 +99,22 @@
         return list;
     }
 
+    /** 按 id 更新关卡名称与地图；id 不存在时按新增处理。返回更新后的对象 */
+    function updateUserLevel(id, level) {
+        var v = validateLevel(level);
+        if (!v.ok) throw new Error('关卡无效：' + v.reason);
+        var list = getUserLevels();
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].id === id) {
+                list[i].name = (level.name || '自定义关卡').toString();
+                list[i].map = level.map.slice();
+                _persist(list);
+                return list[i];
+            }
+        }
+        return saveUserLevel(level);
+    }
+
     // ── 分享编解码 ──
     /** 把关卡编码为可分享短串 */
     function encodeLevel(level) {
@@ -176,6 +192,7 @@
         validateLevel: validateLevel,
         getUserLevels: getUserLevels,
         saveUserLevel: saveUserLevel,
+        updateUserLevel: updateUserLevel,
         deleteUserLevel: deleteUserLevel,
         encodeLevel: encodeLevel,
         decodeLevel: decodeLevel,

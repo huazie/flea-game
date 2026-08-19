@@ -19,6 +19,7 @@
     var defaultWrap = document.getElementById('default-levels');
     var userWrap = document.getElementById('user-levels');
     var userSection = document.getElementById('user-section');
+    var userEmpty = document.getElementById('user-empty');
     var loadingEl = document.getElementById('page-loading');
     var searchInput = document.getElementById('level-search');
     var searchEmpty = document.getElementById('search-empty');
@@ -44,11 +45,11 @@
             if (section && q) section.style.display = visible ? '' : 'none';
         }
         if (searchEmpty) searchEmpty.style.display = (q && total === 0) ? '' : 'none';
-        // 清空搜索：恢复区段默认显隐（默认区段恒显；我的关卡按有无自制关卡）
+        // 清空搜索：恢复区段默认显隐（默认区段恒显；我的关卡区段恒显，空状态由提示引导）
         if (!q) {
             var dSec = (defaultWrap && defaultWrap.closest) ? defaultWrap.closest('.level-section') : null;
             if (dSec) dSec.style.display = '';
-            if (userSection) userSection.style.display = (userWrap && userWrap.children.length) ? '' : 'none';
+            if (userSection) userSection.style.display = '';
         }
     }
     if (searchInput) {
@@ -138,6 +139,12 @@
         var base = location.origin + location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
         var url = base + 'editor.html?import=' + encodeURIComponent(code);
         copyText(url, '分享链接已复制，去粘贴给好友吧');
+    }
+
+    // 编辑：携带关卡编码与 id 跳转制作页，编辑后保存即覆盖原关卡
+    function editLevel(level) {
+        var code = SokobanUserLevels.encodeLevel(level);
+        window.location.href = 'editor.html?import=' + encodeURIComponent(code) + '&edit=' + encodeURIComponent(level.id || '');
     }
 
     function exportLevel(level, format) {
@@ -241,6 +248,14 @@
         });
 
         secondaryActions.appendChild(shareBtn);
+        // 自制关卡支持「编辑」：跳转制作页重新编辑，保存后覆盖原关卡
+        if (opts.kind === 'user') {
+            var editBtn = document.createElement('button');
+            editBtn.className = 'button small';
+            editBtn.innerHTML = '<i class="fas fa-pen"></i>编辑';
+            editBtn.addEventListener('click', function () { editLevel(level); });
+            secondaryActions.appendChild(editBtn);
+        }
         secondaryActions.appendChild(exportWrap);
         if (opts.onDelete) {
             var delBtn = document.createElement('button');
@@ -262,9 +277,11 @@
         var userLevels = SokobanUserLevels.getUserLevels();
         userWrap.innerHTML = '';
         if (!userLevels.length) {
-            userSection.style.display = 'none';
+            userSection.style.display = '';
+            if (userEmpty) userEmpty.style.display = '';
         } else {
             userSection.style.display = '';
+            if (userEmpty) userEmpty.style.display = 'none';
             userLevels.forEach(function (lv) {
                 var card = makeCard(lv, {
                     kind: 'user',

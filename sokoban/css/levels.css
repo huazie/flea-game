@@ -146,10 +146,35 @@ body {
 /* ===== 工具条 ===== */
 .toolbar {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     margin-bottom: 28px;
+}
+
+.toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 620px;
+}
+
+/* 第一行：导入链接（输入框弹性撑开 + 导入按钮） */
+.import-row .text-input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 第二行：搜索（弹性撑开）+ 上传关卡（固定） */
+.action-row .search-wrap {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+}
+
+.action-row #upload-btn {
+    flex-shrink: 0;
 }
 
 .button {
@@ -163,6 +188,7 @@ body {
     text-align: center;
     transition: background-color 0.2s ease;
     font-size: 14px;
+    white-space: nowrap;
 }
 
 .button:hover {
@@ -184,9 +210,7 @@ body {
 }
 
 .text-input {
-    flex: 1 1 240px;
-    min-width: 200px;
-    max-width: 360px;
+    flex: 1;
     padding: 10px 12px;
     border-radius: 6px;
     border: 1px solid var(--card-border);
@@ -194,6 +218,11 @@ body {
     color: var(--text-main);
     font-size: 14px;
     outline: none;
+    font-family: inherit;
+}
+
+.text-input:focus {
+    border-color: var(--btn-bg);
 }
 
 /* ===== 搜索框 ===== */
@@ -201,8 +230,8 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    max-width: 420px;
-    margin: 0 auto 26px;
+    max-width: 620px;
+    margin: 0 auto;
     padding: 9px 16px;
     background: var(--card-bg);
     border: 1px solid var(--card-border);
@@ -409,10 +438,10 @@ body {
     gap: 6px;
 }
 
-/* 分享 / 导出 / 删除：独立一行，自动等分列 */
+/* 分享 / 编辑 / 导出 / 删除：自动等分列；卡片过窄时按 64px 最小宽换行，避免按钮文字挤压溢出 */
 .secondary-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: 8px;
 }
 
@@ -550,4 +579,12 @@ body {
     .header h1 { font-size: 30px; }
     .level-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
     .control-button { width: 44px; height: 44px; font-size: 18px; }
+}
+
+/* 小屏：压缩工具条间距与按钮内边距，保持两行布局稳定 */
+@media (max-width: 480px) {
+    .toolbar { gap: 10px; margin-bottom: 22px; }
+    .toolbar-row { gap: 8px; }
+    .action-row #upload-btn { padding: 10px 12px; }
+    .import-row #import-btn { padding: 10px 12px; }
 }
