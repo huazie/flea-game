@@ -67,7 +67,9 @@
                 frag.appendChild(cell);
             }
         }
-        container.style.gridTemplateColumns = 'repeat(' + data.cols + ', 1fr)';
+        // 列宽用 minmax(12px, 1fr)：小关卡 1fr 撑满卡片；大关卡（列多）被 12px 下限兜住，
+        // 不再等比缩到几像素看不清，多余部分由 .mini-map 的 overflow 滚动查看。
+        container.style.gridTemplateColumns = 'repeat(' + data.cols + ', minmax(12px, 1fr))';
         container.innerHTML = '';
         container.appendChild(frag);
         container.dataset.rows = data.rows;

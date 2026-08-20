@@ -29,94 +29,111 @@
     // 内置默认棋谱（fallback）
     var DEFAULT_LEVELS = [
         {
-            name: '初识推箱',
+            name: '热身转弯',
             map: [
                 '#######',
                 '#     #',
-                '# @$. #',
+                '#  .  #',
+                '# $@  #',
                 '#     #',
                 '#######'
             ]
         },
         {
-            name: '转角',
+            name: '双拐',
             map: [
                 '#######',
-                '#.    #',
+                '#@    #',
+                '# $   #',
                 '#     #',
-                '#  $  #',
+                '#   . #',
+                '#######'
+            ]
+        },
+        {
+            name: '双子归位',
+            map: [
+                '#######',
+                '#.   .#',
+                '# $ $ #',
                 '#  @  #',
                 '#######'
             ]
         },
         {
-            name: '双子',
+            name: '三连推',
             map: [
-                '########',
-                '#      #',
-                '#.$  $.#',
-                '#      #',
-                '#  @   #',
-                '#      #',
-                '########'
+                '#########',
+                '#       #',
+                '# $ $ $ #',
+                '#   @   #',
+                '#. . .  #',
+                '#       #',
+                '#########'
             ]
         },
         {
-            name: '一字排开',
+            name: '回形走廊',
             map: [
                 '###########',
-                '#         #',
-                '#@$ $ $ $ #',
-                '#. . . .  #',
+                '#@ $ . $ .#',
                 '#         #',
                 '###########'
             ]
         },
         {
-            name: '回廊',
-            map: [
-                '########',
-                '#      #',
-                '# .$ $ #',
-                '#      #',
-                '#  @.  #',
-                '#      #',
-                '########'
-            ]
-        },
-        {
-            name: '四角',
-            map: [
-                '#######',
-                '#.   .#',
-                '# $ $ #',
-                '#  @  #',
-                '# $ $ #',
-                '#.   .#',
-                '#######'
-            ]
-        },
-        {
-            name: '交错',
+            name: '四角归仓',
             map: [
                 '########',
                 '#.    .#',
+                '#      #',
                 '# $  $ #',
-                '#   @  #',
+                '#  @   #',
                 '# $  $ #',
                 '#.    .#',
                 '########'
             ]
         },
         {
-            name: '收纳',
+            name: '隔墙三推',
             map: [
                 '#########',
                 '#@      #',
-                '# $$$$  #',
+                '# $#$#$ #',
                 '#       #',
-                '# ....  #',
+                '# . . . #',
+                '#       #',
                 '#########'
+            ]
+        },
+        {
+            name: '四子错位',
+            map: [
+                '#########',
+                '#. . . .#',
+                '#       #',
+                '# $$$$  #',
+                '#   @   #',
+                '#       #',
+                '#########'
+            ]
+        },
+        {
+            name: '五连推',
+            map: [
+                '#######################',
+                '#@ $ . $ . $ . $ . $ .#',
+                '#                     #',
+                '#######################'
+            ]
+        },
+        {
+            name: '六子连珠',
+            map: [
+                '#####################',
+                '#@ $.$ .$ .$ .$ .$ .#',
+                '#                     #',
+                '#####################'
             ]
         }
     ];
@@ -199,32 +216,93 @@
 
     // 同步期预解析配置地址（currentScript 指向本脚本自身）。
     // levels.js 位于 sokoban/js/，其同级 config 在 sokoban/config/，故用 ../config/ 推算，
-    // 得到绝对地址（如 http://host/sokoban/config/sokoban-levels.json），不受页面路径影响。
-    var CONFIG_URL;
+    // 得到绝对地址（如 http://host/sokoban/config/...），不受页面路径影响。
+    var CONFIG_DIR;
     if (typeof window !== 'undefined' && window.document && window.document.currentScript && window.document.currentScript.src) {
         try {
-            CONFIG_URL = new URL('../config/sokoban-levels.json', window.document.currentScript.src).href;
+            CONFIG_DIR = new URL('../config/', window.document.currentScript.src).href;
         } catch (e) {
-            CONFIG_URL = 'config/sokoban-levels.json';
+            CONFIG_DIR = 'config/';
         }
     } else {
-        CONFIG_URL = 'config/sokoban-levels.json';
+        CONFIG_DIR = 'config/';
+    }
+    var CONFIG_URL = CONFIG_DIR + 'sokoban-levels.json';
+
+    /**
+     * 从远程地址拉取文本（带超时与 404 容错）。
+     * - file:// 或老旧环境无 fetch 时 reject，由调用方回退。
+     * - 非 2xx 视为失败（reject），便于上层跳过该包。
+     * @returns {Promise<string>}
+     */
+    function fetchText(url, timeout) {
+        timeout = timeout || 5000;
+        if (typeof window === 'undefined' || !window.fetch) {
+            return Promise.reject(new Error('no fetch'));
+        }
+        var doFetch = function () { return window.fetch(url); };
+        if (typeof AbortController === 'undefined') {
+            return doFetch().then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.text();
+            });
+        }
+        var ctrl = new AbortController();
+        var timer = setTimeout(function () { ctrl.abort(); }, timeout);
+        return doFetch().then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        }).finally(function () { clearTimeout(timer); });
     }
 
     /**
-     * 加载棋谱：合并内置默认与 sokoban/config/sokoban-levels.json（逐关覆盖 + 追加）。
+     * 加载单个关卡包（json / txt 均可），解析失败返回空数组（不阻断整体）。
+     * @returns {Promise<Array>}
+     */
+    function loadPack(url, fallbackName) {
+        return fetchText(url, 5000)
+            .then(function (text) {
+                try { return parseLevelInput(text, fallbackName); }
+                catch (e) { return []; }
+            })
+            .catch(function () { return []; });
+    }
+
+    /** 无清单时的回退：沿用旧 mergeLevels 语义加载单个 sokoban-levels.json，失败回退内置 */
+    function fallbackToSingleOrBuiltin() {
+        return fetchText(CONFIG_URL, 5000)
+            .then(function (text) {
+                var cfg = JSON.parse(text);
+                return mergeLevels(DEFAULT_LEVELS, (cfg && cfg.levels) || []);
+            })
+            .catch(function () { return DEFAULT_LEVELS; });
+    }
+
+    /**
+     * 加载棋谱：以 sokoban/config/levels-manifest.json 的 packs 列表为准，
+     * 逐个 fetch + 解析（json / txt 均可）后按序拼接；清单缺失 / 全失败则回退内置默认。
+     * 内置 DEFAULT_LEVELS 仅作为离线 / 配置全失效的兜底，有包时不前置，避免与 sokoban-levels.json 重复。
      * 始终 resolve(数组)，绝不 reject，保证游戏一定能拿到关卡数据。
      * @returns {Promise<Array>}
      */
     function loadLevels() {
-        if (typeof window !== 'undefined' && window.FleaCommon && window.FleaCommon.loadConfig) {
-            // base 传空 levels，使 loadConfig 的数组覆盖语义只取出远端 levels
-            return window.FleaCommon.loadConfig(CONFIG_URL, { levels: [] }, { timeout: 5000 })
-                .then(function (cfg) {
-                    return mergeLevels(DEFAULT_LEVELS, (cfg && cfg.levels) || []);
+        return fetchText(CONFIG_DIR + 'levels-manifest.json', 5000)
+            .then(function (text) {
+                try { return JSON.parse(text); } catch (e) { return null; }
+            })
+            .catch(function () { return null; })
+            .then(function (manifest) {
+                var packs = (manifest && Array.isArray(manifest.packs)) ? manifest.packs : null;
+                if (!packs) return fallbackToSingleOrBuiltin();
+                return Promise.all(packs.map(function (p) {
+                    var name = String(p).replace(/\.[^.]+$/, '');
+                    return loadPack(CONFIG_DIR + p, name);
+                })).then(function (groups) {
+                    var all = [];
+                    groups.forEach(function (g) { if (Array.isArray(g)) all = all.concat(g); });
+                    return all.length ? all : fallbackToSingleOrBuiltin();
                 });
-        }
-        return Promise.resolve(DEFAULT_LEVELS);
+            });
     }
 
     if (typeof module !== 'undefined' && module.exports) {

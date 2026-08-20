@@ -88,6 +88,9 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    /* 兜底：防止任何横向溢出（如固定按钮、安全区）产生页面级横向滚动条；
+       棋盘自身的横向滚动走内部 overflow:auto，不受此影响 */
+    overflow-x: hidden;
     touch-action: manipulation;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -129,14 +132,15 @@ body {
 /* ===== 容器 ===== */
 .game-container {
     width: 100%;
-    max-width: 520px;
     margin: 0 auto;
     padding: 10px;
 }
 
 .header {
     display: flex;
-    justify-content: space-between;
+    /* 整体居中展示，与下方按钮行(controls)左右平齐 */
+    justify-content: center;
+    flex-wrap: wrap;
     align-items: center;
     margin-bottom: 16px;
     gap: 12px;
@@ -221,9 +225,13 @@ h1 {
     background: var(--board-bg);
     border-radius: 8px;
     padding: 10px;
-    width: 100%;
-    max-width: 480px;
+    /* PC：固定格子尺寸（--sokoban-cell），按真实大小展示，不随容器拉伸、也不卡死固定宽度；
+       列多时棋盘自然变宽，超出可视区由 overflow 滚动 */
+    --sokoban-cell: 44px;
+    width: fit-content;
+    max-width: 100%;
     margin: 0 auto;
+    overflow: auto;
     touch-action: none;
 }
 
@@ -373,12 +381,33 @@ h1 {
     .game-board {
         padding: 8px;
         gap: 3px;
+        /* 手机端：固定 28px 格子（见 game.js 的 var(--sokoban-cell)），超尺寸滚动查看。
+           宽度必须受容器（视口）约束，否则写死 480px 会在窄屏把棋盘右边顶出视口；
+           超宽内容由棋盘自身 overflow 横滑查看 */
+        --sokoban-cell: 28px;
+        max-width: 100%;
+        max-height: 78vh;
+        overflow: auto;
+        scrollbar-width: thin;
+        /* 允许触摸横/纵平移查看长关卡（"轻扫移动"由 game.js 判定，不冲突） */
+        touch-action: pan-x pan-y;
+        overscroll-behavior: contain;
     }
 
     .control-button {
         width: 44px;
         height: 44px;
         font-size: 18px;
+    }
+
+    /* 控件行按钮（上一关/撤销/重置/下一关/上传关卡）：窄屏下保证完整显示 + 自动换行，
+       不再因挤在一行溢出视口右侧而被裁切；flex-shrink:0 + white-space:nowrap
+       让按钮保持完整文字，由 flex-wrap 自动拆成两行 */
+    .button {
+        padding: 8px 12px;
+        font-size: 13px;
+        flex-shrink: 0;
+        white-space: nowrap;
     }
 }
 

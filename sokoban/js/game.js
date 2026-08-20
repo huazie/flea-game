@@ -63,7 +63,9 @@ class SokobanGame {
         this.history = [];
         this.solved = false;
         this._hideMessage();
-        this.$board.style.gridTemplateColumns = `repeat(${this.cols}, 1fr)`;
+        // 列宽用 minmax(28px, 1fr)：小关卡 1fr 撑满（最多 480px）；大关卡（列多）被 28px 下限兜住，
+        // 不再等比缩到几像素看不清，多余部分由 .game-board 的 overflow 滚动查看。
+        this.$board.style.gridTemplateColumns = `repeat(${this.cols}, var(--sokoban-cell))`;
         this._render();
         this._updateStats();
         this._updateControls();
@@ -103,12 +105,27 @@ class SokobanGame {
         }
         this.$board.innerHTML = '';
         this.$board.appendChild(frag);
+        this._ensurePlayerVisible();
+    }
+
+    // 大关卡（棋盘超出可视区）时，每次渲染后把玩家所在格滚动进视图，
+    // 实现「相机跟随」，避免玩家走出可视区。小关卡不溢出则 no-op。
+    _ensurePlayerVisible() {
+        if (!this.$board) return;
+        const sel = '.cell[data-row="' + this.player.r + '"][data-col="' + this.player.c + '"]';
+        const cell = this.$board.querySelector(sel);
+        if (cell && cell.scrollIntoView) {
+            cell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
     }
 
     _updateStats() {
         if (this.$levelNum) this.$levelNum.textContent = String(this.levelIndex + 1);
-        const baseName = this.levels[this.levelIndex].name;
-        if (this.$levelName) this.$levelName.textContent = (this.source === 'custom' ? '自定义 · ' : '') + baseName;
+        const lv = this.levels[this.levelIndex];
+        const baseName = lv ? lv.name : '';
+        const prefix = (this.source === 'custom') ? '自定义 · '
+            : (lv && lv.user) ? '自制 · ' : '';
+        if (this.$levelName) this.$levelName.textContent = prefix + baseName;
         if (this.$moves) this.$moves.textContent = String(this.moves);
         const best = GameStorage.getBestMoves(this.levelIndex, this.source);
         if (this.$best) this.$best.textContent = best ? String(best) : '-';
@@ -230,10 +247,12 @@ class SokobanGame {
             if (handled) e.preventDefault();
         });
 
-        // 触摸滑动（全页面）：在页面任意位置滑动即可控制方向；
+        // 触摸滑动（全页面）：在页面任意位置轻扫即可控制方向；
         // 起点在按钮 / 输入框 / 评论抽屉等交互元素上时不启用，避免误触。
-        let sx = 0, sy = 0, tracking = false;
+        // 长关卡时棋盘可滚动：在棋盘上"拖拽"= 平移查看，"原地轻扫"= 移动（二者靠是否触发滚动区分）。
+        let sx = 0, sy = 0, tracking = false, startedOnBoard = false, boardSX = 0, boardSY = 0;
         const TH = 24;
+        const board = this.$board;
         document.addEventListener('touchstart', (e) => {
             const target = e.target;
             if (target && target.closest && target.closest('button, input, select, textarea, a, .flea-comments-drawer, .flea-comments-backdrop')) {
@@ -242,15 +261,30 @@ class SokobanGame {
             }
             const t = e.changedTouches[0];
             sx = t.clientX; sy = t.clientY;
+            startedOnBoard = !!(board && target && board.contains(target));
+            boardSX = board ? board.scrollLeft : 0;
+            boardSY = board ? board.scrollTop : 0;
             tracking = true;
         }, { passive: true });
         document.addEventListener('touchmove', (e) => {
-            // 阻止页面滚动：让整个页面成为游戏操作面（棋盘按宽度缩放，页面基本无需纵向滚动）
-            if (tracking) e.preventDefault();
+            if (!tracking) return;
+            // 棋盘可滚动时交给原生平移查看；其余情况(非棋盘/棋盘不可滚动)阻止页面滚动
+            if (startedOnBoard && board && (board.scrollWidth > board.clientWidth + 1 || board.scrollHeight > board.clientHeight + 1)) {
+                return;
+            }
+            e.preventDefault();
         }, { passive: false });
         document.addEventListener('touchend', (e) => {
             if (!tracking) return;
             tracking = false;
+            // 起点在棋盘且本次手势触发了滚动(拖拽平移) → 仅查看，不移动
+            if (startedOnBoard && board) {
+                const scrolled = Math.abs(board.scrollLeft - boardSX) > 4 || Math.abs(board.scrollTop - boardSY) > 4;
+                startedOnBoard = false;
+                if (scrolled) return;
+            } else {
+                startedOnBoard = false;
+            }
             const t = e.changedTouches[0];
             const dx = t.clientX - sx;
             const dy = t.clientY - sy;
@@ -282,9 +316,10 @@ class SokobanGame {
     /**
      * 加载一组自定义关卡进行本地试玩（不污染内置关卡进度/最佳记录）。
      * @param {Array} levels 已解析的关卡数组
-     * @param {string} [label] 来源标签（如文件名）
+     * @param {string} [label] 来源标签（如文件名 / “我的关卡”）
+     * @param {number} [startIndex] 起始关卡下标（默认 0）
      */
-    loadCustomLevels(levels, label) {
+    loadCustomLevels(levels, label, startIndex) {
         if (!Array.isArray(levels) || levels.length === 0) {
             this._toast('没有可试玩的关卡');
             return;
@@ -293,7 +328,8 @@ class SokobanGame {
         this.source = 'custom';
         this.levelIndex = 0;
         this._hideMessage();
-        this._loadLevel(0);
+        var start = (typeof startIndex === 'number' && startIndex >= 0 && startIndex < levels.length) ? startIndex : 0;
+        this._loadLevel(start);
         if (label) this._toast('已加载《' + label + '》共 ' + levels.length + ' 关，开始试玩');
     }
 
@@ -378,17 +414,35 @@ window.addEventListener('DOMContentLoaded', function () {
         }
     } catch (e) { /* ignore */ }
 
-    if (playTarget && Array.isArray(playTarget.map) && playTarget.map.length) {
-        var custom = { name: playTarget.name || '试玩关卡', map: playTarget.map };
-        var game = new SokobanGame([]);
-        game.loadCustomLevels([custom], custom.name);
-        return;
+    if (playTarget) {
+        // 新版：整组自定义关卡（查看页点「试玩」时传入 list + index），支持上一关/下一关连续闯关
+        if (Array.isArray(playTarget.list) && playTarget.list.length) {
+            var game = new SokobanGame([]);
+            game.loadCustomLevels(playTarget.list, '我的关卡', playTarget.index || 0);
+            return;
+        }
+        // 旧版 / 编辑器试玩：单关 {name, map}
+        if (Array.isArray(playTarget.map) && playTarget.map.length) {
+            var custom = { name: playTarget.name || '试玩关卡', map: playTarget.map };
+            var game2 = new SokobanGame([]);
+            game2.loadCustomLevels([custom], custom.name);
+            return;
+        }
     }
 
     var loader = (typeof SokobanLevels !== 'undefined' && SokobanLevels.load)
         ? SokobanLevels.load()
         : Promise.resolve((typeof SOKOBAN_LEVELS !== 'undefined') ? SOKOBAN_LEVELS : []);
     loader.then(function (levels) {
-        new SokobanGame(levels);
+        // 开始游戏：把自制关卡追加到关卡池末尾，支持连续闯关（标记 user 以便标题区分）
+        var pool = Array.isArray(levels) ? levels.slice() : [];
+        try {
+            if (typeof SokobanUserLevels !== 'undefined' && SokobanUserLevels.getUserLevels) {
+                SokobanUserLevels.getUserLevels().forEach(function (lv) {
+                    pool.push({ name: lv.name || '自定义关卡', map: lv.map, user: true });
+                });
+            }
+        } catch (e) { /* ignore */ }
+        new SokobanGame(pool);
     });
 });

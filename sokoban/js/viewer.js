@@ -102,13 +102,26 @@
 
     function playLevel(level, kind, index) {
         // 官方关卡直接带 ?level=N 进入默认模式，避免被标成「自定义」；
-        // 自制关卡仍用 localStorage playTarget 单关试玩。
         if (kind === 'default' && typeof index === 'number' && index >= 0) {
             window.location.href = 'game.html?from=levels&level=' + index;
             return;
         }
+        // 自制关卡：把整个「我的关卡」列表连同当前关卡索引一并传入，
+        // 游戏页据此加载整组自定义关卡，支持上一关/下一关连续闯关。
         try {
-            localStorage.setItem('sokoban_play_target', JSON.stringify({ name: level.name, map: level.map }));
+            var all = SokobanUserLevels.getUserLevels();
+            var idx = -1;
+            for (var i = 0; i < all.length; i++) {
+                if (all[i].id === level.id) { idx = i; break; }
+            }
+            var payload;
+            if (idx === -1) {
+                // 列表里找不到（理论不会）：退回单关试玩，保持兼容
+                payload = { name: level.name, map: level.map };
+            } else {
+                payload = { list: all, index: idx };
+            }
+            localStorage.setItem('sokoban_play_target', JSON.stringify(payload));
         } catch (e) { /* ignore */ }
         window.location.href = 'game.html?from=levels';
     }
