@@ -323,6 +323,12 @@
     function writeCachedDefaults(levels) {
         try { sessionStorage.setItem(DEFAULT_CACHE_KEY, JSON.stringify(levels)); } catch (e) { /* 忽略 */ }
     }
+    // 关卡列表签名：name + map 拼接，用于后台刷新时判断清单/配置是否变化（变化则重渲）
+    function levelsSig(levels) {
+        return (levels || []).map(function (lv) {
+            return (lv.name || '') + '|' + (Array.isArray(lv.map) ? lv.map.join('') : '');
+        }).join(';');
+    }
 
     function paintDefaultLevels(levels) {
         // 默认关卡为官方精选、发布即保证可解，无需在查看页重复跑 BFS。
@@ -342,8 +348,12 @@
             paintDefaultLevels(cached);
             renderUserLevels();
             if (loadingEl) { loadingEl.classList.add('hide'); loadingEl.style.display = 'none'; }
-            // 后台静默刷新缓存（config 可能更新），不阻塞、不重渲
-            SokobanLevels.load().then(writeCachedDefaults).catch(function () { /* 忽略 */ });
+            // 后台静默刷新缓存（config / 清单可能更新）：签名变化时重渲，
+            // 保证新增/调整关卡包（如 levels-manifest.json 增删）立即可见
+            SokobanLevels.load().then(function (fresh) {
+                writeCachedDefaults(fresh);
+                if (levelsSig(fresh) !== levelsSig(cached)) paintDefaultLevels(fresh);
+            }).catch(function () { /* 忽略 */ });
             return;
         }
 
