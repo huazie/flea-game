@@ -92,6 +92,12 @@ body {
        棋盘自身的横向滚动走内部 overflow:auto，不受此影响 */
     overflow-x: hidden;
     touch-action: manipulation;
+    /* 禁用文本选择与长按呼出菜单：避免手机端长按/长按滑动触发复制、系统选择把手，
+       干扰游戏滑动操作（user-select 全站生效，含棋盘、按钮、提示文字） */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
