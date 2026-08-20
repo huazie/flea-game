@@ -358,6 +358,10 @@ body {
     border-radius: 6px;
     padding: 6px;
     width: 100%;
+    /* 大关卡（列/行多）格子被 minmax 下限兜住为 12px，超出预览区时滚动查看，
+       不再把内容等比压小到看不清 */
+    overflow: auto;
+    max-height: 320px;
 }
 
 .mini-map .cell {
