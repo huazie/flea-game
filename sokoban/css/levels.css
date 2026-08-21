@@ -606,3 +606,107 @@ body {
     .action-row #upload-btn { padding: 10px 12px; }
     .import-row #import-btn { padding: 10px 12px; }
 }
+
+/* ===== 分享弹层（两种链接：直接试玩 / 导入编辑）===== */
+.share-pop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1800;
+    padding: 16px;
+}
+
+.share-pop.open {
+    display: flex;
+}
+
+.share-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 460px;
+    padding: 18px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    color: var(--text-main);
+}
+
+.share-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 17px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.share-close {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 0 4px;
+}
+
+.share-close:hover {
+    opacity: 1;
+}
+
+.share-tip {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-bottom: 14px;
+    line-height: 1.5;
+}
+
+.share-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.share-row:last-child {
+    margin-bottom: 0;
+}
+
+.share-label {
+    flex: 0 0 80px;
+    font-size: 13px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.share-input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--card-border);
+    background: var(--bg-main);
+    color: var(--text-main);
+    font-size: 12px;
+    font-family: monospace;
+}
+
+.share-input:focus {
+    border-color: var(--btn-bg);
+    outline: none;
+}
+
+.share-copy {
+    flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+    .share-label { flex-basis: 68px; font-size: 12px; }
+    .share-input { font-size: 11px; padding: 7px 8px; }
+}

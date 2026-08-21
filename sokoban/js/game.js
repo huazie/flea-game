@@ -17,6 +17,7 @@ class SokobanGame {
         this.levels = (Array.isArray(levels) && levels.length) ? levels
             : (typeof SOKOBAN_LEVELS !== 'undefined' ? SOKOBAN_LEVELS : []);
         this.source = 'default';   // 'default'（内置）| 'custom'（上传试玩）
+        this.fromShare = false;    // 是否来自「分享直玩」(?play=)，决定显示“添加到自定义关卡”
         this.levelIndex = 0;
         this.grid = [];      // 静态层：'wall' | 'floor' | 'target'
         this.rows = 0;
@@ -139,9 +140,12 @@ class SokobanGame {
         const prevBtn = document.getElementById('prev-level-btn');
         const nextBtn = document.getElementById('next-level-btn');
         const uploadBtn = document.getElementById('upload-btn');
+        const saveSharedBtn = document.getElementById('save-shared-btn');
         if (prevBtn) prevBtn.style.display = multi ? '' : 'none';
         if (nextBtn) nextBtn.style.display = multi ? '' : 'none';
         if (uploadBtn) uploadBtn.style.display = (this.source === 'custom') ? 'none' : '';
+        // “添加到自定义关卡”仅分享直玩(?play=)时显示
+        if (saveSharedBtn) saveSharedBtn.style.display = this.fromShare ? '' : 'none';
     }
 
     // ─── 移动与推箱 ─────────────────────────────────────────────
@@ -310,6 +314,9 @@ class SokobanGame {
 
         // 上传自定义关卡
         this._bindUpload();
+
+        // 分享直玩时「添加到自定义关卡」
+        document.getElementById('save-shared-btn')?.addEventListener('click', () => this._saveSharedToUserLevels());
     }
 
     // ─── 自定义关卡（上传试玩）─────────────────────────────
@@ -360,6 +367,28 @@ class SokobanGame {
         });
     }
 
+    /** 把当前「分享直玩」关卡存入本地自定义关卡库（去重） */
+    _saveSharedToUserLevels() {
+        if (!this.fromShare) return;
+        const lv = this.levels[this.levelIndex];
+        if (!lv) return;
+        try {
+            const existing = (typeof SokobanUserLevels !== 'undefined' && SokobanUserLevels.getUserLevels)
+                ? SokobanUserLevels.getUserLevels() : [];
+            const dup = existing.some(function (it) {
+                return it.name === lv.name && JSON.stringify(it.map) === JSON.stringify(lv.map);
+            });
+            if (dup) {
+                this._toast('《' + lv.name + '》已在自定义关卡中');
+                return;
+            }
+            SokobanUserLevels.saveUserLevel({ name: lv.name, map: lv.map });
+            this._toast('已添加到自定义关卡《' + lv.name + '》');
+        } catch (e) {
+            this._toast('添加失败：' + (e && e.message ? e.message : e));
+        }
+    }
+
     /** 轻量提示（解析/加载结果） */
     _toast(msg) {
         const el = document.getElementById('level-toast');
@@ -403,6 +432,25 @@ window.addEventListener('DOMContentLoaded', function () {
             new SokobanGame(levels, startIndex < levels.length ? startIndex : 0);
         });
         return;
+    }
+
+    // 分享链接「直接打开试玩」：?play=<code> 携带编码后的单关，打开即玩。
+    // 不自保存到本地关卡（与 ?level=N 官方试玩、localStorage 试玩区分），不污染我的关卡库。
+    var playCode = params.get('play');
+    if (playCode) {
+        var shared = null;
+        try {
+            shared = (typeof SokobanUserLevels !== 'undefined' && SokobanUserLevels.decodeLevel)
+                ? SokobanUserLevels.decodeLevel(playCode) : null;
+        } catch (e) { shared = null; }
+        if (shared && Array.isArray(shared.map) && shared.map.length) {
+            var sharedName = shared.name || '分享关卡';
+            var g0 = new SokobanGame([]);
+            g0.fromShare = true;   // 来自分享直玩，显示“添加到自定义关卡”
+            g0.loadCustomLevels([{ name: sharedName, map: shared.map }], sharedName);
+            return;
+        }
+        // 解码失败（分享码损坏）：继续走下方默认加载，避免白屏
     }
 
     var playTarget = null;
