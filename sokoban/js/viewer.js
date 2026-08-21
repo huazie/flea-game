@@ -147,11 +147,71 @@
         document.body.removeChild(ta);
     }
 
+    // ── 分享弹层：提供两种链接 ──
+    // 1) 直接试玩：game.html?play=<code> —— 对方打开即开玩，不写入本地关卡
+    // 2) 导入编辑：editor.html?import=<code> —— 对方打开即载入编辑器，可保存 / 试玩
+    var sharePop = null;
+    var sharePopInit = false;
+    function ensureSharePop() {
+        if (sharePop) return sharePop;
+        var pop = document.createElement('div');
+        pop.className = 'share-pop';
+        pop.innerHTML =
+            '<div class="share-card">' +
+                '<div class="share-head"><span>分享关卡</span>' +
+                    '<button class="share-close" aria-label="关闭">&times;</button></div>' +
+                '<p class="share-tip">两种分享链接任选：对方打开即可直接试玩，或导入到他自己的关卡库。</p>' +
+                '<div class="share-row">' +
+                    '<span class="share-label"><i class="fas fa-play"></i>直接试玩</span>' +
+                    '<input class="share-input" type="text" readonly>' +
+                    '<button class="button small share-copy" data-kind="play">复制</button>' +
+                '</div>' +
+                '<div class="share-row">' +
+                    '<span class="share-label"><i class="fas fa-file-import"></i>导入编辑</span>' +
+                    '<input class="share-input" type="text" readonly>' +
+                    '<button class="button small share-copy" data-kind="import">复制</button>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(pop);
+        pop.addEventListener('click', function (e) {
+            if (e.target === pop || (e.target.closest && e.target.closest('.share-close'))) closeSharePop();
+        });
+        sharePop = pop;
+        return pop;
+    }
+    function closeSharePop() { if (sharePop) sharePop.classList.remove('open'); }
+
     function shareLevel(level) {
         var code = SokobanUserLevels.encodeLevel(level);
         var base = location.origin + location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
-        var url = base + 'editor.html?import=' + encodeURIComponent(code);
-        copyText(url, '分享链接已复制，去粘贴给好友吧');
+        var playUrl = base + 'game.html?play=' + encodeURIComponent(code);
+        var importUrl = base + 'editor.html?import=' + encodeURIComponent(code);
+
+        var pop = ensureSharePop();
+        var inputs = pop.querySelectorAll('.share-input');
+        inputs[0].value = playUrl;     // 直接试玩
+        inputs[1].value = importUrl;   // 导入编辑
+
+        // 复制按钮：每次分享重新绑定（onclick 覆盖，避免重复监听）
+        pop.querySelectorAll('.share-copy').forEach(function (btn) {
+            btn.onclick = function () {
+                var url = btn.previousElementSibling.value;
+                var kind = btn.getAttribute('data-kind');
+                copyText(url, '已复制「' + (kind === 'play' ? '直接试玩' : '导入编辑') + '」链接');
+            };
+        });
+
+        pop.classList.add('open');
+        // 自动选中首行链接，方便手动复制
+        if (inputs[0]) { inputs[0].focus(); inputs[0].select(); }
+    }
+
+    // 全局 Esc 关闭分享弹层（仅注册一次）
+    if (!sharePopInit) {
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && sharePop && sharePop.classList.contains('open')) closeSharePop();
+        });
+        sharePopInit = true;
     }
 
     // 编辑：携带关卡编码与 id 跳转制作页，编辑后保存即覆盖原关卡
