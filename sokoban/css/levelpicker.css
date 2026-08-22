@@ -1,0 +1,241 @@
+/* ===== 选择关卡 FAB（位于评论 FAB 之上）===== */
+/* 配色变量自包含，不依赖页面 CSS 变量，明暗各自定义，可在任意页复用 */
+.level-fab {
+    --btn-bg: #8a7a66;
+    --btn-hover: #9a8a76;
+    --btn-text: #ffffff;
+    --flea-fab-gap: clamp(16px, 4vw, 24px);  /* 与评论 FAB 同间距，保证两者右边缘在同一垂直线 */
+
+    position: fixed;
+    right: max(var(--flea-fab-gap), env(safe-area-inset-right, 0px));
+    bottom: 84px;            /* 评论 FAB 之上（评论 FAB 约 gap+50px） */
+    z-index: 2150;           /* 高于评论 FAB(2100) */
+    width: clamp(42px, 12vw, 50px);
+    height: clamp(42px, 12vw, 50px);
+    border: none;
+    border-radius: 50%;
+    background: var(--btn-bg);
+    color: var(--btn-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    transition: background-color 0.2s ease, transform 0.12s ease;
+}
+.level-fab:hover { background: var(--btn-hover); transform: scale(1.06); }
+.level-fab:active { transform: scale(0.94); }
+.level-fab svg { width: 50%; height: 50%; display: block; fill: currentColor; }
+.level-fab.is-active { background: var(--btn-hover); }
+
+[data-theme="dark"] .level-fab {
+    --btn-bg: #4a4a4a;
+    --btn-hover: #5a5a5a;
+    --btn-text: #ffffff;
+}
+
+[data-theme="dark"] .level-panel {
+    --card-bg: #2c2c2c;
+    --card-hover: #3a3a3a;
+    --text-main: #e6e6e6;
+    --bg-main: #3a3a3a;
+    --btn-bg: #4a4a4a;
+}
+
+/* ===== 选择关卡 遮罩 + 右侧抽屉 ===== */
+.level-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.level-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+.level-panel {
+    --card-bg: #ffffff;
+    --card-hover: #faf8f3;
+    --text-main: #4a4a4a;
+    --bg-main: #f3f1ea;
+    --btn-bg: #8a7a66;
+
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 3050;
+    width: min(440px, 100%);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    color: var(--text-main);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.18);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+.level-panel.is-open { transform: translateX(0); }
+
+.level-panel-header {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+.level-panel-title {
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.level-panel-title svg { width: 20px; height: 20px; fill: currentColor; }
+.level-panel-close {
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-main);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+.level-panel-close:hover { background: var(--card-hover); }
+.level-panel-close svg { width: 18px; height: 18px; fill: currentColor; }
+
+.level-panel-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px 18px 28px;
+    -webkit-overflow-scrolling: touch;
+}
+.level-section { margin-bottom: 22px; }
+.level-section-title {
+    font-size: 15px;
+    font-weight: bold;
+    margin: 0 0 12px;
+    opacity: 0.85;
+    padding-left: 8px;
+    border-left: 3px solid var(--btn-bg);
+}
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));  /* 多列网格：一屏展示更多关卡 */
+    gap: 12px;
+}
+.level-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: var(--bg-main);
+    color: var(--text-main);
+    border: 1px solid rgba(128, 128, 128, 0.15);
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent; /* 移除移动端点按时的青色系统高亮 */
+    transition: background-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.level-card:hover { background: var(--card-hover); transform: translateY(-2px); }
+/* 当前展示关卡：高亮边框 + 内描边，名称取强调色 */
+.level-card.is-current {
+    border-color: var(--btn-bg);
+    background: var(--card-hover);
+    box-shadow: 0 0 0 2px var(--btn-bg) inset;
+}
+.level-card.is-current .level-card-name { color: var(--btn-bg); }
+.level-card-name {
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* “当前”标签：默认隐藏，仅当前关卡显示 */
+.level-current-tag {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: none;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: var(--btn-bg);
+    color: #fff;
+    pointer-events: none;
+}
+.level-card.is-current .level-current-tag { display: block; }
+.level-empty { font-size: 13px; opacity: 0.7; padding: 8px 4px; }
+
+/* 迷你缩略图：自包含明暗变量，不依赖游戏页 CSS 变量 */
+#level-panel {
+    --lm-floor: #e9e4da;
+    --lm-wall: #6b6155;
+    --lm-target: #c0392b;
+    --lm-box: #b5793b;
+    --lm-box-border: #8a5a28;
+    --lm-box-on: #2e7d32;
+    --lm-box-on-border: #1b5e20;
+    --lm-player: #2d6cdf;
+}
+[data-theme="dark"] #level-panel {
+    --lm-floor: #3a3a3a;
+    --lm-wall: #565656;
+    --lm-target: #e57373;
+    --lm-box: #c98a4b;
+    --lm-box-border: #a06a30;
+    --lm-box-on: #4caf50;
+    --lm-box-on-border: #388e3c;
+    --lm-player: #5b8def;
+}
+.level-mini {
+    display: grid;
+    gap: 1px;
+    background: var(--lm-wall);
+    border-radius: 5px;
+    padding: 4px;
+    width: 100%;
+    max-height: 200px;       /* 仅超大关卡（行列过多）才内部滚动，普通关卡按内容高度 */
+    overflow: auto;
+    justify-content: center; /* 窄关卡（列少）左右留白居中，不拉伸变形 */
+    scrollbar-width: thin;
+}
+.level-mini .cell {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.level-mini .cell.floor { background: var(--lm-floor); }
+.level-mini .cell.wall { background: var(--lm-wall); }
+.level-mini .cell.target { background: var(--lm-floor); }
+.level-mini .entity { width: 72%; height: 72%; }
+.level-mini .box { background: var(--lm-box); border: 2px solid var(--lm-box-border); border-radius: 3px; }
+.level-mini .box.on-target { background: var(--lm-box-on); border-color: var(--lm-box-on-border); }
+.level-mini .player { background: var(--lm-player); border-radius: 50%; }
+.level-mini .target-mark { background: var(--lm-target); border-radius: 50%; width: 38%; height: 38%; }
+
+/* 手机端：抽屉铺满全屏 */
+@media (max-width: 768px) {
+    .level-panel {
+        width: 100%;
+        box-shadow: none;
+    }
+}
