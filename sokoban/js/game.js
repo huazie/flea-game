@@ -259,7 +259,7 @@ class SokobanGame {
         const board = this.$board;
         document.addEventListener('touchstart', (e) => {
             const target = e.target;
-            if (target && target.closest && target.closest('button, input, select, textarea, a, .flea-comments-drawer, .flea-comments-backdrop')) {
+            if (target && target.closest && target.closest('button, input, select, textarea, a, .flea-comments-drawer, .flea-comments-backdrop, .level-backdrop, .level-panel, .level-fab')) {
                 tracking = false;
                 return;
             }
@@ -338,6 +338,51 @@ class SokobanGame {
         var start = (typeof startIndex === 'number' && startIndex >= 0 && startIndex < levels.length) ? startIndex : 0;
         this._loadLevel(start);
         if (label) this._toast('已加载《' + label + '》共 ' + levels.length + ' 关，开始试玩');
+    }
+
+    /**
+     * 从「选择关卡」面板就地切到官方关卡（不整页刷新）。
+     * @param {number} i 官方关卡下标
+     */
+    switchToOfficial(i) {
+        var self = this;
+        var loader = (typeof SokobanLevels !== 'undefined' && SokobanLevels.load)
+            ? SokobanLevels.load()
+            : Promise.resolve((typeof SOKOBAN_LEVELS !== 'undefined') ? SOKOBAN_LEVELS : []);
+        loader.then(function (levels) {
+            if (!levels || !levels.length) return;
+            var idx = (typeof i === 'number' && i >= 0 && i < levels.length) ? i : 0;
+            self.levels = levels;
+            self.source = 'default';
+            self.fromShare = false;
+            self._loadLevel(idx);
+            self._updateControls();
+        });
+    }
+
+    /**
+     * 从「选择关卡」面板就地切到一组自定义关卡中的某一关（不整页刷新）。
+     * @param {Array} list 关卡数组（{ name, map }）
+     * @param {number} idx 起始下标
+     */
+    switchToCustom(list, idx) {
+        if (!Array.isArray(list) || !list.length) return;
+        var i = (typeof idx === 'number' && idx >= 0 && idx < list.length) ? idx : 0;
+        this.levels = list;
+        this.source = 'custom';
+        this.fromShare = false;
+        this._loadLevel(i);
+        this._updateControls();
+    }
+
+    /**
+     * 返回当前展示关卡的 {name, map}，供「选择关卡」面板按内容高亮定位。
+     * 注意：内部 levelIndex 在「开始游戏」分支会因追加自定义关卡而偏移，
+     * 故面板统一用 name+map 内容匹配，而非直接依赖下标。
+     */
+    getCurrentLevel() {
+        var lv = (this.levels && this.levels[this.levelIndex]) || null;
+        return lv ? { name: lv.name, map: lv.map } : null;
     }
 
     /** 绑定“上传关卡”按钮与隐藏文件输入 */
@@ -429,7 +474,7 @@ window.addEventListener('DOMContentLoaded', function () {
             ? SokobanLevels.load()
             : Promise.resolve((typeof SOKOBAN_LEVELS !== 'undefined') ? SOKOBAN_LEVELS : []);
         loader.then(function (levels) {
-            new SokobanGame(levels, startIndex < levels.length ? startIndex : 0);
+            window.sokobanGame = new SokobanGame(levels, startIndex < levels.length ? startIndex : 0);
         });
         return;
     }
@@ -448,6 +493,7 @@ window.addEventListener('DOMContentLoaded', function () {
             var g0 = new SokobanGame([]);
             g0.fromShare = true;   // 来自分享直玩，显示“添加到自定义关卡”
             g0.loadCustomLevels([{ name: sharedName, map: shared.map }], sharedName);
+            window.sokobanGame = g0;
             return;
         }
         // 解码失败（分享码损坏）：继续走下方默认加载，避免白屏
@@ -467,6 +513,7 @@ window.addEventListener('DOMContentLoaded', function () {
         if (Array.isArray(playTarget.list) && playTarget.list.length) {
             var game = new SokobanGame([]);
             game.loadCustomLevels(playTarget.list, '我的关卡', playTarget.index || 0);
+            window.sokobanGame = game;
             return;
         }
         // 旧版 / 编辑器试玩：单关 {name, map}
@@ -474,6 +521,7 @@ window.addEventListener('DOMContentLoaded', function () {
             var custom = { name: playTarget.name || '试玩关卡', map: playTarget.map };
             var game2 = new SokobanGame([]);
             game2.loadCustomLevels([custom], custom.name);
+            window.sokobanGame = game2;
             return;
         }
     }
@@ -491,6 +539,6 @@ window.addEventListener('DOMContentLoaded', function () {
                 });
             }
         } catch (e) { /* ignore */ }
-        new SokobanGame(pool);
+        window.sokobanGame = new SokobanGame(pool);
     });
 });

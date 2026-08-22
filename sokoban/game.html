@@ -9,6 +9,7 @@
     <meta name="description" content="经典推箱子小游戏">
     <link rel="shortcut icon" href="../assets/images/flea-game.ico">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/levelpicker.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" media="print" onload="this.media='all'">
 </head>
 <body>
@@ -66,11 +67,41 @@
         </div>
     </div>
 
+    <!-- 选择关卡（官方 + 自定义）FAB 与面板：置于评论 FAB 之上 -->
+    <button id="level-fab" class="level-fab" type="button" aria-label="选择关卡">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
+    </button>
+    <div id="level-backdrop" class="level-backdrop"></div>
+    <aside id="level-panel" class="level-panel" role="dialog" aria-modal="true" aria-label="选择关卡">
+        <div class="level-panel-header">
+            <span class="level-panel-title">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/></svg>
+                选择关卡
+            </span>
+            <button id="level-close" class="level-panel-close" type="button" aria-label="关闭">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+        </div>
+        <div class="level-panel-body">
+            <section class="level-section">
+                <h3 class="level-section-title">官方关卡</h3>
+                <div id="official-list" class="level-grid"></div>
+            </section>
+            <section class="level-section">
+                <h3 class="level-section-title">自定义关卡</h3>
+                <div id="custom-list" class="level-grid"></div>
+                <div id="custom-empty" class="level-empty" style="display:none">暂无自定义关卡，去「制作关卡」创建一个吧</div>
+            </section>
+        </div>
+    </aside>
+
     <script src="../assets/js/common.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/levels.js"></script>
     <script src="js/userlevels.js"></script>
     <script src="js/game.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/levelpicker.js"></script>
 
     <script src="../assets/js/comments.js"></script>
     <script>FleaComments.init('sokoban');</script>
