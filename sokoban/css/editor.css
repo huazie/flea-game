@@ -469,6 +469,30 @@ body {
     color: var(--danger);
 }
 
+/* ===== 按钮 loading（复杂棋谱求解耗时，避免无感知） ===== */
+.button.loading {
+    pointer-events: none;
+    cursor: progress;
+    opacity: 0.85;
+}
+
+.button.loading .spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    margin-right: 6px;
+    vertical-align: -1px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: btn-spin 0.7s linear infinite;
+}
+
+/* 旋转动画走合成线程，即使主线程被求解阻塞也保持转动 */
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ===== 提示 ===== */
 .level-toast {
     position: fixed;

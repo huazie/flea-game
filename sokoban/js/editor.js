@@ -22,6 +22,9 @@
     var currentTool = 'wall';
     var isDrawing = false;
     var playerPos = null;     // {r,c} 当前玩家位置（保证唯一）
+    var verifiedSolvable = false; // 本会话内是否已用求解器验证可解（避免复杂棋谱重复求解卡顿）
+    var verifiedUncertain = false; // 上次求解是否为「规模过大未完全穷举」
+    var baselineSnapshot = '';     // 编辑器载入时的关卡快照（名称+地图），用于判断「是否有改动」
 
     var boardEl = document.getElementById('board');
     var previewEl = document.getElementById('preview');
@@ -92,6 +95,8 @@
         playerPos = { r: 1, c: 1 };
         renderBoard();
         updatePreview();
+        markDirty();
+        setBaseline();
     }
 
     function renderBoard() {
@@ -152,6 +157,7 @@
         }
         grid[r][c] = ch;
         updateCellEl(r, c);
+        markDirty();   // 画布改动 → 已验证可解失效
     }
 
     /** 从当前 grid 重新定位玩家（兼容 '@' 与 '+'） */
@@ -175,6 +181,8 @@
         if (typeof name === 'string') nameInput.value = name;
         renderBoard();
         updatePreview();
+        markDirty();   // 载入新地图（示例/导入）→ 需重新验证
+        setBaseline();
     }
 
     function getCellFromPoint(x, y) {
@@ -243,49 +251,124 @@
         return map;
     }
 
+    // 关卡快照（名称 + 地图），用于「是否有改动」对比
+    function currentSnapshot() {
+        return JSON.stringify({ name: nameInput.value, map: currentMap() });
+    }
+    function setBaseline() { baselineSnapshot = currentSnapshot(); }
+    function isDirty() { return baselineSnapshot !== currentSnapshot(); }
+
     // ── 校验 / 保存 / 试玩 ──
-    function validate() {
+    // 校验成功（已验证可解）后的统一文案：上块（校验结果区）直接带出「跳过求解」提示，
+    // 不再单独显示徽标，两块合并为一块。
+    function showVerifiedText(uncertain) {
+        var base = '✓ 可解' + (uncertain ? '（规模过大，未完全穷举）' : '');
+        resultEl.className = 'validate-result ok';
+        resultEl.textContent = base + ' · 保存 / 试玩将跳过求解';
+    }
+
+    // 画布发生改动 → 之前的「已验证可解」失效，需重新求解确认
+    function markDirty() {
+        verifiedSolvable = false;
+        verifiedUncertain = false;
+        resultEl.className = 'validate-result';
+        resultEl.textContent = '';
+    }
+
+    // 按钮 loading 状态：显示旋转图标 + 文案，并禁用按钮，避免复杂棋谱求解时重复点击
+    function showBtnLoading(btn, text) {
+        if (!btn) return;
+        if (btn.dataset.label == null) btn.dataset.label = btn.textContent;
+        btn.classList.add('loading');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>' + (text || '处理中…');
+    }
+    function hideBtnLoading(btn) {
+        if (!btn) return;
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        if (btn.dataset.label != null) btn.textContent = btn.dataset.label;
+    }
+
+    /**
+     * 校验当前关卡（异步）：结构校验（必做）+ 可解性求解（耗时）。
+     * - 结构非法 → 同步返回 null，无 loading。
+     * - 本会话已验证可解且未改动 → 跳过求解，同步返回关卡（瞬时，无 loading）。
+     * - 需要求解（复杂棋谱耗时）→ 先显示按钮 loading「验证中…」让出一帧渲染，再后台
+     *   求解，避免「点击后无感知 / 页面卡住」；完成后经 onDone 回调返回关卡或 null。
+     */
+    function withValidate(btn, onDone) {
         var map = currentMap();
         var v = SokobanUserLevels.validateLevel({ name: nameInput.value || '关卡', map: map });
         if (!v.ok) {
+            verifiedSolvable = false;
             resultEl.className = 'validate-result fail';
             resultEl.textContent = '✗ ' + v.reason;
-            return null;
+            onDone(null);
+            return;
         }
-        var res = SokobanSolver.isSolvable(map);
-        if (res.solvable) {
-            resultEl.className = 'validate-result ok';
-            resultEl.textContent = '✓ 可解' + (res.uncertain ? '（规模过大，未完全穷举）' : '');
-            return { name: nameInput.value || '我的关卡', map: map };
+        // 已验证且未改动 → 跳过求解（瞬时，无需 loading）
+        if (verifiedSolvable) {
+            showVerifiedText(verifiedUncertain);
+            onDone({ name: nameInput.value || '我的关卡', map: map });
+            return;
         }
-        resultEl.className = 'validate-result fail';
-        resultEl.textContent = '✗ 不可解：' + res.reason;
-        return null;
+        // 需要求解：先显示「验证中…」，让浏览器先完成一帧重绘，再执行耗时求解
+        showBtnLoading(btn, '验证中…');
+        setTimeout(function () {
+            var res = SokobanSolver.isSolvable(map);
+            hideBtnLoading(btn);
+            if (res.solvable) {
+                verifiedSolvable = true;
+                verifiedUncertain = !!res.uncertain;
+                showVerifiedText(verifiedUncertain);
+                onDone({ name: nameInput.value || '我的关卡', map: map });
+            } else {
+                verifiedSolvable = false;
+                resultEl.className = 'validate-result fail';
+                resultEl.textContent = '✗ 不可解：' + res.reason;
+                onDone(null);
+            }
+        }, 30);
     }
 
-    document.getElementById('validate-btn').addEventListener('click', function () { validate(); });
+    var validateBtn = document.getElementById('validate-btn');
+    var saveBtn = document.getElementById('save-btn');
+    var playBtn = document.getElementById('play-btn');
 
-    document.getElementById('save-btn').addEventListener('click', function () {
-        var lvl = validate();
-        if (!lvl) return;
-        try {
-            if (editId) {
-                SokobanUserLevels.updateUserLevel(editId, lvl);
-                toast('已更新「' + (lvl.name || '我的关卡') + '」');
-            } else {
-                SokobanUserLevels.saveUserLevel(lvl);
-                toast('已保存到「我的关卡」');
-            }
-        } catch (e) {
-            toast('保存失败：' + (e && e.message ? e.message : e));
-        }
+    validateBtn.addEventListener('click', function () {
+        withValidate(validateBtn, function () { /* 结果已写入校验区 */ });
     });
 
-    document.getElementById('play-btn').addEventListener('click', function () {
-        var lvl = validate();
-        if (!lvl) return;
-        try { localStorage.setItem('sokoban_play_target', JSON.stringify(lvl)); } catch (e) { /* ignore */ }
-        window.location.href = 'game.html?from=editor';
+    saveBtn.addEventListener('click', function () {
+        // 未改动（与载入时基线一致）→ 无需保存，直接提示并返回，避免无意义写入
+        if (!isDirty()) {
+            toast('无修改，无需保存');
+            return;
+        }
+        withValidate(saveBtn, function (lvl) {
+            if (!lvl) return;
+            try {
+                if (editId) {
+                    SokobanUserLevels.updateUserLevel(editId, lvl);
+                    toast('已更新「' + (lvl.name || '我的关卡') + '」');
+                } else {
+                    SokobanUserLevels.saveUserLevel(lvl);
+                    toast('已保存到「我的关卡」');
+                }
+                setBaseline();   // 保存成功 → 刷新基线，紧接着的二次保存会提示「无修改」
+            } catch (e) {
+                toast('保存失败：' + (e && e.message ? e.message : e));
+            }
+        });
+    });
+
+    playBtn.addEventListener('click', function () {
+        withValidate(playBtn, function (lvl) {
+            if (!lvl) return;
+            try { localStorage.setItem('sokoban_play_target', JSON.stringify(lvl)); } catch (e) { /* ignore */ }
+            window.location.href = 'game.html?from=editor';
+        });
     });
 
     // ── 启动：分享链接 ?import= 直接载入编辑；?edit=<id> 表示编辑既有自制关卡（保存时覆盖）──
