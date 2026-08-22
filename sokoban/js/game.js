@@ -5,7 +5,7 @@
  * 简图（缩小俯视图）功能已迁移至「查看关卡页」，本页仅负责游戏玩法。
  */
 class SokobanGame {
-    constructor(levels, startIndex = 0) {
+    constructor(levels, startIndex = 0, officialCount = 0) {
         this.$levelNum  = document.getElementById('level-num');
         this.$levelName = document.getElementById('level-name');
         this.$moves     = document.getElementById('moves-count');
@@ -17,6 +17,8 @@ class SokobanGame {
         this.levels = (Array.isArray(levels) && levels.length) ? levels
             : (typeof SOKOBAN_LEVELS !== 'undefined' ? SOKOBAN_LEVELS : []);
         this.source = 'default';   // 'default'（内置）| 'custom'（上传试玩）
+        this.sourceIndex = 0;      // 当前关在其来源命名空间内的下标（官方=levelIndex，自定义=在自定义列表中的位置）
+        this.officialCount = officialCount;  // 合并池中官方关卡数量（自定义关卡紧随其后）
         this.fromShare = false;    // 是否来自「分享直玩」(?play=)，决定显示“添加到自定义关卡”
         this.levelIndex = 0;
         this.grid = [];      // 静态层：'wall' | 'floor' | 'target'
@@ -36,7 +38,13 @@ class SokobanGame {
     _loadLevel(index) {
         if (index < 0 || index >= this.levels.length) return;
         this.levelIndex = index;
-        const map = this.levels[index].map;
+        const lv = this.levels[index];
+        // 合并池下每关携带 source：官方='default' 自定义='custom'；
+        // 自定义关卡在合并池中下标 = officialCount + 其在自定义列表中的位置，
+        // 故其来源下标 = levelIndex - officialCount，保证最佳步数按“自定义列表下标”存储，不随官方增减漂移。
+        this.source = (lv && lv.source === 'custom') ? 'custom' : 'default';
+        this.sourceIndex = (this.source === 'custom') ? (index - this.officialCount) : index;
+        const map = lv.map;
         this.rows = map.length;
         this.cols = map[0].length;
         this.grid = [];
@@ -128,7 +136,7 @@ class SokobanGame {
             : (lv && lv.user) ? '自制 · ' : '';
         if (this.$levelName) this.$levelName.textContent = prefix + baseName;
         if (this.$moves) this.$moves.textContent = String(this.moves);
-        const best = GameStorage.getBestMoves(this.levelIndex, this.source);
+        const best = GameStorage.getBestMoves(this.sourceIndex, this.source);
         if (this.$best) this.$best.textContent = best ? String(best) : '-';
     }
 
@@ -209,8 +217,8 @@ class SokobanGame {
 
     _onWin() {
         this.solved = true;
-        const isRecord = GameStorage.saveBestMoves(this.levelIndex, this.moves, this.source);
-        if (this.source === 'default') GameStorage.unlockLevel(this.levelIndex + 1);
+        const isRecord = GameStorage.saveBestMoves(this.sourceIndex, this.moves, this.source);
+        if (this.source === 'default') GameStorage.unlockLevel(this.sourceIndex + 1);
         this._updateStats();
 
         const isLast = this.levelIndex >= this.levels.length - 1;
@@ -331,17 +339,35 @@ class SokobanGame {
             this._toast('没有可试玩的关卡');
             return;
         }
-        this.levels = levels;
+        // 自定义试玩为独立关卡池：官方数量为 0，来源下标即关卡下标
+        this.levels = levels.map(function (l) { return { name: l.name, map: l.map, source: 'custom' }; });
+        this.officialCount = 0;
         this.source = 'custom';
         this.levelIndex = 0;
         this._hideMessage();
-        var start = (typeof startIndex === 'number' && startIndex >= 0 && startIndex < levels.length) ? startIndex : 0;
+        var start = (typeof startIndex === 'number' && startIndex >= 0 && startIndex < this.levels.length) ? startIndex : 0;
         this._loadLevel(start);
-        if (label) this._toast('已加载《' + label + '》共 ' + levels.length + ' 关，开始试玩');
+        if (label) this._toast('已加载《' + label + '》共 ' + this.levels.length + ' 关，开始试玩');
+    }
+
+    /**
+     * 构建「官方 + 自定义」合并关卡池（所有入口与面板切换共用）。
+     * 官方关卡在前（source='default'），自定义关卡在后（source='custom', user=true）；
+     * 合并池中自定义关卡下标 = 官方数量 + 其在自定义列表中的位置。
+     */
+    static buildPool(official, customs) {
+        var o = (Array.isArray(official) ? official : []).map(function (l) {
+            return { name: l.name, map: l.map, source: 'default' };
+        });
+        var c = (Array.isArray(customs) ? customs : []).map(function (l) {
+            return { name: l.name, map: l.map, source: 'custom', user: true };
+        });
+        return o.concat(c);
     }
 
     /**
      * 从「选择关卡」面板就地切到官方关卡（不整页刷新）。
+     * 切到的合并池 = 官方 + 自定义，故之后仍可继续在面板里切到自定义关卡。
      * @param {number} i 官方关卡下标
      */
     switchToOfficial(i) {
@@ -349,12 +375,14 @@ class SokobanGame {
         var loader = (typeof SokobanLevels !== 'undefined' && SokobanLevels.load)
             ? SokobanLevels.load()
             : Promise.resolve((typeof SOKOBAN_LEVELS !== 'undefined') ? SOKOBAN_LEVELS : []);
-        loader.then(function (levels) {
-            if (!levels || !levels.length) return;
-            var idx = (typeof i === 'number' && i >= 0 && i < levels.length) ? i : 0;
-            self.levels = levels;
-            self.source = 'default';
+        loader.then(function (official) {
+            official = official || [];
+            var customs = (typeof SokobanUserLevels !== 'undefined' && SokobanUserLevels.getUserLevels)
+                ? SokobanUserLevels.getUserLevels() : [];
+            self.levels = SokobanGame.buildPool(official, customs);
+            self.officialCount = official.length;
             self.fromShare = false;
+            var idx = (typeof i === 'number' && i >= 0 && i < official.length) ? i : 0;
             self._loadLevel(idx);
             self._updateControls();
         });
@@ -362,17 +390,27 @@ class SokobanGame {
 
     /**
      * 从「选择关卡」面板就地切到一组自定义关卡中的某一关（不整页刷新）。
-     * @param {Array} list 关卡数组（{ name, map }）
-     * @param {number} idx 起始下标
+     * 切到的合并池 = 官方 + 自定义，故之后仍可继续在面板里切到官方关卡。
+     * @param {Array} list 关卡数组（{ name, map }），此处仅用于回退判断，实际关卡取自本地自定义库
+     * @param {number} idx 自定义关卡在本地列表中的下标
      */
     switchToCustom(list, idx) {
-        if (!Array.isArray(list) || !list.length) return;
-        var i = (typeof idx === 'number' && idx >= 0 && idx < list.length) ? idx : 0;
-        this.levels = list;
-        this.source = 'custom';
-        this.fromShare = false;
-        this._loadLevel(i);
-        this._updateControls();
+        var self = this;
+        var loader = (typeof SokobanLevels !== 'undefined' && SokobanLevels.load)
+            ? SokobanLevels.load()
+            : Promise.resolve((typeof SOKOBAN_LEVELS !== 'undefined') ? SOKOBAN_LEVELS : []);
+        loader.then(function (official) {
+            official = official || [];
+            var customs = (typeof SokobanUserLevels !== 'undefined' && SokobanUserLevels.getUserLevels)
+                ? SokobanUserLevels.getUserLevels() : [];
+            if (!customs.length) return;
+            self.levels = SokobanGame.buildPool(official, customs);
+            self.officialCount = official.length;
+            self.fromShare = false;
+            var i = (typeof idx === 'number' && idx >= 0 && idx < customs.length) ? idx : 0;
+            self._loadLevel(official.length + i);
+            self._updateControls();
+        });
     }
 
     /**
@@ -465,22 +503,40 @@ window.addEventListener('DOMContentLoaded', function () {
 
     var params = new URLSearchParams(window.location.search);
 
-    // 查看关卡页试玩官方关卡：带 ?level=N 进入，按默认关卡源加载，保留上下关、最佳记录、解锁进度。
+    // 统一入口：构建「官方 + 自定义」合并关卡池，从指定起点开始试玩。
+    // officialStart：从官方第 N 关开始；customStart：从自定义第 N 关开始；
+    // 合并池官方在前、自定义在后，故自定义起点下标 = 官方数量 + N。startCombined 后游戏内
+    // 打开「选择关卡」面板即可在官方 / 自定义之间自由切换。
+    function startCombined(officialStart, customStart) {
+        var loader = (typeof SokobanLevels !== 'undefined' && SokobanLevels.load)
+            ? SokobanLevels.load()
+            : Promise.resolve((typeof SOKOBAN_LEVELS !== 'undefined') ? SOKOBAN_LEVELS : []);
+        loader.then(function (official) {
+            official = Array.isArray(official) ? official : [];
+            var customs = (typeof SokobanUserLevels !== 'undefined' && SokobanUserLevels.getUserLevels)
+                ? SokobanUserLevels.getUserLevels() : [];
+            var pool = SokobanGame.buildPool(official, customs);
+            var officialCount = official.length;
+            var startIndex = 0;
+            if (typeof customStart === 'number' && customStart >= 0 && customStart < customs.length) {
+                startIndex = officialCount + customStart;
+            } else if (typeof officialStart === 'number' && officialStart >= 0 && officialStart < officialCount) {
+                startIndex = officialStart;
+            }
+            window.sokobanGame = new SokobanGame(pool, startIndex, officialCount);
+        });
+    }
+
+    // 查看关卡页试玩官方关卡：带 ?level=N 进入，合并池中官方仍在前、下标不变，最佳记录/解锁进度均保留。
     var startIndex = parseInt(params.get('level'), 10);
     if (!isNaN(startIndex) && startIndex >= 0) {
         // 清空可能存在的旧试玩标记，避免官方关卡试玩被误判为自定义。
         try { localStorage.removeItem('sokoban_play_target'); } catch (e) { /* ignore */ }
-        var loader = (typeof SokobanLevels !== 'undefined' && SokobanLevels.load)
-            ? SokobanLevels.load()
-            : Promise.resolve((typeof SOKOBAN_LEVELS !== 'undefined') ? SOKOBAN_LEVELS : []);
-        loader.then(function (levels) {
-            window.sokobanGame = new SokobanGame(levels, startIndex < levels.length ? startIndex : 0);
-        });
+        startCombined(startIndex, null);
         return;
     }
 
-    // 分享链接「直接打开试玩」：?play=<code> 携带编码后的单关，打开即玩。
-    // 不自保存到本地关卡（与 ?level=N 官方试玩、localStorage 试玩区分），不污染我的关卡库。
+    // 分享链接「直接打开试玩」：?play=<code> 携带编码后的单关，打开即玩（独立自定义关卡，不污染我的关卡库）。
     var playCode = params.get('play');
     if (playCode) {
         var shared = null;
@@ -509,14 +565,13 @@ window.addEventListener('DOMContentLoaded', function () {
     } catch (e) { /* ignore */ }
 
     if (playTarget) {
-        // 新版：整组自定义关卡（查看页点「试玩」时传入 list + index），支持上一关/下一关连续闯关
+        // 整组自定义关卡（查看页“自定义关卡试玩”传入 list + index）：合并官方后从自定义位置开始，
+        // 这样在游戏内点开「选择关卡」面板可自由切到官方 / 自定义任意关卡。
         if (Array.isArray(playTarget.list) && playTarget.list.length) {
-            var game = new SokobanGame([]);
-            game.loadCustomLevels(playTarget.list, '我的关卡', playTarget.index || 0);
-            window.sokobanGame = game;
+            startCombined(null, (typeof playTarget.index === 'number') ? playTarget.index : 0);
             return;
         }
-        // 旧版 / 编辑器试玩：单关 {name, map}
+        // 单关（制作关卡页试玩 / 旧版）：仅试玩这一关（不混入官方，避免改到正在编辑的关卡）
         if (Array.isArray(playTarget.map) && playTarget.map.length) {
             var custom = { name: playTarget.name || '试玩关卡', map: playTarget.map };
             var game2 = new SokobanGame([]);
@@ -526,19 +581,6 @@ window.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    var loader = (typeof SokobanLevels !== 'undefined' && SokobanLevels.load)
-        ? SokobanLevels.load()
-        : Promise.resolve((typeof SOKOBAN_LEVELS !== 'undefined') ? SOKOBAN_LEVELS : []);
-    loader.then(function (levels) {
-        // 开始游戏：把自制关卡追加到关卡池末尾，支持连续闯关（标记 user 以便标题区分）
-        var pool = Array.isArray(levels) ? levels.slice() : [];
-        try {
-            if (typeof SokobanUserLevels !== 'undefined' && SokobanUserLevels.getUserLevels) {
-                SokobanUserLevels.getUserLevels().forEach(function (lv) {
-                    pool.push({ name: lv.name || '自定义关卡', map: lv.map, user: true });
-                });
-            }
-        } catch (e) { /* ignore */ }
-        window.sokobanGame = new SokobanGame(pool);
-    });
+    // 默认「开始游戏」：官方 + 自定义合并池，从第 0 关开始。
+    startCombined(null, null);
 });
