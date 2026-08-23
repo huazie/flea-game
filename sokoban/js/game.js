@@ -136,7 +136,7 @@ class SokobanGame {
             : (lv && lv.user) ? '自制 · ' : '';
         if (this.$levelName) this.$levelName.textContent = prefix + baseName;
         if (this.$moves) this.$moves.textContent = String(this.moves);
-        const best = GameStorage.getBestMoves(this.sourceIndex, this.source);
+        const best = GameStorage.getBestMovesByMap(this.levels[this.levelIndex].map, this.sourceIndex, this.source);
         if (this.$best) this.$best.textContent = best ? String(best) : '-';
     }
 
@@ -217,7 +217,7 @@ class SokobanGame {
 
     _onWin() {
         this.solved = true;
-        const isRecord = GameStorage.saveBestMoves(this.sourceIndex, this.moves, this.source);
+        const isRecord = GameStorage.saveBestMovesByMap(this.levels[this.levelIndex].map, this.moves);
         if (this.source === 'default') GameStorage.unlockLevel(this.sourceIndex + 1);
         this._updateStats();
 
