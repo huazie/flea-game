@@ -48,7 +48,12 @@
         </section>
 
         <section class="level-section" id="user-section">
-            <h2 class="section-title">我的关卡 <span class="badge badge-user">自定义</span></h2>
+            <div class="section-head">
+                <h2 class="section-title">我的关卡 <span class="badge badge-user">自定义</span></h2>
+                <div class="user-actions" id="user-actions" style="display:none">
+                    <button id="export-all-btn" class="button small"><i class="fas fa-download"></i> 导出全部</button>
+                </div>
+            </div>
             <div id="user-levels" class="level-grid"></div>
             <p id="user-empty" class="empty-tip" style="display:none">还没有自制关卡，去「制作关卡」创作或上传 / 导入分享吧。</p>
         </section>

@@ -188,6 +188,51 @@
         return { filename: safeName + '.' + ext, content: content };
     }
 
+    /**
+     * 构建「批量导出」文本内容（一次导出多个关卡）。
+     * @param {Array} levels 关卡数组 [{id,name,map,...}]
+     * @param {string} format 'json' | 'txt'
+     * @returns {string} JSON 为 { levels: [{name,map}] }（可被 SokobanLevels.parse 的 {levels:[..]} 分支直接复用导入）；
+     *                     TXT 为每个关卡「注释名 + 字符画」按空行分隔（人工可读备份）。
+     */
+    function buildExportAllContent(levels, format) {
+        var arr = (levels || []).map(function (lv) {
+            return { name: lv && lv.name ? lv.name : '自定义关卡', map: lv.map };
+        });
+        if (format === 'json') {
+            return JSON.stringify({ levels: arr }, null, 2);
+        }
+        return arr.map(function (lv) {
+            return '// ' + lv.name + '\n' + (lv.map || []).join('\n');
+        }).join('\n\n');
+    }
+
+    /**
+     * 批量导出关卡为单个文件并触发下载（格式同 buildExportAllContent）。
+     * @param {Array} levels 关卡数组
+     * @param {string} [format] 默认 'json'
+     * @returns {object|null} { filename, content }，无关卡时返回 null
+     */
+    function downloadAllLevels(levels, format) {
+        if (!Array.isArray(levels) || !levels.length) return null;
+        format = format || 'json';
+        var content = buildExportAllContent(levels, format);
+        var date = new Date().toISOString().slice(0, 10);
+        var safeName = '我的关卡_' + date;
+        var ext = format === 'json' ? 'json' : 'txt';
+        var mime = format === 'json' ? 'application/json' : 'text/plain';
+        var blob = new Blob([content], { type: mime + ';charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = safeName + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        return { filename: safeName + '.' + ext, content: content };
+    }
+
     var api = {
         validateLevel: validateLevel,
         getUserLevels: getUserLevels,
@@ -199,7 +244,9 @@
         buildShareUrl: buildShareUrl,
         parseImportFromUrl: parseImportFromUrl,
         buildExportContent: buildExportContent,
-        downloadLevel: downloadLevel
+        downloadLevel: downloadLevel,
+        buildExportAllContent: buildExportAllContent,
+        downloadAllLevels: downloadAllLevels
     };
 
     if (typeof module !== 'undefined' && module.exports) {

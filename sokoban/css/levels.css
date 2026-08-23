@@ -315,6 +315,27 @@ body {
     padding: 18px;
 }
 
+/* 我的关卡区段标题行：标题与「导出全部」同行（标题在左、操作在右） */
+.section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.section-head .section-title {
+    margin-bottom: 0;
+}
+
+/* 我的关卡区段批量操作条（导出全部等） */
+.user-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    margin-bottom: 0;
+}
+
 /* ===== 关卡卡片网格 ===== */
 .level-grid {
     display: grid;
