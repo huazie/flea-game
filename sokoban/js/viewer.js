@@ -51,6 +51,13 @@
             if (dSec) dSec.style.display = '';
             if (userSection) userSection.style.display = '';
         }
+        // 搜索态下，「导出全部」语义切换为「导出搜索结果」
+        var expBtn = document.getElementById('export-all-btn');
+        if (expBtn) {
+            expBtn.innerHTML = q
+                ? '<i class="fas fa-download"></i> 导出搜索结果'
+                : '<i class="fas fa-download"></i> 导出全部';
+        }
     }
     if (searchInput) {
         searchInput.addEventListener('input', applySearch);
@@ -349,6 +356,8 @@
     function renderUserLevels() {
         var userLevels = SokobanUserLevels.getUserLevels();
         userWrap.innerHTML = '';
+        var userActions = document.getElementById('user-actions');
+        if (userActions) userActions.style.display = userLevels.length ? '' : 'none';
         if (!userLevels.length) {
             userSection.style.display = '';
             if (userEmpty) userEmpty.style.display = '';
@@ -487,6 +496,32 @@
             toast('已从分享链接导入「' + (imported.name || '分享关卡') + '」');
             if (history.replaceState) history.replaceState(null, '', location.pathname);
         } catch (e) { toast('导入失败：' + (e && e.message ? e.message : e)); }
+    }
+
+    // ── 批量导出：按搜索结果导出「我的关卡」中的命中关（无搜索则导出全部）──
+    // 搜索态下只导出名称匹配搜索词的自定义关卡；空搜索导出全部。
+    function getExportLevels() {
+        var all = SokobanUserLevels.getUserLevels();
+        var q = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        if (!q) return all;
+        return all.filter(function (lv) {
+            return String(lv.name || '').toLowerCase().indexOf(q) !== -1;
+        });
+    }
+
+    var exportAllBtn = document.getElementById('export-all-btn');
+    if (exportAllBtn) {
+        exportAllBtn.addEventListener('click', function () {
+            var list = getExportLevels();
+            if (!list.length) { toast('没有可导出的关卡'); return; }
+            var q = (searchInput ? searchInput.value : '').trim();
+            try {
+                var r = SokobanUserLevels.downloadAllLevels(list, 'json');
+                if (r && r.filename) {
+                    toast(q ? ('已导出搜索结果 ' + list.length + ' 关') : ('已导出全部 ' + list.length + ' 关为 ' + r.filename));
+                }
+            } catch (e) { toast('导出失败：' + (e && e.message ? e.message : e)); }
+        });
     }
 
     render();
