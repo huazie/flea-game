@@ -129,7 +129,7 @@
 }
 .level-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));  /* 多列网格：一屏展示更多关卡 */
+    grid-template-columns: repeat(2, minmax(0, 1fr));  /* 一行 2 个：每张简化图更宽、展示更全 */
     gap: 12px;
 }
 .level-card {
