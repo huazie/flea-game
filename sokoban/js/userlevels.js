@@ -211,14 +211,17 @@
      * 批量导出关卡为单个文件并触发下载（格式同 buildExportAllContent）。
      * @param {Array} levels 关卡数组
      * @param {string} [format] 默认 'json'
+     * @param {string} [keyword] 搜索关键词，非空时拼到文件名「我的关卡」之后（如 我的关卡_搜索词_2026-08-24）
      * @returns {object|null} { filename, content }，无关卡时返回 null
      */
-    function downloadAllLevels(levels, format) {
+    function downloadAllLevels(levels, format, keyword) {
         if (!Array.isArray(levels) || !levels.length) return null;
         format = format || 'json';
         var content = buildExportAllContent(levels, format);
         var date = new Date().toISOString().slice(0, 10);
-        var safeName = '我的关卡_' + date;
+        // 文件名：我的关卡 +（搜索词）+ 日期；搜索词做文件系统非法字符清洗、限长，避免文件名无效
+        var kw = (keyword || '').toString().trim().replace(/[\\/:*?"<>|]/g, '_').slice(0, 30);
+        var safeName = '我的关卡' + (kw ? '_' + kw : '') + '_' + date;
         var ext = format === 'json' ? 'json' : 'txt';
         var mime = format === 'json' ? 'application/json' : 'text/plain';
         var blob = new Blob([content], { type: mime + ';charset=utf-8' });
