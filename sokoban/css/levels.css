@@ -265,18 +265,41 @@ body {
     min-width: 0;
     border: none;
     outline: none;
-    background: transparent;
+    background: var(--card-bg);
     color: var(--text-main);
     font-size: 14px;
     font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .search-input::placeholder {
     opacity: 0.6;
+    color: var(--text-main);
 }
 
 .search-input::-webkit-search-cancel-button {
     cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--text-main);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M4 4l6 6M10 4l-6 6' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M4 4l6 6M10 4l-6 6' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    opacity: 0.5;
+}
+
+/* 覆盖浏览器自动填充时强制的浅色背景（暗色模式下尤其明显） */
+.search-input:-webkit-autofill,
+.search-input:-webkit-autofill:hover,
+.search-input:-webkit-autofill:focus,
+.text-input:-webkit-autofill,
+.text-input:-webkit-autofill:hover,
+.text-input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--card-bg) inset;
+    -webkit-text-fill-color: var(--text-main);
+    caret-color: var(--text-main);
 }
 
 /* ===== 区段 ===== */
