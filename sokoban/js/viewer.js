@@ -516,7 +516,7 @@
             if (!list.length) { toast('没有可导出的关卡'); return; }
             var q = (searchInput ? searchInput.value : '').trim();
             try {
-                var r = SokobanUserLevels.downloadAllLevels(list, 'json');
+                var r = SokobanUserLevels.downloadAllLevels(list, 'json', q);
                 if (r && r.filename) {
                     toast(q ? ('已导出搜索结果 ' + list.length + ' 关') : ('已导出全部 ' + list.length + ' 关为 ' + r.filename));
                 }
