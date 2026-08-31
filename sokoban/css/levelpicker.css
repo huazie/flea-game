@@ -1,17 +1,23 @@
 /* ===== 选择关卡 FAB（位于评论 FAB 之上）===== */
 /* 配色变量自包含，不依赖页面 CSS 变量，明暗各自定义，可在任意页复用 */
+/* 注：堆叠位置由 assets/js/fab-stack.js 通过 data-fab-stack="2" 统一管理，
+       此处不再写死 bottom。
+   尺寸公式 clamp(44px, 12vw, 50px) 与评论、分享 FAB 完全一致，
+   任何一个视口宽度下三者直径统一。 */
 .level-fab {
     --btn-bg: #8a7a66;
     --btn-hover: #9a8a76;
     --btn-text: #ffffff;
-    --flea-fab-gap: clamp(16px, 4vw, 24px);  /* 与评论 FAB 同间距，保证两者右边缘在同一垂直线 */
+    --btn-shadow: rgba(0, 0, 0, 0.22);
+    /* 与 comments.css / share.css 同一个公式，确保三 FAB 视觉权重一致 */
+    --btn-size: clamp(44px, 12vw, 50px);
 
     position: fixed;
-    right: max(var(--flea-fab-gap), env(safe-area-inset-right, 0px));
-    bottom: 84px;            /* 评论 FAB 之上（评论 FAB 约 gap+50px） */
-    z-index: 2150;           /* 高于评论 FAB(2100) */
-    width: clamp(42px, 12vw, 50px);
-    height: clamp(42px, 12vw, 50px);
+    right: 16px;          /* 距离视口右；具体由 fab-stack.js 重写 */
+    bottom: 84px;         /* fab-stack.js 未加载时的兜底值 */
+    z-index: 2150;         /* 高于评论 FAB(2100) */
+    width: var(--btn-size);
+    height: var(--btn-size);
     border: none;
     border-radius: 50%;
     background: var(--btn-bg);
@@ -20,20 +26,36 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 6px 18px var(--btn-shadow);
     -webkit-tap-highlight-color: transparent;
     outline: none;
-    transition: background-color 0.2s ease, transform 0.12s ease;
+    /* hover 规格（scale 1.08 / 阴影 10px 24px）与评论、分享 FAB 对齐 */
+    transition: background-color 0.2s ease, transform 0.12s ease, box-shadow 0.2s ease;
 }
-.level-fab:hover { background: var(--btn-hover); transform: scale(1.06); }
+.level-fab:hover {
+    background: var(--btn-hover);
+    transform: scale(1.08);
+    box-shadow: 0 10px 24px var(--btn-shadow);
+}
 .level-fab:active { transform: scale(0.94); }
-.level-fab svg { width: 50%; height: 50%; display: block; fill: currentColor; }
+.level-fab svg { width: calc(var(--btn-size) * 0.46); height: calc(var(--btn-size) * 0.46); display: block; fill: currentColor; }
 .level-fab.is-active { background: var(--btn-hover); }
 
+/* 横屏小屏（手机横放）：与 comments.css / share.css 同一条规则同步收缩，
+   否则关卡按钮仍停在 50px，而评论/分享已缩到 44px，三者又出现尺寸差。 */
+@media (max-height: 430px) and (orientation: landscape) {
+    .level-fab {
+        --btn-size: clamp(38px, 10vw, 44px);
+    }
+}
+
+/* 暗色：与评论/分享 FAB 收敛为同一中性深灰（#2d2d2d / hover #3a3a3a），
+   避免暗底上三个圆点灰阶各异；阴影同步加重，与另两个一致。 */
 [data-theme="dark"] .level-fab {
-    --btn-bg: #4a4a4a;
-    --btn-hover: #5a5a5a;
+    --btn-bg: #2d2d2d;
+    --btn-hover: #3a3a3a;
     --btn-text: #ffffff;
+    --btn-shadow: rgba(0, 0, 0, 0.5);
 }
 
 [data-theme="dark"] .level-panel {

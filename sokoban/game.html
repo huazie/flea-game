@@ -67,8 +67,8 @@
         </div>
     </div>
 
-    <!-- 选择关卡（官方 + 自定义）FAB 与面板：置于评论 FAB 之上 -->
-    <button id="level-fab" class="level-fab" type="button" aria-label="选择关卡">
+    <!-- 选择关卡（官方 + 自定义）FAB 与面板：堆叠顺序由 fab-stack.js 统一管理 -->
+    <button id="level-fab" class="level-fab" type="button" data-fab-stack="2" aria-label="选择关卡" title="选择关卡">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>
     </button>
     <div id="level-backdrop" class="level-backdrop"></div>
@@ -105,6 +105,8 @@
 
     <script src="../assets/js/comments.js"></script>
     <script>FleaComments.init('sokoban');</script>
+    <script src="../assets/js/share.js"></script>
+    <script>FleaShare.init();</script>
 
     <div id="level-toast" class="level-toast"></div>
 </body>

@@ -88,6 +88,10 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
+    /* 动态视口高度：移动浏览器地址栏伸缩时精确贴合实际可视区，
+       避免 100vh（最大视口）在小屏手机上把页面撑得比可视区高、底部内容被顶出首屏；
+       旧浏览器（无 dvh 支持）自动回退上一行的 100vh */
+    min-height: 100dvh;
     /* 兜底：防止任何横向溢出（如固定按钮、安全区）产生页面级横向滚动条；
        棋盘自身的横向滚动走内部 overflow:auto，不受此影响 */
     overflow-x: hidden;

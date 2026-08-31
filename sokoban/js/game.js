@@ -259,9 +259,12 @@ class SokobanGame {
             if (handled) e.preventDefault();
         });
 
-        // 触摸滑动（全页面）：在页面任意位置轻扫即可控制方向；
+        // 触摸滑动（棋盘）：在棋盘上轻扫即可控制方向；
         // 起点在按钮 / 输入框 / 评论抽屉等交互元素上时不启用，避免误触。
         // 长关卡时棋盘可滚动：在棋盘上"拖拽"= 平移查看，"原地轻扫"= 移动（二者靠是否触发滚动区分）。
+        // 注意：棋盘**外**区域不跟踪手势、不拦截 touchmove —— 矮屏手机 / 大关卡时
+        // 页面总高可能超过视口，必须允许页面原生滚动查看下方（按钮行 / 说明），
+        // 否则页面被 preventDefault 卡死，出现"游戏下面部分看不到"。
         let sx = 0, sy = 0, tracking = false, startedOnBoard = false, boardSX = 0, boardSY = 0;
         const TH = 24;
         const board = this.$board;
@@ -273,15 +276,19 @@ class SokobanGame {
             }
             const t = e.changedTouches[0];
             sx = t.clientX; sy = t.clientY;
+            // 只跟踪棋盘上的手势：棋盘外滑动交给页面原生滚动（滚动页面 / 上下查看），
+            // 不参与游戏移动，也不 preventDefault。
             startedOnBoard = !!(board && target && board.contains(target));
+            if (!startedOnBoard) { tracking = false; return; }
             boardSX = board ? board.scrollLeft : 0;
             boardSY = board ? board.scrollTop : 0;
             tracking = true;
         }, { passive: true });
         document.addEventListener('touchmove', (e) => {
             if (!tracking) return;
-            // 棋盘可滚动时交给原生平移查看；其余情况(非棋盘/棋盘不可滚动)阻止页面滚动
-            if (startedOnBoard && board && (board.scrollWidth > board.clientWidth + 1 || board.scrollHeight > board.clientHeight + 1)) {
+            // 棋盘可滚动时交给原生平移查看（不阻止）；棋盘不可滚动时阻止页面滚动，
+            // 保证棋盘上的轻扫=游戏移动不被页面滚动干扰。棋盘外区域从未进入 tracking，页面可自由滚动。
+            if (board && (board.scrollWidth > board.clientWidth + 1 || board.scrollHeight > board.clientHeight + 1)) {
                 return;
             }
             e.preventDefault();

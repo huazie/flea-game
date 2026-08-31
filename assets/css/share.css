@@ -1,0 +1,399 @@
+/* =========================================================================
+ * Flea Game 悬浮分享组件样式（右下角分享按钮 + 半圆/扇形展开菜单）
+ * 通过 assets/js/share.js 自动注入 <head>，无需在各页面手动引入。
+ *
+ * 主按钮（FAB）的尺寸 / 阴影 / hover 规格与评论、关卡 FAB 完全对齐，保证右下角
+ * 三个 FAB 视觉权重一致；底色亮色用靛紫建立独立身份，暗色收敛为同款中性深灰。
+ * 子按钮背景使用各平台品牌色（固定），明暗下均清晰可辨。
+ * ========================================================================= */
+
+/* ---------- 组件配色变量 ----------
+   配色策略与评论 FAB 一致：亮色下用有彩色建立身份（评论蓝 / 分享靛紫 / 关卡棕），
+   暗色下统一收敛为中性深灰（靠图标区分），避免暗底上三个彩色圆点过于跳眼。
+   hover 一律「提亮一档」，与关卡 FAB 同向；不再用 color-mix 现算
+   （color-mix 与 #000 混合在暗色下会把按钮越 hover 越黑，且返回 color(srgb) 兼容性差）。
+   分享色由绿改为靛紫：原 #2e9e6e 与评论蓝、关卡棕并排时偏土、色相打架，
+   靛紫与蓝（同冷色但有 30°+ 色相差）、棕（冷暖对比）都能拉开又不刺眼。 */
+:root {
+    --flea-share-fab-bg: #6f5ce7;           /* FAB 背景（亮色：靛紫，与评论蓝/关卡棕区分） */
+    --flea-share-fab-bg-hover: #8272ec;     /* FAB hover/打开（亮色：提亮一档） */
+    --flea-share-fab-text: #ffffff;         /* FAB 图标 */
+    --flea-share-fab-border: transparent;
+    --flea-share-item-size: 44px;          /* 子按钮尺寸（稍放大，便于点击） */
+    --flea-share-item-shadow: rgba(0, 0, 0, 0.22); /* 子按钮阴影（此前变量未定义，声明整体失效） */
+    --flea-share-shadow: rgba(0, 0, 0, 0.22); /* 与评论/关卡 FAB 一致 */
+    --flea-share-toast-bg: #1f2937;         /* 浅色下用深色 toast（白底白字不可读） */
+    --flea-share-toast-text: #ffffff;
+    --flea-share-toast-success: #2ecc71;
+    --flea-share-toast-error: #e74c3c;
+    /* 二维码弹窗（微信扫码分享） */
+    --flea-share-dialog-bg: #ffffff;
+    --flea-share-dialog-text: #1f2937;
+    --flea-share-dialog-muted: #6b7280;
+    --flea-share-dialog-btn-bg: #f3f4f6;
+    --flea-share-dialog-btn-hover: #e5e7eb;
+}
+
+[data-theme="dark"] {
+    --flea-share-fab-bg: #2d2d2d;           /* FAB 背景（暗色：中性深灰，与评论 FAB 同款） */
+    --flea-share-fab-bg-hover: #3a3a3a;     /* FAB hover/打开（暗色：提亮一档） */
+    --flea-share-fab-text: #ffffff;
+    --flea-share-fab-border: rgba(255, 255, 255, 0.14);
+    --flea-share-item-size: 44px;
+    --flea-share-item-shadow: rgba(0, 0, 0, 0.5);
+    --flea-share-shadow: rgba(0, 0, 0, 0.5); /* 暗底需更重阴影才有层次，与评论 FAB 一致 */
+    --flea-share-toast-bg: #f0f0f0;         /* 深色下用浅色 toast（深底深字不可读） */
+    --flea-share-toast-text: #1f2937;
+    --flea-share-toast-success: #27ae60;
+    --flea-share-toast-error: #ff6b6b;
+    /* 二维码弹窗（微信扫码分享） */
+    --flea-share-dialog-bg: #2d2d2d;
+    --flea-share-dialog-text: #f0f0f0;
+    --flea-share-dialog-muted: #9ca3af;
+    --flea-share-dialog-btn-bg: #3a3a3a;
+    --flea-share-dialog-btn-hover: #4a4a4a;
+}
+
+/* ---------- 容器（定位 + 承载主按钮与扇形子按钮） ----------
+   FAB 尺寸与评论/关卡 FAB 完全对齐（clamp(44px, 12vw, 50px)），
+   保证三者在右下角堆叠时直径一致、视觉权重一致。 */
+.flea-share {
+    --flea-share-size: clamp(44px, 12vw, 50px);
+    --flea-share-gap: clamp(16px, 4vw, 24px);
+    position: fixed;
+    right: max(var(--flea-share-gap), env(safe-area-inset-right, 0px));
+    bottom: 24px; /* 实际值由 share.js 按其它 FAB 自动堆叠计算 */
+    z-index: 3100; /* 需高于遮罩 3050，否则展开后菜单被遮罩盖住 */
+    width: var(--flea-share-size);
+    height: var(--flea-share-size);
+    pointer-events: none; /* 容器不拦截点击，仅按钮可点 */
+}
+
+/* 纠偏：容器带 data-fab-stack 是为了让 fab-stack.js 统一算 bottom，
+   但 fab-stack 的 `body [data-fab-stack]` 基线样式是为「按钮本体」设计的，
+   套在容器上会引发两个问题：
+     ① 强制 z-index: 2100，压过本文件的 3100 → 低于遮罩(3050)，
+        菜单展开后主按钮与 8 个子按钮全被遮罩盖住，点不动、hover 无反馈；
+     ② 给容器加圆角+阴影，与内部 .flea-share-fab 自身的阴影叠成双层，
+        右下角看起来比评论/关卡 FAB 的阴影明显更重。
+   修复：fab-stack.js 现已不再强制 width/height/box-shadow/border-radius，
+   这些视觉属性完全由各 FAB 自身 CSS 控制。本规则仅保留 z-index 的高特异性覆盖。 */
+.flea-share[data-fab-stack] {
+    z-index: 3100;
+}
+
+/* ---------- 遮罩 ---------- */
+.flea-share-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 3050;
+    background: rgba(0, 0, 0, 0.32);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+}
+.flea-share-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ---------- 主按钮（FAB） ---------- */
+/* 亮色下用靛紫建立独立身份（与评论蓝、关卡棕区分），暗色下收敛为中性深灰。
+   hover/激活态统一走 --flea-share-fab-bg-hover 显式色值，明暗都是「提亮一档」。 */
+.flea-share-fab {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--flea-share-fab-border);
+    border-radius: 50%;
+    background: var(--flea-share-fab-bg);
+    color: var(--flea-share-fab-text);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    box-shadow: 0 6px 18px var(--flea-share-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    animation: flea-share-fab-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.flea-share-fab:hover {
+    transform: scale(1.08);
+    background: var(--flea-share-fab-bg-hover);
+    box-shadow: 0 10px 24px var(--flea-share-shadow);
+}
+.flea-share-fab:active { transform: scale(0.94); }
+
+.flea-share-fab svg {
+    /* 用绝对值（calc(容器尺寸 * 0.46)）而非百分比，避开
+       display:flex + span.fab-icon-open 包裹 svg 时 svg 宽度
+       依赖 span 内容、span 内容又依赖 svg 的"循环依赖"，
+       导致 svg 塌缩到最小尺寸（约 13px）。 */
+    width: calc(var(--flea-share-size) * 0.46);
+    height: calc(var(--flea-share-size) * 0.46);
+    max-width: 26px;
+    max-height: 26px;
+    display: block;
+    fill: currentColor;
+}
+
+/* 打开时：图标切换为“关闭”，并保持可见可点击 */
+.flea-share-fab .fab-icon-close { display: none; }
+.flea-share-fab.is-active { background: var(--flea-share-fab-bg-hover); }
+.flea-share-fab.is-active .fab-icon-open { display: none; }
+.flea-share-fab.is-active .fab-icon-close { display: block; }
+/* 打开态 hover：图标旋转 90°（与评论 FAB 同款反馈） */
+.flea-share-fab.is-active:hover {
+    transform: scale(1.08) rotate(90deg);
+    background: var(--flea-share-fab-bg-hover);
+}
+
+@keyframes flea-share-fab-in {
+    from { opacity: 0; transform: scale(0.4) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ---------- 扇形子按钮 ---------- */
+.flea-share-item {
+    --tx: 0px;
+    --ty: 0px;
+    --delay: 0s;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--flea-share-item-size);
+    height: var(--flea-share-item-size);
+    box-sizing: border-box; /* 含 1px 描边在内仍是设定尺寸，暗色描边不会撑大按钮 */
+    margin: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    /* 明暗两套色由 share.js 从品牌色自动派生后写入（--flea-share-item-bg / -fg）。
+       不能用内联 style.background：内联优先级最高，暗色主题永远覆盖不掉。 */
+    background: var(--flea-share-item-bg, #555);
+    color: var(--flea-share-item-fg, #fff);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px var(--flea-share-item-shadow);
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+                opacity 0.22s ease,
+                background-color 0.2s ease;
+    transition-delay: 0s;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+}
+
+.flea-share.is-open .flea-share-item {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1);
+    transition-delay: var(--delay);
+}
+
+/* ---------- 暗色主题下的子按钮 ----------
+   背景换成「品牌色压暗版」、图标换成「品牌色提亮版」，色相不变 → 平台仍认得出，
+   但不再是一排刺眼的亮色圆点。补半透明白描边，让压暗的圆点在深底上仍有清晰轮廓。 */
+[data-theme="dark"] .flea-share-item {
+    background: var(--flea-share-item-bg-dark, var(--flea-share-item-bg, #555));
+    color: var(--flea-share-item-fg-dark, var(--flea-share-item-fg, #fff));
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* 子按钮 hover：放大 + 提亮 + 加重阴影。
+   ① 选择器需带 .flea-share.is-open 前缀，特异性才能压过展开态的 transform 规则；
+   ② transition-delay 归零，否则展开动画的错峰延迟会让 hover 反馈显得迟钝。 */
+.flea-share.is-open .flea-share-item:hover {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1.1);
+    box-shadow: 0 6px 16px var(--flea-share-item-shadow);
+    filter: brightness(1.12);
+    transition-delay: 0s;
+}
+.flea-share.is-open .flea-share-item:active {
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.92);
+    transition-delay: 0s;
+}
+/* 暗色下底色已被压暗，hover 只提亮 12% 几乎看不出反馈，需加大幅度 */
+[data-theme="dark"] .flea-share.is-open .flea-share-item:hover {
+    filter: brightness(1.42);
+}
+
+.flea-share-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60%;
+    height: 60%;
+}
+.flea-share-item-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    fill: currentColor;
+}
+
+/* 平台名不再以 DOM 标签渲染，改用按钮原生 title 悬浮提示（省空间）。 */
+
+
+/* ---------- 轻提示 ---------- */
+.flea-share-toast {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(20px, 6vw, 40px);
+    transform: translate(-50%, 12px);
+    z-index: 3200;
+    max-width: 80vw;
+    padding: 10px 18px;
+    border-radius: 10px;
+    background: var(--flea-share-toast-bg);
+    color: var(--flea-share-toast-text);
+    font-size: 0.9rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease, transform 0.24s ease;
+}
+.flea-share-toast.is-show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+.flea-share-toast-success { border-left: 4px solid var(--flea-share-toast-success); }
+.flea-share-toast-error { border-left: 4px solid var(--flea-share-toast-error); }
+
+/* ---------- 二维码弹窗（微信「扫码直达」分享） ----------
+   桌面端点击微信等扫码类平台时弹出；遮罩高于一切（3250 > 菜单 3100 / toast 3200），
+   点遮罩 / × / Esc 关闭。卡片配色走组件变量，明暗主题自适应。 */
+.flea-share-qr-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 3250;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+.flea-share-qr-backdrop.is-open { opacity: 1; }
+
+.flea-share-qr-dialog {
+    position: relative;
+    width: min(300px, 84vw);
+    padding: 26px 24px 22px;
+    border-radius: 16px;
+    background: var(--flea-share-dialog-bg);
+    color: var(--flea-share-dialog-text);
+    text-align: center;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.35);
+    transform: scale(0.92) translateY(12px);
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.flea-share-qr-backdrop.is-open .flea-share-qr-dialog {
+    transform: scale(1) translateY(0);
+}
+
+.flea-share-qr-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--flea-share-dialog-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.flea-share-qr-close:hover { background: var(--flea-share-dialog-btn-bg); color: var(--flea-share-dialog-text); }
+.flea-share-qr-close svg { width: 18px; height: 18px; fill: currentColor; display: block; }
+
+.flea-share-qr-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 2px 0 14px;
+}
+
+.flea-share-qr-box {
+    margin: 0 auto;
+    width: 208px;
+    height: 208px;
+    padding: 10px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    background: #ffffff; /* 二维码必须白底黑格，任何主题下都保持白底 */
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.flea-share-qr-box img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.flea-share-qr-tip {
+    margin: 14px 4px 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--flea-share-dialog-muted);
+}
+
+.flea-share-qr-copy {
+    margin-top: 16px;
+    padding: 9px 0;
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    background: var(--flea-share-dialog-btn-bg);
+    color: var(--flea-share-dialog-text);
+    font-size: 0.9rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    transition: background-color 0.2s ease;
+}
+.flea-share-qr-copy:hover { background: var(--flea-share-dialog-btn-hover); }
+
+/* ---------- 手机端适配（按钮尺寸 + 间距收缩，但保持子按钮足够分隔） ---------- */
+@media (max-width: 768px) {
+    .flea-share {
+        --flea-share-size: clamp(44px, 12vw, 50px);
+        --flea-share-item-size: 42px;
+    }
+}
+
+/* ---------- 横屏小屏：缩小按钮，避免遮挡 ---------- */
+@media (max-height: 430px) and (orientation: landscape) {
+    .flea-share {
+        --flea-share-size: clamp(38px, 10vw, 44px);
+        --flea-share-item-size: 38px;
+        --flea-share-gap: 14px;
+    }
+}
+
+/* ---------- 尊重用户的减少动效偏好 ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .flea-share-fab,
+    .flea-share-item,
+    .flea-share-backdrop,
+    .flea-share-toast,
+    .flea-share-qr-backdrop,
+    .flea-share-qr-dialog {
+        animation: none !important;
+        transition: none !important;
+    }
+}

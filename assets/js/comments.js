@@ -36,6 +36,17 @@
     }
     var STYLE_HREF = resolveStyleHref();
 
+    /**
+     * 缓存本模块的脚本 src：必须在 IIFE 顶层取，init() 后续被 inline `<script>FleaComments.init()</script>`
+     * 调用时 document.currentScript 已变成 inline script（src 为空），无法再用其推断同目录的 fab-stack.js 路径。
+     * 一旦缺失，fab-stack.js 永远加载失败 → 3 个 FAB 的 right/bottom 各自为政，level 凸出 8px。
+     */
+    var SCRIPT_SRC = (function () {
+        try {
+            return (document.currentScript && document.currentScript.src) || '';
+        } catch (e) { return ''; }
+    })();
+
     var FAB_ID = 'flea-comments-fab';
     var BACKDROP_ID = 'flea-comments-backdrop';
     var DRAWER_ID = 'flea-comments-drawer';
@@ -272,6 +283,23 @@
         document.head.appendChild(link);
     }
 
+    /**
+     * 懒加载 fab-stack.js（右小角 FAB 栈管理器）；未加载时本模块不感知栈，
+     * 但各 FAB 自身的 fixed bottom 仍能正常显示，仅失去自动堆叠避让。
+     * 注意：路径来源用 IIFE 顶层缓存的 SCRIPT_SRC（见顶部），不再二次取 currentScript，
+     * 否则 init() 被 inline script 触发时 currentScript 已不是 comments.js 自身。
+     */
+    function ensureFabStack() {
+        if (global.FleaFabStack) return;
+        try {
+            var s = document.createElement('script');
+            s.src = SCRIPT_SRC.replace(/\/js\/comments\.js(\?.*)?$/, '/js/fab-stack.js');
+            s.async = false;
+            s.onerror = function () { /* ignore */ };
+            document.head.appendChild(s);
+        } catch (e) { /* ignore */ }
+    }
+
     /* ============================================================
      * 8. 悬浮 UI（FAB / 遮罩 / 抽屉的构建与开合）
      * ============================================================ */
@@ -285,6 +313,9 @@
         fab.type = 'button';
         fab.className = 'flea-comments-fab';
         fab.setAttribute('aria-label', '打开评论');
+        fab.title = '评论'; // 原生 hover 提示（节简不堆叠）
+        // 注册到 fab-stack 栈管理器：N=1 表示评论位于栈底（最靠近屏幕底）
+        fab.setAttribute('data-fab-stack', '1');
         fab.innerHTML =
             '<span class="fab-icon-open" aria-hidden="true">' + ICON_CHAT + '</span>' +
             '<span class="fab-icon-close" aria-hidden="true">' + ICON_CLOSE + '</span>';
@@ -331,9 +362,31 @@
         dom.container = drawer.querySelector('#' + CONTAINER_ID);
     }
 
+    /**
+     * 抽屉打开时隐藏整栈 FAB（评论 / 关卡 / 分享）。
+     * 不隐藏的话，FAB 的 z-index（评论 2100、分享容器 3100）都高于遮罩(2000)与
+     * 抽屉(2050)，抽屉打开后右下角仍杵着几个按钮挡视线、易误触。
+     * 隐藏后关闭方式只剩：抽屉右上角 × / 点遮罩 / Esc —— 正是期望的交互。
+     */
+    function setFabsHidden(hidden) {
+        if (global.FleaFabStack && typeof global.FleaFabStack.setHidden === 'function') {
+            global.FleaFabStack.setHidden(hidden);
+            return;
+        }
+        // 兜底：fab-stack.js 缺失时，直接给 body 加同名类（样式也随模块注入，
+        // 此分支基本不会走到，仅防单例异常导致抽屉打开后按钮还在）。
+        document.body.classList.toggle('flea-fabs-hidden', !!hidden);
+    }
+
     function openDrawer() {
         if (!dom.drawer) return;
         drawerOpen = true;
+        /* 分享菜单若正展开，先收起：它的遮罩 z-index 3050 会盖住抽屉(2050)，
+           且子按钮展开状态在抽屉打开后是无效交互。 */
+        if (global.FleaShare && typeof global.FleaShare.close === 'function') {
+            try { global.FleaShare.close(); } catch (e) { /* ignore */ }
+        }
+        setFabsHidden(true);
         dom.drawer.classList.add('is-open');
         dom.backdrop.classList.add('is-open');
         dom.fab.classList.add('is-active');
@@ -349,6 +402,7 @@
     function closeDrawer() {
         if (!dom.drawer || !drawerOpen) return;
         drawerOpen = false;
+        setFabsHidden(false);
         dom.drawer.classList.remove('is-open');
         dom.backdrop.classList.remove('is-open');
         dom.fab.classList.remove('is-active');
@@ -519,6 +573,7 @@
             return;
         }
         ensureStyleInjected();
+        ensureFabStack();
         buildUi();
         initialized = true;
         // 关键：SDK 只在页面 load 之后加载。

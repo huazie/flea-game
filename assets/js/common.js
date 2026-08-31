@@ -218,3 +218,22 @@ window.FleaCommon = (function () {
         loadConfig: loadConfig
     };
 })();
+
+/* =========================================================================
+ * 全局交互样式：移除移动端点按时的系统 tap 高亮（Android 默认的半透明黑层 /
+ * 部分机型青色圈）与默认聚焦圈。按压反馈统一由各组件自带的 :active 提供
+ * （如 FAB 的 scale(0.94)），系统高亮层与组件动画叠加会显得像“点了有脏阴影”。
+ * 以注入 style 方式统一管理而非逐元素写属性：新页面/新按钮默认即无此问题；
+ * 各组件 css（comments/share/notification）内仍各自保留一份，保证独立复用时自足。
+ * ========================================================================= */
+(function () {
+    'use strict';
+    var style = document.createElement('style');
+    style.textContent =
+        'button, a, [role="button"], .toast-close, .dialog-button, .level-card, .game-card {' +
+        '    -webkit-tap-highlight-color: transparent;' +
+        '    -webkit-touch-callout: none;' +
+        '    outline: none;' +
+        '}';
+    (document.head || document.documentElement).appendChild(style);
+})();
