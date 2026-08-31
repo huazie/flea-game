@@ -23,6 +23,16 @@
     var prevOverflow = '';
     var officialCache = null;   // 官方关卡只需加载一次
 
+    /** 打开/关闭面板时隐藏/恢复右下角其他 FAB（评论/分享），避免它们盖在面板之上 */
+    function setFabsHidden(hidden) {
+        if (window.FleaFabStack && typeof window.FleaFabStack.setHidden === 'function') {
+            window.FleaFabStack.setHidden(hidden);
+            return;
+        }
+        // 兜底：fab-stack.js 缺失时直接给 body 加同名类（样式随模块注入）
+        document.body.classList.toggle('flea-fabs-hidden', !!hidden);
+    }
+
     /** 关卡内容指纹：name + map，用于面板高亮「当前展示关卡」（与内部 levelIndex 解耦） */
     function levelKey(lv) {
         var name = (lv && lv.name) || '';
@@ -63,6 +73,12 @@
         fab.classList.add('is-active');
         prevOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
+        /* 分享菜单若正展开，先收起：它的遮罩 z-index 3050 与面板同层，
+           且子按钮展开状态在面板打开后是无效交互。 */
+        if (window.FleaShare && typeof window.FleaShare.close === 'function') {
+            try { window.FleaShare.close(); } catch (e) { /* ignore */ }
+        }
+        setFabsHidden(true);
         render();
     }
 
@@ -73,6 +89,7 @@
         backdrop.classList.remove('is-open');
         fab.classList.remove('is-active');
         document.body.style.overflow = prevOverflow || '';
+        setFabsHidden(false);
     }
 
     /** 构建一张关卡卡片（迷你缩略图 + 名称 + 当前标签），点击触发 onClick */

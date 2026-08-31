@@ -43,8 +43,9 @@
 
 /* ---------- 悬浮评论按钮 (FAB) ---------- */
 .flea-comments-fab {
-    /* 响应式尺寸：手机最小 42px，桌面最大 50px，随视口宽度平滑缩放 */
-    --flea-fab-size: clamp(42px, 12vw, 50px);
+    /* 响应式尺寸：与关卡、分享 FAB 共用同一公式 clamp(44px, 12vw, 50px)，
+       保证三者在任意视口宽度下直径一致 */
+    --flea-fab-size: clamp(44px, 12vw, 50px);
     /* 边距随视口缩放，并避让刘海屏/灵动岛/底部安全区（iPhone 等） */
     --flea-fab-gap: clamp(16px, 4vw, 24px);
     position: fixed;
@@ -58,6 +59,8 @@
     background: var(--flea-fab-bg);
     color: var(--flea-fab-text);
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
     box-shadow: 0 6px 18px var(--flea-shadow);
     display: flex;
     align-items: center;
@@ -185,6 +188,8 @@
     border: none;
     background: transparent;
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
     width: 36px;
     height: 36px;
     border-radius: 50%;

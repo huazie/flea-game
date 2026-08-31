@@ -1,0 +1,23 @@
+{
+  "_note": "本文件与 share.js 内置默认配置 deepMerge 深合并，优先级：内置默认 < 本文件 < 页面级 options。合并语义：share / arc 为嵌套对象，仅局部覆盖（未写的字段保留内置默认）；platforms 为数组，整体替换（写几个显示几个，顺序即展开顺序）。platforms 每项只需写必选的 id（命中 share.js 内置模板，自动补齐分享行为/图标/配色）；label / bg / iconColor / copyTip / bgDark / iconColorDark 等属性可选覆盖，不配置自动取 share.js 内置默认。share.js 内置全量平台：wechat 微信、xiaohongshu 小红书、weibo 微博、qzone QQ空间、qq QQ、douyin 抖音、zhihu 知乎、douban 豆瓣、tieba 百度贴吧、twitter X、facebook Facebook、telegram Telegram、email 邮件、copy 复制链接——想展示其他平台，把对应 id 加进下方 platforms 即可。复制内容差异：微信/小红书/抖音/知乎等复制类平台默认复制「标题+链接+附加文案」，copy 平台只复制纯 URL；微信另带 qr 能力（桌面端点击弹二维码扫码直达、移动端自动回退复制链接），如需定制某平台的复制内容或提示文案，可在页面级 options 中覆盖对应平台的 copy/copyTip（JSON 无法表达函数，config 内不可配）。",
+  "share": {
+    "title": "",
+    "text": "来玩这款趣味小游戏吧！",
+    "image": ""
+  },
+  "arc": {
+    "start": 90,
+    "spread": 120,
+    "radius": 190
+  },
+  "platforms": [
+    { "id": "weibo" },
+    { "id": "xiaohongshu" },
+    { "id": "wechat" },
+    { "id": "qzone" },
+    { "id": "qq" },
+    { "id": "douyin" },
+    { "id": "zhihu" },
+    { "id": "copy" }
+  ]
+}
