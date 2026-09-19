@@ -1,5 +1,5 @@
 {
-  "style": "tabs",
+  "style": "both",
   "active": "utterances",
   "lazyload": false,
   "storage": true,

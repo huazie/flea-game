@@ -7,6 +7,8 @@
  * 交互形态：
  *   - 右下角悬浮评论按钮（FAB），点击滑出右侧抽屉，再次点击收起
  *   - 点遮罩 / 关闭按钮 / Esc 也可收起（PC 约 440px 宽，手机全宽）
+ *   - 评论导航支持 tabs / dropdown / both 三种显示模式，本项目默认 both：
+ *     内容区右上角有切换条，用户可在「选项卡」与「下拉」之间实时互切
  *   - 跟随站点明暗主题（由 common.js 统一把 data-theme 标在 <html>，SDK 只读 <html>）
  *   - 图标用内联 SVG，不依赖 Font Awesome
  *
@@ -77,7 +79,10 @@
      */
     var COMMENT_CONFIG = {
         /* 评论区通用配置 */
-        style: 'tabs',        // 显示模式：tabs（选项卡） / dropdown（下拉）
+        /* 显示模式：tabs（仅选项卡）/ dropdown（仅下拉）/ both（右上角切换条，二者可实时互切）。
+           本项目用 both：抽屉仅 440px 宽，6 个评论系统平铺成选项卡易挤，
+           给用户一个切换条可自行换成下拉形态；两种布局由聚合页同时渲染，切换零加载。 */
+        style: 'both',
         active: 'utterances', // 默认激活的评论系统
         lazyload: false,      // 抽屉初始在屏外，关闭懒加载以保打开即见
         storage: true,        // 记住用户选择的评论系统
