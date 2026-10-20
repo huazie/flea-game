@@ -3,15 +3,10 @@
     --bg-color: #f5f5f5;
     --text-color: #333;
     --primary-color: #e67e22;
-    --header-bg: #fff;
     --icon-button-bg: #eaeaea;
     --icon-button-hover: #d5d5d5;
     --board-bg: #fff;
     --board-border: #ddd;
-    --score-bg: #e67e22;
-    --score-text: #fff;
-    --best-bg: #3498db;
-    --best-text: #fff;
     --start-button-bg: #e67e22;
     --start-button-text: #fff;
     --start-button-hover: #d35400;
@@ -33,15 +28,10 @@
     --bg-color: #222;
     --text-color: #f5f5f5;
     --primary-color: #f39c12;
-    --header-bg: #333;
     --icon-button-bg: #444;
     --icon-button-hover: #555;
     --board-bg: #1a1a1a;
     --board-border: #444;
-    --score-bg: #d35400;
-    --score-text: #f0f0f0;
-    --best-bg: #2980b9;
-    --best-text: #f0f0f0;
     --start-button-bg: #d35400;
     --start-button-text: #f0f0f0;
     --start-button-hover: #ba4a00;
@@ -86,56 +76,12 @@ body {
     gap: 10px;
 }
 
-.game-header {
-    width: min(100%, 760px);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    background-color: var(--header-bg);
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    flex-shrink: 0;
-}
-
-.header-side {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.header-center {
-    flex: 1;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    min-width: 0;
-}
-
-.title-container {
-    display: flex;
-    align-items: center;
-}
-
-.title-container h1 {
-    font-size: 1.6em;
-    margin: 0;
-    line-height: 1.2;
-    font-weight: bold;
-}
-
-.scores-container {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.icon-button {
-    width: 36px;
-    height: 36px;
+/* 浮动圆形按钮（参考 2048 布局）：左上返回，右上音效/主题 */
+.control-button {
+    position: fixed;
+    top: 20px;
+    width: 50px;
+    height: 50px;
     border: none;
     background-color: var(--icon-button-bg);
     color: var(--text-color);
@@ -144,24 +90,43 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1em;
-    transition: all 0.3s ease;
+    font-size: 1.25em;
+    transition: background-color 0.3s ease, transform 0.2s ease;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
     outline: none;
-    flex-shrink: 0;
+    z-index: 1000;
 }
 
-.icon-button:hover {
+.control-button:hover {
     background-color: var(--icon-button-hover);
     transform: scale(1.05);
 }
 
-.icon-button:active {
+.control-button:active {
     transform: scale(0.95);
 }
 
 #back-button {
+    left: 20px;
+    color: var(--primary-color);
+}
+
+.floating-buttons {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    z-index: 1000;
+}
+
+/* 容器统一悬浮定位，音效/主题按钮在容器内并排（fixed 会脱离容器导致叠位溢出） */
+.floating-buttons .control-button {
+    position: static;
+}
+
+#sound-button {
     color: var(--primary-color);
 }
 
@@ -169,34 +134,55 @@ body {
     color: var(--theme-toggle-color);
 }
 
-#sound-button {
-    color: var(--primary-color);
+/* 透明 header：左侧大标题 + 右侧分数卡（参考 2048 布局） */
+.game-header {
+    width: min(100%, 760px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* 与 .game-controls 的 margin-bottom:auto 配对：剩余空间上下均分，
+       整体内容在满高容器中垂直居中；内容溢出时 auto 归零，顶部可滚动 */
+    margin-top: auto;
+}
+
+.game-header h1 {
+    font-size: clamp(1.8em, 5vw, 2.6em);
+    font-weight: bold;
+    color: var(--text-color);
+    line-height: 1.2;
+}
+
+.scores-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
 
 .score-container {
-    background-color: var(--score-bg);
-    color: var(--score-text);
-    padding: 6px 14px;
-    border-radius: 4px;
+    background-color: var(--board-bg);
+    color: var(--text-color);
+    border: 1px solid var(--board-border);
+    padding: 8px 14px;
+    border-radius: 8px;
     text-align: center;
     min-width: 80px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .best-container {
-    background-color: var(--best-bg);
-    color: var(--best-text);
-    padding: 6px 14px;
-    border-radius: 4px;
+    background-color: var(--board-bg);
+    color: var(--text-color);
+    border: 1px solid var(--board-border);
+    padding: 8px 14px;
+    border-radius: 8px;
     text-align: center;
     min-width: 80px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.score-title {
-    font-size: 0.8em;
+.score-label {
+    font-size: 0.75em;
     text-transform: uppercase;
     margin-bottom: 2px;
+    opacity: 0.7;
 }
 
 #score, #best-score {
@@ -242,6 +228,8 @@ body {
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+    /* 与 .game-header 的 margin-top:auto 配对，实现整体垂直居中 */
+    margin-bottom: auto;
 }
 
 .control-panel {
@@ -259,6 +247,21 @@ body {
 .control-info p {
     margin: 2px 0;
     font-size: 0.9em;
+}
+
+/* 操作说明按输入能力切换：默认显示键盘文案，触屏设备（手机/平板/横屏）显示触摸文案 */
+.help-touch {
+    display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .help-keyboard {
+        display: none;
+    }
+
+    .help-touch {
+        display: block;
+    }
 }
 
 .control-buttons {
@@ -355,7 +358,7 @@ button:disabled {
 /* 确保在所有屏幕尺寸下内容都在一个视图内 */
 @media (max-height: 600px) {
     .game-header h1 {
-        font-size: 1.2em;
+        font-size: 1.5em;
     }
 
     .control-info p {
@@ -374,17 +377,21 @@ button:disabled {
         gap: 5px;
     }
 
-    .game-header {
-        width: 100%;
-        padding: 8px;
+    .control-button {
+        top: 12px;
+        width: 42px;
+        height: 42px;
+        font-size: 1.1em;
     }
 
-    .header-center {
-        gap: 10px;
+    #back-button {
+        left: 12px;
     }
 
-    .title-container h1 {
-        font-size: 1.3em;
+    .floating-buttons {
+        top: 12px;
+        right: 12px;
+        gap: 8px;
     }
 
     .scores-container {
@@ -396,17 +403,11 @@ button:disabled {
         min-width: 62px;
     }
 
-    .score-title {
+    .score-label {
         font-size: 0.7em;
     }
 
     #score, #best-score {
-        font-size: 1em;
-    }
-
-    .icon-button {
-        width: 34px;
-        height: 34px;
         font-size: 1em;
     }
 
@@ -430,20 +431,33 @@ button:disabled {
 /* 横屏矮屏：紧凑布局 + 蹲伏按钮 */
 @media (orientation: landscape) and (max-height: 500px) {
     .game-container {
-        padding: 4px;
-        gap: 4px;
+        padding: 2px;
+        gap: 2px;
     }
 
-    .game-header {
-        padding: 6px 10px;
+    .game-header h1 {
+        font-size: 1.4em;
     }
 
-    .title-container h1 {
-        font-size: 1.1em;
+    .control-button {
+        top: 8px;
+        width: 38px;
+        height: 38px;
+        font-size: 1em;
+    }
+
+    #back-button {
+        left: 8px;
+    }
+
+    .floating-buttons {
+        top: 8px;
+        right: 8px;
+        gap: 6px;
     }
 
     .score-container, .best-container {
-        padding: 4px 8px;
+        padding: 3px 8px;
         min-width: 58px;
     }
 
@@ -457,10 +471,6 @@ button:disabled {
 }
 
 @media (max-width: 400px) {
-    .title-container h1 {
-        font-size: 1.1em;
-    }
-
     .score-container, .best-container {
         min-width: 56px;
     }
