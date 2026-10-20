@@ -12,35 +12,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- 浮动圆形按钮：左上返回，右上音效/主题（参考 2048 布局） -->
+    <button id="back-button" class="control-button" title="返回">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <div class="floating-buttons">
+        <button id="sound-button" class="control-button" title="音效开关">
+            <i class="fas fa-volume-high"></i>
+        </button>
+        <button id="theme-button" class="control-button" title="切换主题">
+            <i class="fas fa-sun"></i>
+        </button>
+    </div>
     <div class="game-container">
         <div class="game-header">
-            <div class="header-side">
-                <button id="back-button" class="icon-button" title="返回">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-            </div>
-            <div class="header-center">
-                <div class="title-container">
-                    <h1>恐龙快跑</h1>
+            <h1>恐龙快跑</h1>
+            <div class="scores-container">
+                <div class="score-container">
+                    <div class="score-label">分数</div>
+                    <span id="score">00000</span>
                 </div>
-                <div class="scores-container">
-                    <div class="score-container">
-                        <div class="score-title">分数</div>
-                        <span id="score">00000</span>
-                    </div>
-                    <div class="best-container">
-                        <div class="score-title">最高分</div>
-                        <span id="best-score">00000</span>
-                    </div>
+                <div class="best-container">
+                    <div class="score-label">最高分</div>
+                    <span id="best-score">00000</span>
                 </div>
-            </div>
-            <div class="header-side header-right">
-                <button id="sound-button" class="icon-button" title="音效开关">
-                    <i class="fas fa-volume-high"></i>
-                </button>
-                <button id="theme-button" class="icon-button" title="切换主题">
-                    <i class="fas fa-sun"></i>
-                </button>
             </div>
         </div>
         <div class="game-board-container">
@@ -57,7 +52,8 @@
                     </select>
                 </div>
                 <div class="control-info">
-                    <p>空格 / W / ↑ 跳跃（轻点小跳，长按高跳） | S / ↓ 蹲伏，空中按下快落 | P 暂停</p>
+                    <p class="help-keyboard">空格 / W / ↑ 跳跃　　S / ↓ 蹲伏　　P 暂停</p>
+                    <p class="help-touch">点击画面跳跃　　下滑蹲伏　　按住「蹲」按钮蹲伏</p>
                 </div>
             </div>
             <div class="control-buttons">

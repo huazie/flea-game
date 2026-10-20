@@ -16,6 +16,9 @@
 
     /* ==================== 配置 ==================== */
 
+    // 触屏设备检测：canvas 内提示文案按输入能力区分（键盘键位 vs 触摸操作）
+    var IS_TOUCH = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
     var CONFIG = {
         WIDTH: 760,            // 逻辑画布宽
         HEIGHT: 220,           // 逻辑画布高
@@ -903,11 +906,11 @@
 
         // 暂停提示
         if (this.state === 'paused') {
-            this.drawOverlay(ctx, '已暂停', '按 P 或点击开始继续', fg);
+            this.drawOverlay(ctx, '已暂停', IS_TOUCH ? '点击画面继续' : '按 P 或点击开始继续', fg);
         }
         // 结束遮罩
         if (this.state === 'over') {
-            this.drawOverlay(ctx, '游戏结束', '得分 ' + pad5(this.score) + ' · 按空格重来', fg);
+            this.drawOverlay(ctx, '游戏结束', '得分 ' + pad5(this.score) + (IS_TOUCH ? ' · 点击画面重来' : ' · 按空格重来'), fg);
         }
         // 待开始提示
         if (this.state === 'ready') {
@@ -915,7 +918,7 @@
             ctx.globalAlpha = 0.65;
             ctx.font = 'bold 18px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('按 空格 / 点击画面 开始', CONFIG.WIDTH / 2, 64);
+            ctx.fillText(IS_TOUCH ? '点击画面开始' : '按 空格 / 点击画面 开始', CONFIG.WIDTH / 2, 64);
             ctx.globalAlpha = 1;
         }
     };
