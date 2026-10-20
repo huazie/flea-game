@@ -2,6 +2,8 @@
 
 Flea Game是一个基于Web技术的小游戏合集项目，旨在提供一系列简单有趣、易于访问的浏览器游戏。每个游戏都使用纯HTML、CSS和JavaScript实现，无需安装，打开浏览器即可游玩。
 
+[英文说明/English Documentation](README_EN.md)
+
 ## 🎯 游戏列表
 
 | 游戏 | 描述 | 开发难度 | 游戏难度 | 状态 |
