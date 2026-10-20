@@ -129,6 +129,18 @@
         "light": "assets/images/sokoban.svg",
         "dark": "assets/images/sokoban-dark.svg"
       }
+    },
+    {
+      "id": "dino",
+      "name": "恐龙快跑",
+      "description": "像素恐龙跑酷，跳过仙人掌，躲开翼龙！",
+      "link": "dino/",
+      "status": "active",
+      "categories": ["classic"],
+      "images": {
+        "light": "assets/images/dino.svg",
+        "dark": "assets/images/dino-dark.svg"
+      }
     }
   ]
 }
