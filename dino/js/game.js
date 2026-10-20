@@ -3,8 +3,7 @@
  *
  * 对标 Chromium T-Rex Runner 的核心手感（参数经多源核实，见需求分析）：
  * - delta-time 驱动（60FPS 基准），高刷新率设备速度一致
- * - 可变跳跃高度：轻点短跳、长按高跳（松键一刀截断上升为快速下落）
- * - 空中按 ↓ 快速下落（恐龙转俯冲姿势，SPEED_DROP_COEFFICIENT 倍速）
+ * - 跳跃满高：按键/点击即满跳（不做松键截断）
  * - 速度曲线：起步 6 → 每帧 +0.001 → 上限 13
  * - 公平生成：开局 3 秒空跑道；间距随速度放大；同类型障碍最多连续 2 次；
  *   翼龙仅速度 > 8.5 后出现；计分 = 距离 × 0.025
@@ -26,8 +25,6 @@
         PIX: 3,                // 精灵像素单元（逻辑 px）
         GRAVITY: 0.6,
         INITIAL_JUMP_VELOCITY: -10.8,
-        DROP_VELOCITY: 5,      // 松键截断速度（正值=向下）：松键一刀切断上升，立即转快落
-        SPEED_DROP_COEFFICIENT: 3,
         CLEAR_TIME: 3000,      // 开局空跑道时长（ms）
         GAP_COEFFICIENT: 0.6,
         BASE_GAP: 120,         // 基础间距
@@ -344,12 +341,9 @@
             y: GROUND_Y - DINO_H,
             vy: 0,
             jumping: false,
-            speedDrop: false,
-            ducking: false,
-            noReleaseCut: false  // 触屏整跳标记：该跳跳过松键截断
+            ducking: false
         };
-        this.duckHeld = false;        // 蹲伏键按住状态（着地瞬间续蹲、快落判定用）
-        this.pendingTouchJump = false; // 本次跳跃是否由触屏点击发起
+        this.duckHeld = false;        // 蹲伏键按住状态（着地瞬间续蹲判定用）
         this.obstacles = [];
         this.clouds = [];
         this.groundOffset = 0;
@@ -399,10 +393,7 @@
         this.canvas.addEventListener('touchstart', function (e) {
             e.preventDefault();
             touchStartY = e.touches[0].clientY;
-            // 标记触屏发起：该跳不做松键截断（点击=整跳，对标原版移动端）
-            self.pendingTouchJump = true;
             self.onJumpInput();
-            self.pendingTouchJump = false;
         }, { passive: false });
         this.canvas.addEventListener('touchmove', function (e) {
             e.preventDefault();
@@ -412,13 +403,10 @@
                 touchDucking = true;
                 self.duckHeld = true;
                 self.setDucking(true);
-                // 空中下滑 = 快落
-                if (self.dino.jumping) self.dino.speedDrop = true;
             }
         }, { passive: false });
         this.canvas.addEventListener('touchend', function (e) {
             e.preventDefault();
-            self.onJumpRelease();
             if (touchDucking) { touchDucking = false; self.duckHeld = false; self.setDucking(false); }
             touchStartY = null;
         }, { passive: false });
@@ -428,8 +416,6 @@
             e.preventDefault();
             self.duckHeld = true;
             self.setDucking(true);
-            // 跳跃中按住蹲伏钮 = 快落
-            if (self.dino.jumping) self.dino.speedDrop = true;
         }, { passive: false });
         this.duckBtn.addEventListener('touchend', function (e) {
             e.preventDefault();
@@ -473,8 +459,6 @@
             e.preventDefault();
             this.duckHeld = true;
             this.setDucking(true);
-            // 空中按下 = 快落（对标原版 speed drop）：上升速度被掐为正并 3 倍下坠
-            if (this.dino.jumping) this.dino.speedDrop = true;
         } else if (key === 'p' || key === 'P') {
             this.togglePause();
         }
@@ -482,9 +466,7 @@
 
     DinoGame.prototype.onKeyUp = function (e) {
         var key = e.key;
-        if (key === ' ' || key === 'Spacebar' || key === 'ArrowUp' || key === 'w' || key === 'W') {
-            this.onJumpRelease();
-        } else if (key === 'ArrowDown' || key === 's' || key === 'S') {
+        if (key === 'ArrowDown' || key === 's' || key === 'S') {
             this.duckHeld = false;
             this.setDucking(false);
         }
@@ -496,21 +478,9 @@
         if (this.state === 'running') this.jump();
     };
 
-    DinoGame.prototype.onJumpRelease = function () {
-        // 触屏整跳：点击即满跳，不做松键截断（触屏没有"按住"的预期）
-        if (this.dino.noReleaseCut) { this.dino.noReleaseCut = false; return; }
-        // 松键截断（对标原版）：上升速度仍快于截断速度时，一刀切为快速下落——
-        // 轻点短跳、长按高跳；已接近顶点（vy >= -DROP_VELOCITY）则自然登顶不干预
-        if (this.dino.jumping && this.dino.vy < -CONFIG.DROP_VELOCITY) {
-            this.dino.vy = CONFIG.DROP_VELOCITY;
-        }
-    };
-
     DinoGame.prototype.jump = function () {
         if (this.dino.jumping || this.dino.ducking) return;
         this.dino.jumping = true;
-        this.dino.speedDrop = false;
-        this.dino.noReleaseCut = this.pendingTouchJump;
         this.dino.vy = CONFIG.INITIAL_JUMP_VELOCITY - this.speed / 10;
         SoundFx.jump();
     };
@@ -636,22 +606,15 @@
 
         // 恐龙物理
         if (dino.jumping) {
-            if (dino.speedDrop) {
-                // 快速下落：跳跃速度转为正值（向下），位移再放大 3 倍（对标原版 fast-fall）
-                if (dino.vy < 1) dino.vy = 1;
-                dino.y += CONFIG.SPEED_DROP_COEFFICIENT * dino.vy * dt;
-            } else {
-                dino.y += dino.vy * dt;
-            }
+            dino.y += dino.vy * dt;
             dino.vy += CONFIG.GRAVITY * dt;
             // 仅下落中（vy >= 0）才判定落地：dt=0（时钟回退钳位）时 y 恰好等于地面，
             // 若不加条件会把上升中的恐龙误判落地并清空跳跃状态
             if (dino.y >= GROUND_Y - DINO_H && dino.vy >= 0) {
                 dino.y = GROUND_Y - DINO_H;
                 dino.jumping = false;
-                dino.speedDrop = false;
                 dino.vy = 0;
-                // 着地瞬间蹲伏键仍按住则直接续蹲（快落接蹲伏不断姿势）
+                // 着地瞬间蹲伏键仍按住则直接续蹲
                 if (this.duckHeld) dino.ducking = true;
             }
         }
@@ -758,18 +721,15 @@
         return type;
     };
 
-    // 蹲伏造型顶缘：着地时贴地面；空中快落时下移（DINO_H - DINO_DUCK_H），
-    // 使蹲伏脚底与站立脚底对齐——快落接蹲伏、落地姿势无缝
+    // 蹲伏造型顶缘：贴地面（蹲伏仅在着地状态）
     DinoGame.prototype.duckTop = function () {
-        var d = this.dino;
-        return d.jumping ? d.y + (DINO_H - DINO_DUCK_H) : GROUND_Y - DINO_DUCK_H;
+        return GROUND_Y - DINO_DUCK_H;
     };
 
     DinoGame.prototype.checkCollision = function () {
         var d = this.dino;
         var boxes;
-        // 蹲伏 / 空中快落（俯冲）共用同一宽扁盒：快落时恐龙转蹲伏造型，判定同步切换
-        if (d.ducking || (d.jumping && d.speedDrop)) {
+        if (d.ducking) {
             // 单个宽扁盒（高度远低于站立，可躲中位翼龙）；
             // 右缘 93 = 头部视觉轮廓右缘 87 + 6（障碍盒内缩 3 + 半帧位移 3），判死与视觉对齐
             boxes = [{ x: d.x + 6, y: this.duckTop() + 3, w: DINO_DUCK_W - 3, h: DINO_DUCK_H - 6 }];
@@ -827,8 +787,6 @@
     DinoGame.prototype.gameOver = function () {
         this.state = 'over';
         this.dino.dead = true;
-        // 清除快落：否则死亡瞬间会定格在蹲伏俯冲造型（无 X 眼/张嘴）
-        this.dino.speedDrop = false;
         SoundFx.die();
         this.updateButtons();
         this.draw();
@@ -925,9 +883,8 @@
 
     DinoGame.prototype.drawDino = function (ctx, fg, bg) {
         var d = this.dino;
-        // 蹲伏 / 空中快落（俯冲）均用蹲伏造型：快落时恐龙转横身下扎，
-        // 脚底与站立对齐（duckTop），落地姿势无缝
-        if (d.ducking || (d.jumping && d.speedDrop)) {
+        // 蹲伏造型（仅着地状态）
+        if (d.ducking) {
             drawMatrix(ctx, DINO_DUCK, d.x, this.duckTop(), CONFIG.PIX, fg, bg);
             return;
         }

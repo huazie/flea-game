@@ -14,7 +14,7 @@ Dino Run recreates the core feel of Google Chrome's famous offline mini-game (T-
 
 ## ✨ Features
 
-- 🦖 **Authentic feel**: physics constants matching the original Chromium build (gravity, jump initial velocity, speed curve, spacing rules) — tap for a short hop, hold for a high jump, quick drop mid-air
+- 🦖 **Authentic feel**: physics constants matching the original Chromium build (gravity, jump initial velocity, speed curve, spacing rules) — full-height jumps
 - 🌓 **Day/night cycle**: night mode kicks in every 700 points (color inversion + moon and stars) and reverts after 12 seconds
 - 🎯 **Fair spawning**: 3 seconds of clear track at the start; obstacle gaps scale with speed; the same obstacle type never appears more than 2 times in a row; pterodactyls only appear at higher speeds
 - 💾 **Score tracking**: high scores saved separately per difficulty — challenge yourself
@@ -47,9 +47,8 @@ Dino Run recreates the core feel of Google Chrome's famous offline mini-game (T-
 
 | Key | Action |
 |------|------|
-| Space / ↑ / W | Start / Jump (tap for a short hop, hold for a high jump) |
+| Space / ↑ / W | Start / Jump |
 | ↓ / S | Duck (hold to stay low) |
-| ↓ while airborne | Fast drop (the dinosaur dives) |
 | P | Pause / Resume |
 | Space after game over | Restart immediately |
 
@@ -57,9 +56,9 @@ Dino Run recreates the core feel of Google Chrome's famous offline mini-game (T-
 
 | Gesture | Action |
 |------|------|
-| Tap the screen | Start / Jump (a tap always gives a full jump) |
-| Swipe down on the canvas | Duck (swipe down mid-air for a fast drop) |
-| Duck button | Hold to duck, release to stand (hold while jumping for a fast drop) |
+| Tap the screen | Start / Jump |
+| Swipe down on the canvas | Duck |
+| Duck button | Hold to duck, release to stand |
 
 ## 🔧 Technical Implementation
 
@@ -67,7 +66,7 @@ Dino Run recreates the core feel of Google Chrome's famous offline mini-game (T-
 - Delta-time driven (60 FPS baseline) — consistent speed on high-refresh-rate displays
 - Multiple hitbox collision detection (three boxes for the dino + one box per obstacle, for forgiving contour-fitting collisions)
 - Logical canvas of 760×220, scaled proportionally to the container width to fit any screen
-- Physics parameters matching the original Chromium build: gravity 0.6, jump initial velocity -10 (fine-tuned with speed), key-release cutoff velocity 5 (positive is downward), fast-drop multiplier 3, spacing factor 0.6, night interval 700 points / 12 seconds
+- Physics parameters matching the original Chromium build: gravity 0.6, jump initial velocity -10 (fine-tuned with speed), spacing factor 0.6, night interval 700 points / 12 seconds
 
 ## 🌐 Browser Compatibility
 
