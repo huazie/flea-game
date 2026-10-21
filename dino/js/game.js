@@ -1026,11 +1026,35 @@
         this.difficultySelect.value = this.difficulty;
     };
 
+    /* ==================== 手机端标题垂直联动 ==================== */
+    /* max-width:600px 断点下标题为 fixed 定位（脱流），无法随分数卡自动移动：
+       这里实测分数卡 top，反推标题 top = 分数卡 top - 标题高 - 间距，
+       任何屏高、字号断点下都刚性跟随；空间不足时间距压缩到保底值，永不重叠。
+       PC 与横屏矮屏（标题为 static）由 computed position 自动跳过 */
+
+    var TITLE_GAP = 50, TITLE_MIN_GAP = 8, TITLE_MIN_TOP = 12;
+
+    function syncTitleToScores() {
+        var h1 = document.querySelector('.game-header h1');
+        var scores = document.querySelector('.scores-container');
+        if (!h1 || !scores) return;
+        if (window.getComputedStyle(h1).position !== 'fixed') return;
+        var st = scores.getBoundingClientRect().top;
+        var h = h1.offsetHeight;
+        var top = st - h - TITLE_GAP;
+        if (top < TITLE_MIN_TOP) top = st - h - TITLE_MIN_GAP; // 极端矮屏：压间距保不重叠
+        h1.style.top = top + 'px';
+    }
+
     /* ==================== 启动 ==================== */
     /* 调试/测试句柄：便于自动化脚本精确断言内部状态（夜晚、碰撞、分数等） */
 
     function boot() {
         window.__dinoGame = new DinoGame();
+        syncTitleToScores();
+        requestAnimationFrame(syncTitleToScores); // 布局稳定后再校准一次
+        window.addEventListener('resize', syncTitleToScores);
+        window.addEventListener('orientationchange', syncTitleToScores);
     }
 
     if (document.readyState === 'loading') {
