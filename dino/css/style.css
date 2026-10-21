@@ -377,6 +377,11 @@ button:disabled {
         gap: 5px;
     }
 
+    /* 手机端画面加高：逻辑内容等比贴底，上方延伸天空色 */
+    .game-board-container {
+        aspect-ratio: 76 / 34;
+    }
+
     .control-button {
         top: 12px;
         width: 42px;

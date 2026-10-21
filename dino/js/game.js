@@ -325,9 +325,11 @@
         // 位图尺寸跟随容器 CSS 尺寸（×dpr 保证高清屏清晰）
         this.canvas.width = Math.round(rect.width * dpr);
         this.canvas.height = Math.round(rect.height * dpr);
-        // 逻辑坐标固定 760×220，整体缩放到实际宽度——任何屏幕都完整显示同一画面
-        var scale = (rect.width / CONFIG.WIDTH) * dpr;
+        // 逻辑高度固定 220，按容器高度缩放——内容撑满画面（手机端恐龙/障碍更大）；
+        // 代价是视野（可见逻辑宽）变窄：viewW = 容器宽 ÷ 缩放比，手机约 493（PC 760）
+        var scale = (rect.height / CONFIG.HEIGHT) * dpr;
         this.ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        this.viewW = rect.width / (rect.height / CONFIG.HEIGHT);
     };
 
     DinoGame.prototype.reset = function () {
@@ -337,7 +339,9 @@
         this.lastScoreMilestone = 0;
 
         this.dino = {
-            x: 60,
+            // 贴左站位：PC 宽视口（76:22，viewW≈760）保持 60 与原版一致；
+            // 手机窄视口（76:34，viewW≈492）内容放大后同比例显远，收紧到 3%（约 15）
+            x: this.viewW >= 700 ? 60 : Math.round(this.viewW * 0.03),
             y: GROUND_Y - DINO_H,
             vy: 0,
             jumping: false,
@@ -671,7 +675,7 @@
             var heights = [GROUND_Y - 42, GROUND_Y - 87, GROUND_Y - 120];
             ob = {
                 type: 'bird',
-                x: CONFIG.WIDTH + 10,
+                x: this.viewW + 10,
                 y: heights[Math.random() * 3 | 0],
                 w: 54,
                 h: 42
@@ -702,7 +706,7 @@
             totalW += pw;
             if (ph > maxH) maxH = ph;
         }
-        return { type: 'cactus', parts: parts, x: CONFIG.WIDTH + 10, y: GROUND_Y - maxH, w: totalW, h: maxH };
+        return { type: 'cactus', parts: parts, x: this.viewW + 10, y: GROUND_Y - maxH, w: totalW, h: maxH };
     };
 
     DinoGame.prototype.pickObstacleType = function () {
@@ -780,7 +784,7 @@
             if (this.clouds[i].x < -80) this.clouds.splice(i, 1);
         }
         if (this.clouds.length < CONFIG.MAX_CLOUDS && Math.random() < CONFIG.CLOUD_FREQUENCY * dt * 6) {
-            this.clouds.push({ x: CONFIG.WIDTH + rand(0, 200), y: rand(24, 90) });
+            this.clouds.push({ x: this.viewW + rand(0, 200), y: rand(24, 90) });
         }
     };
 
@@ -800,16 +804,16 @@
         var fg = this.isNight ? p.nightFg : p.fg;
         var bg = this.isNight ? p.nightBg : p.bg;
 
-        // 背景
+        // 背景（铺满可见视野）
         ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+        ctx.fillRect(0, 0, this.viewW, CONFIG.HEIGHT);
 
         // 月亮与星星（夜晚）
         if (this.isNight) {
             ctx.fillStyle = fg;
             ctx.globalAlpha = 0.85;
             ctx.beginPath();
-            ctx.arc(660, 48, 16, 0, Math.PI * 2);
+            ctx.arc(this.viewW - 100, 48, 16, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 0.4;
             var stars = [[120, 40], [200, 70], [320, 36], [420, 60], [520, 44], [600, 74], [710, 60], [80, 84]];
@@ -834,9 +838,9 @@
 
         // 地面
         ctx.fillStyle = fg;
-        ctx.fillRect(0, GROUND_Y, CONFIG.WIDTH, 2);
+        ctx.fillRect(0, GROUND_Y, this.viewW, 2);
         // 地面滚动石子
-        for (var g = -this.groundOffset; g < CONFIG.WIDTH; g += 24) {
+        for (var g = -this.groundOffset; g < this.viewW; g += 24) {
             ctx.globalAlpha = 0.5;
             ctx.fillRect(g, GROUND_Y + 8, 6, 2);
             ctx.fillRect(g + 12, GROUND_Y + 14, 4, 2);
@@ -876,7 +880,7 @@
             ctx.globalAlpha = 0.65;
             ctx.font = 'bold 18px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(IS_TOUCH ? '点击画面开始' : '按 空格 / 点击画面 开始', CONFIG.WIDTH / 2, 64);
+            ctx.fillText(IS_TOUCH ? '点击画面开始' : '按 空格 / 点击画面 开始', this.viewW / 2, 64);
             ctx.globalAlpha = 1;
         }
     };
@@ -910,14 +914,14 @@
 
     DinoGame.prototype.drawOverlay = function (ctx, title, subtitle, fg) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+        ctx.fillRect(0, 0, this.viewW, CONFIG.HEIGHT);
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = 'bold 26px Arial';
-        ctx.fillText(title, CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 14);
+        ctx.fillText(title, this.viewW / 2, CONFIG.HEIGHT / 2 - 14);
         ctx.font = '16px Arial';
-        ctx.fillText(subtitle, CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 20);
+        ctx.fillText(subtitle, this.viewW / 2, CONFIG.HEIGHT / 2 + 20);
     };
 
     /* ---------- UI ---------- */
