@@ -943,11 +943,11 @@
 
         // 暂停提示
         if (this.state === 'paused') {
-            this.drawOverlay(ctx, '已暂停', IS_TOUCH ? '点击画面继续' : '按 P 或点击开始继续', fg);
+            this.drawOverlay(ctx, '已暂停', IS_TOUCH ? '点击画面或跳继续' : '按 P 或点击开始继续', fg);
         }
         // 结束遮罩
         if (this.state === 'over') {
-            this.drawOverlay(ctx, '游戏结束', '得分 ' + pad5(this.score) + (IS_TOUCH ? ' · 点击画面重来' : ' · 按空格重来'), fg);
+            this.drawOverlay(ctx, '游戏结束', '得分 ' + pad5(this.score) + (IS_TOUCH ? ' · 点击画面或跳重来' : ' · 按空格重来'), fg);
         }
         // 待开始提示
         if (this.state === 'ready') {
@@ -955,7 +955,7 @@
             ctx.globalAlpha = 0.65;
             ctx.font = 'bold 18px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(IS_TOUCH ? '点击画面开始' : '按 空格 / 点击画面 开始', this.viewW / 2, 64);
+            ctx.fillText(IS_TOUCH ? '点击「跳」或画面开始' : '按 空格 / 点击画面 开始', this.viewW / 2, 64);
             ctx.globalAlpha = 1;
         }
     };
