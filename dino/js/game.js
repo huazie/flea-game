@@ -15,8 +15,12 @@
 
     /* ==================== 配置 ==================== */
 
-    // 触屏设备检测：canvas 内提示文案按输入能力区分（键盘键位 vs 触摸操作）
-    var IS_TOUCH = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    // 触屏设备检测：CSS media query 在部分手机内核不可靠，改用 JS 判定并统一驱动
+    // （画布提示文案、页面操作说明、触屏按钮显隐）。
+    // 多信号合成：具备触摸能力（ontouchstart/maxTouchPoints）且非「悬停 + 精细指针」
+    // 设备——桌面 Chrome 的 ontouchstart 恒存在，须排除，否则 PC 会误判为触屏
+    var IS_TOUCH = ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0)
+        && !(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
 
     var CONFIG = {
         WIDTH: 760,            // 逻辑画布宽
@@ -286,7 +290,6 @@
         this.bestScoreEl = document.getElementById('best-score');
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
-        this.duckBtn = document.getElementById('duck-btn');
         this.soundBtn = document.getElementById('sound-button');
         this.difficultySelect = document.getElementById('difficulty-select');
         this.boardContainer = document.querySelector('.game-board-container');
@@ -378,6 +381,28 @@
     DinoGame.prototype.bindEvents = function () {
         var self = this;
 
+        // 触屏适配：body 打标记（按钮显隐由 CSS .is-touch 驱动），
+        // 操作说明按输入能力切换（JS 判定，替代兼容性不稳的 CSS media query）
+        if (IS_TOUCH) {
+            document.body.classList.add('is-touch');
+            var kb = document.querySelector('.help-keyboard');
+            var tc = document.querySelector('.help-touch');
+            if (kb) kb.style.display = 'none';
+            if (tc) tc.style.display = 'block';
+            // 触控区（fixed 覆盖层）top = 控制行底部：上方主体保持垂直居中，
+            // 条通栏盖住控制行以下全部空白；视口/布局变化时重测
+            self.syncTouchZoneTop();
+            window.addEventListener('resize', function () { self.syncTouchZoneTop(); });
+            window.addEventListener('orientationchange', function () {
+                setTimeout(function () { self.syncTouchZoneTop(); }, 300);
+            });
+            if (typeof ResizeObserver !== 'undefined') {
+                var ro2 = new ResizeObserver(function () { self.syncTouchZoneTop(); });
+                var controlsEl = document.querySelector('.game-controls');
+                if (controlsEl) ro2.observe(controlsEl);
+            }
+        }
+
         document.addEventListener('keydown', function (e) { self.onKeyDown(e); });
         document.addEventListener('keyup', function (e) { self.onKeyUp(e); });
 
@@ -391,42 +416,45 @@
         this.soundBtn.addEventListener('click', function () { self.toggleSound(); });
         this.updateSoundIcon();
 
-        // 画布触摸：点击/上滑跳跃，下滑蹲伏（绑画布作用域，不拦页面滚动）
-        var touchStartY = null;
-        var touchDucking = false;
+        // 画布触摸：点击 = 开始 / 跳跃 / 重来（触屏蹲伏走下方左右分区触控条）
         this.canvas.addEventListener('touchstart', function (e) {
             e.preventDefault();
-            touchStartY = e.touches[0].clientY;
             self.onJumpInput();
         }, { passive: false });
-        this.canvas.addEventListener('touchmove', function (e) {
-            e.preventDefault();
-            if (touchStartY === null) return;
-            var dy = e.touches[0].clientY - touchStartY;
-            if (dy > 36 && !touchDucking) {
-                touchDucking = true;
+
+        // 触控分区条（移动端主控，原按钮位置）：左「跳」= 开始/跳跃/重来，右「蹲」= 按住蹲伏
+        this.touchJump = document.getElementById('touch-jump');
+        this.touchDuck = document.getElementById('touch-duck');
+        if (this.touchJump && this.touchDuck) {
+            this.touchJump.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                self.onJumpInput();
+                self.setZonePressed(self.touchJump, true);
+            }, { passive: false });
+            this.touchJump.addEventListener('touchend', function () {
+                self.setZonePressed(self.touchJump, false);
+            });
+            this.touchJump.addEventListener('touchcancel', function () {
+                self.setZonePressed(self.touchJump, false);
+            });
+            this.touchDuck.addEventListener('touchstart', function (e) {
+                e.preventDefault();
                 self.duckHeld = true;
                 self.setDucking(true);
-            }
-        }, { passive: false });
-        this.canvas.addEventListener('touchend', function (e) {
-            e.preventDefault();
-            if (touchDucking) { touchDucking = false; self.duckHeld = false; self.setDucking(false); }
-            touchStartY = null;
-        }, { passive: false });
-
-        // 蹲伏按钮（移动端主控）
-        this.duckBtn.addEventListener('touchstart', function (e) {
-            e.preventDefault();
-            self.duckHeld = true;
-            self.setDucking(true);
-        }, { passive: false });
-        this.duckBtn.addEventListener('touchend', function (e) {
-            e.preventDefault();
-            self.duckHeld = false;
-            self.setDucking(false);
-        }, { passive: false });
-        this.duckBtn.addEventListener('touchcancel', function () { self.duckHeld = false; self.setDucking(false); });
+                self.setZonePressed(self.touchDuck, true);
+            }, { passive: false });
+            this.touchDuck.addEventListener('touchend', function (e) {
+                e.preventDefault();
+                self.duckHeld = false;
+                self.setDucking(false);
+                self.setZonePressed(self.touchDuck, false);
+            }, { passive: false });
+            this.touchDuck.addEventListener('touchcancel', function () {
+                self.duckHeld = false;
+                self.setDucking(false);
+                self.setZonePressed(self.touchDuck, false);
+            });
+        }
 
         // 失焦自动暂停
         window.addEventListener('blur', function () {
@@ -450,6 +478,20 @@
             self.readPalette();
             self.draw();
         });
+    };
+
+    // 触控区覆盖层定位：top = 控制行底部 + 10px 间距（主体垂直居中不受影响，
+    // 条盖住下方空白，与上方控制行拉开距离更协调）
+    // 触控区按压视觉态：移动端 :active 被 touchstart 的 preventDefault 抑制，改 JS 加类驱动
+    DinoGame.prototype.setZonePressed = function (el, on) {
+        if (el) el.classList.toggle('is-pressed', on);
+    };
+
+    DinoGame.prototype.syncTouchZoneTop = function () {
+        var controls = document.querySelector('.game-controls');
+        if (!controls) return;
+        var bottom = controls.getBoundingClientRect().bottom;
+        document.body.style.setProperty('--touch-zone-top', Math.round(bottom + 10) + 'px');
     };
 
     DinoGame.prototype.onKeyDown = function (e) {
