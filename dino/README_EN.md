@@ -20,7 +20,7 @@ Dino Run recreates the core feel of Google Chrome's famous offline mini-game (T-
 - 💾 **Score tracking**: high scores saved separately per difficulty — challenge yourself
 - 🎚️ **Three difficulty levels**: Easy / Normal / Hard, each with different starting speed and acceleration
 - 🔊 **Synthesized sound effects**: jump/score/death sounds synthesized in real time via WebAudio, with one-click mute
-- 📱 **Full-device support**: PC keyboard + mouse, plus mobile touch (tap to jump, swipe down to duck, duck button) — covers everything from 320px small screens to landscape
+- 📱 **Full-device support**: PC keyboard + mouse, plus mobile touch (jump/duck split control bar) — covers everything from 320px small screens to landscape
 - ⏸️ **Pause anytime**: press P to pause, or auto-pause when the tab loses focus
 - 🎨 **Theme sync**: follows the site's light/dark theme, with canvas colors switching automatically
 
@@ -56,9 +56,9 @@ Dino Run recreates the core feel of Google Chrome's famous offline mini-game (T-
 
 | Gesture | Action |
 |------|------|
+| Jump zone (left) | Start / Jump / Restart |
+| Duck zone (right) | Hold to duck, release to stand |
 | Tap the screen | Start / Jump |
-| Swipe down on the canvas | Duck |
-| Duck button | Hold to duck, release to stand |
 
 ## 🔧 Technical Implementation
 

@@ -13,9 +13,13 @@
     --restart-button-bg: #95a5a6;
     --restart-button-text: #fff;
     --restart-button-hover: #7f8c8d;
-    --theme-toggle-color: #ffa500;
     --duck-button-bg: #34495e;
     --duck-button-text: #fff;
+    --theme-toggle-color: #ffa500;
+    /* 底部触控条（触屏专用）：通栏吸底、透明底 + 灰细边框 */
+    --touch-bar-h: 72px;
+    --touch-zone-border: #c6c6c6;
+    --touch-zone-text: #8a8a8a;
     /* 画布调色板：白天 = 站点主题色；夜晚（游戏内反色）= 其反色 */
     --canvas-bg: #ffffff;
     --canvas-fg: #535353;
@@ -41,6 +45,8 @@
     --theme-toggle-color: #f1c40f;
     --duck-button-bg: #5d6d7e;
     --duck-button-text: #f0f0f0;
+    --touch-zone-border: #4f4f4f;
+    --touch-zone-text: #9a9a9a;
     --canvas-bg: #1a1a1a;
     --canvas-fg: #d6d6d6;
     --canvas-night-bg: #f0f0f0;
@@ -69,11 +75,28 @@ body {
     width: 100%;
     min-height: 100vh;
     min-height: 100dvh;
-    padding: 10px;
+    padding: var(--container-pad);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
+}
+
+/* 触控区通栏贴边：负 margin 抵消容器左右 padding，引用同一变量永不失配 */
+:root {
+    --container-pad: 10px;
+}
+
+@media (max-width: 600px) {
+    :root {
+        --container-pad: 5px;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+    :root {
+        --container-pad: 2px;
+    }
 }
 
 /* 浮动圆形按钮（参考 2048 布局）：左上返回，右上音效/主题 */
@@ -249,11 +272,13 @@ body {
     font-size: 0.9em;
 }
 
-/* 操作说明按输入能力切换：默认显示键盘文案，触屏设备（手机/平板/横屏）显示触摸文案 */
+/* 触屏文案默认隐藏，JS（IS_TOUCH）检测到触屏后打开；键盘文案默认显示 */
 .help-touch {
     display: none;
 }
 
+/* 双保险：支持 pointer/hover media feature 的内核由 CSS 直接切换，
+   不支持的由 JS 强制切换（两者结果一致） */
 @media (hover: none) and (pointer: coarse) {
     .help-keyboard {
         display: none;
@@ -331,23 +356,61 @@ button:hover {
     background-color: var(--restart-button-hover);
 }
 
-.duck-btn {
+/* 触屏分区触控区：fixed 覆盖层——top 锚定控制行底部（JS 测量写入
+   --touch-zone-top），上方游戏主体保持垂直居中，条通栏盖住下方全部空白；
+   左「跳」右「蹲」各半宽，透明底 + 灰色细边框；PC 显示开始/重玩 */
+.touch-controls {
     display: none;
-    background-color: var(--duck-button-bg);
-    color: var(--duck-button-text);
-    min-width: 72px;
-    padding: 10px 12px;
-    font-size: 1em;
+}
+
+.is-touch .touch-controls {
+    display: flex;
+    position: fixed;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    top: var(--touch-zone-top, auto);
+    min-height: var(--touch-bar-h);
+    gap: 2px;
+}
+
+.is-touch .control-buttons {
+    display: none;
+}
+
+.touch-zone {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    font-size: 1.2em;
+    font-weight: 500;
+    border-radius: 4px;
+    background-color: transparent;
+    color: var(--touch-zone-text);
+    border: 1px solid var(--touch-zone-border);
     -webkit-tap-highlight-color: transparent;
     outline: none;
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
+    transition: background-color 0.12s ease, transform 0.12s ease;
 }
 
-.duck-btn:active {
-    transform: scale(0.95);
-    filter: brightness(1.15);
+/* 按压反馈：透明底上铺浅灰 + 轻微缩放。:active 兜底 PC 鼠标；
+   移动端由 JS .is-pressed 驱动——touchstart 内 preventDefault 会抑制 :active */
+.touch-zone:active,
+.touch-zone.is-pressed {
+    background-color: rgba(130, 130, 130, 0.22);
+    transform: scale(0.98);
+}
+
+/* 触屏端操作 = 分区触控条（JS 驱动 body.is-touch）：
+   开始/重玩仅 PC 显示 */
+.is-touch #start-btn,
+.is-touch #restart-btn {
+    display: none;
 }
 
 button:disabled {
@@ -372,9 +435,27 @@ button:disabled {
 }
 
 @media (max-width: 600px) {
-    .game-container {
-        padding: 5px;
-        gap: 5px;
+    /* 手机端标题上移顶部正中间：fixed 在浮动按钮（top 12 + 高 42 + 间距）下方，
+       填补页面顶部空白；标题脱离流后分数卡独占 header，水平居中贴画布上方。
+       top 为兜底初始值，实际位置由 game.js syncTitleToScores 按分数卡实时联动
+       （矮屏时间距自动压缩，不与分数/最高分卡重叠） */
+    .game-header h1 {
+        position: fixed;
+        top: 118px;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0;
+        white-space: nowrap;
+        z-index: 10;
+    }
+
+    .game-header {
+        justify-content: center;
+    }
+
+    /* 手机端画面加高：逻辑内容等比贴底，上方延伸天空色 */
+    .game-board-container {
+        aspect-ratio: 76 / 34;
     }
 
     .control-button {
@@ -414,28 +495,25 @@ button:disabled {
     .control-buttons {
         gap: 8px;
     }
-
-    /* 移动端显示蹲伏按钮（触屏无物理方向键，下滑手势不够直观） */
-    .duck-btn {
-        display: inline-block;
-    }
 }
 
-/* 触屏设备（平板等宽度 >600px 的场景）同样显示蹲伏按钮 */
-@media (hover: none) and (pointer: coarse) {
-    .duck-btn {
-        display: inline-block;
-    }
-}
-
-/* 横屏矮屏：紧凑布局 + 蹲伏按钮 */
+/* 横屏矮屏：紧凑布局 */
 @media (orientation: landscape) and (max-height: 500px) {
     .game-container {
-        padding: 2px;
         gap: 2px;
     }
 
+    /* 横屏压低触控条给画面让位（画面比例不变，逻辑视野不受影响）：
+       居中 + 顶距 10 + 底距 2 后，控制行以下剩余常不足 24px，保底值随剩余收窄，
+       保证条始终触底不溢出 */
+    :root {
+        --touch-bar-h: 18px;
+    }
+
+    /* 横屏矮屏高度紧张：标题回流到 header 内（fixed 会压画布），字号收紧 */
     .game-header h1 {
+        position: static;
+        transform: none;
         font-size: 1.4em;
     }
 
@@ -463,10 +541,6 @@ button:disabled {
 
     .control-info p {
         font-size: 0.7em;
-    }
-
-    .duck-btn {
-        display: inline-block;
     }
 }
 

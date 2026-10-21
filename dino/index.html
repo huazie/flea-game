@@ -53,14 +53,18 @@
                 </div>
                 <div class="control-info">
                     <p class="help-keyboard">空格 / W / ↑ 跳跃　　S / ↓ 蹲伏　　P 暂停</p>
-                    <p class="help-touch">点击画面跳跃　　下滑蹲伏　　按住「蹲」按钮蹲伏</p>
+                    <p class="help-touch">点左侧「跳」　　按右侧「蹲」低身</p>
                 </div>
             </div>
             <div class="control-buttons">
                 <button id="start-btn">开始</button>
                 <button id="restart-btn">重玩</button>
-                <button id="duck-btn" class="duck-btn">蹲</button>
             </div>
+        </div>
+        <!-- 触屏分区触控区：容器直接子元素，flex:1 撑满底部剩余空间，通栏贴边 -->
+        <div class="touch-controls">
+            <button id="touch-jump" class="touch-zone touch-jump">跳</button>
+            <button id="touch-duck" class="touch-zone touch-duck">蹲</button>
         </div>
     </div>
     <script src="../assets/js/common.js"></script>

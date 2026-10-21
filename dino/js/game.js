@@ -15,8 +15,12 @@
 
     /* ==================== 配置 ==================== */
 
-    // 触屏设备检测：canvas 内提示文案按输入能力区分（键盘键位 vs 触摸操作）
-    var IS_TOUCH = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    // 触屏设备检测：CSS media query 在部分手机内核不可靠，改用 JS 判定并统一驱动
+    // （画布提示文案、页面操作说明、触屏按钮显隐）。
+    // 多信号合成：具备触摸能力（ontouchstart/maxTouchPoints）且非「悬停 + 精细指针」
+    // 设备——桌面 Chrome 的 ontouchstart 恒存在，须排除，否则 PC 会误判为触屏
+    var IS_TOUCH = ('ontouchstart' in window || (navigator.maxTouchPoints || 0) > 0)
+        && !(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
 
     var CONFIG = {
         WIDTH: 760,            // 逻辑画布宽
@@ -72,55 +76,87 @@
         '.....#######..........'
     ];
 
-    // 站立腿（双脚着地，死亡帧沿用）
+    // 站立腿（双脚着地，死亡帧沿用）——逐格复刻原版 WAITING/JUMPING/CRASHED 帧
+    // 腿部（三帧提取值完全相同）：腹底横条 + 后腿锥形（col6-8→col6-7→col6→脚掌）
+    // + 前腿锥形（col10-11→col11→col11→脚掌）
     var DINO_LEGS_IDLE = [
-        '......##...##.........',
-        '......##...##.........',
-        '......##...##.........',
-        '......##...##.........',
-        '.....###...###........'
+        '.....#######..........',
+        '......###.##..........',
+        '......##...#..........',
+        '......#....#..........',
+        '......##...##.........'
     ];
-    // 跑步腿 A（双腿蹬地、脚掌外撇）
+    // 跑步腿 A/B（5×22，逐格复刻原版 RUNNING 两帧 2x 精灵提取数据，1 格 = 4@2x px）：
+    // row18 为腹底横条（与身体 row17 同宽衔接）；踩地腿呈「宽根→收细→展脚掌」锥形，
+    // 另一条腿仅剩贴身残段（原版抬起腿即被腹底遮挡，只露 1-2 格）；
+    // 帧A 后腿踩地（col6-8→col6-7→col6→col6-7）、前腿迈出残段（col11-13）；
+    // 帧B 前腿踩地（col10-11→col11→col11→col11-12）、后腿后收残段（col7-8）——
+    // 两帧快速交替即原版小碎步跑感；帧A 兼作步频基准帧
     var DINO_LEGS_RUN_A = [
-        '......##...##.........',
-        '......##...##.........',
-        '......##...##.........',
-        '.....###...###........',
-        '....####...####.......'
+        '.....#######..........',
+        '......###..###........',
+        '......##..............',
+        '......#...............',
+        '......##..............'
     ];
-    // 跑步腿 B（右腿后撤、左脚掌前错，与 A 交替出奔跑节奏）
     var DINO_LEGS_RUN_B = [
-        '......##...##.........',
-        '......##...##.........',
-        '.....###...###........',
-        '....####...####.......',
-        '.....###...####.......'
+        '.....#######..........',
+        '......##..##..........',
+        '.......##..#..........',
+        '...........#..........',
+        '...........##.........'
     ];
-    // 跳跃腿（双腿并拢前伸）
+    // 跳跃腿（与原版 JUMPING 帧一致：即静态双腿，空中不摆动）
     var DINO_LEGS_JUMP = [
-        '......##...##.........',
-        '......###.###.........',
-        '.......#####..........',
-        '.......######.........',
-        '........####..........'
+        '.....#######..........',
+        '......###.##..........',
+        '......##...#..........',
+        '......#....#..........',
+        '......##...##.........'
     ];
 
-    // 蹲伏恐龙（30×14，压扁前伸，低位可躲中位翼龙）
+    // 蹲伏恐龙身体（28×13，84×39）：从 chrome://dino 原版精灵图（2x 精灵表帧1）
+    // 按游戏统一网格提取——站立恐龙 44×47@1x → 22×23 格（1 格 = 2 原版 px），
+    // 本矩阵同规则：核心 55×26@1x → 28×13 格，渲染 1.5 倍原版尺寸。
+    // 造型：左端斜尖尾探出头顶、尾背间一道凹槽、高背平直、右上大头
+    // （颈下眼孔 1 格镂空）、腹末左收；底部两腿（后腿 x9-11、前腿 x14-17）
+    // 拆至 DINO_DUCK_LEGS_A/B 独立绘制，两腿全程可见、交替屈伸蹬地。
+    // 旧版 35×12 系参考截图按 3px/格误提（且在地面线处截断丢了脚），
+    // 横向拉宽 27%、纵向压扁 12%，故观感失衡；本版还原原版比例（宽高比 2.12）
     var DINO_DUCK = [
-        '..............####............',
-        '............######............',
-        '............##o###............',
-        '............#######...........',
-        '....######################....',
-        '...#########################..',
-        '..###########################.',
-        '.############################.',
-        '.#####...###################..',
-        '#####.....##################..',
-        '#####......#################..',
-        '.####......#################..',
-        '..###.....#################...',
-        '..........###...###...........'
+        '#..................#######..',
+        '###....#########..##########',
+        '####################o#######',
+        '.###########################',
+        '..##########################',
+        '...#########################',
+        '....###################.....',
+        '.....############..#######..',
+        '......##########............',
+        '............................',
+        '............................',
+        '............................',
+        '............................'
+    ];
+
+    // 蹲伏双腿两帧（4×28，绘制偏移 9 格，与站立跑腿同 90ms 节奏）：
+    // 忠实还原原版 DUCKING 两帧的腿部形态——结构为「后小脚(col6-7) + 主腿(col9-12)
+    // + 前小手(col15)」，腿短小贴身（仅占下缘 2-3 格）：
+    // 帧A 主腿长伸踩地（col9-11 直下到 row12）、后小脚短；
+    // 帧B 主腿蹬地后收（缩短 1 行且右移 1 格悬空）、后小脚拖长——
+    // 原版奔跑感即来自主腿的收放与后脚的拖曳；前小手两帧纹丝不动（纯固定前肢）；
+    // 帧A 兼作死亡/待机定格帧
+    var DINO_DUCK_LEGS_A = [
+        '......#..###...#............',
+        '......##.##....#............',
+        '.........#..................',
+        '.........##.................'
+    ];
+    var DINO_DUCK_LEGS_B = [
+        '......#...###..#............',
+        '......##..###..#............',
+        '......##....................',
+        '............................'
     ];
 
     // 小仙人掌（9×12，27×36）：细主干 + 双臂上弯带肘（左臂 Γ、右臂 」），
@@ -201,8 +237,8 @@
 
     var DINO_W = 22 * CONFIG.PIX;  // 66
     var DINO_H = 23 * CONFIG.PIX;  // 69（身体 18 行 + 腿 5 行，脚底精确着地）
-    var DINO_DUCK_W = 30 * CONFIG.PIX; // 90
-    var DINO_DUCK_H = 14 * CONFIG.PIX; // 42
+    var DINO_DUCK_W = 28 * CONFIG.PIX; // 84
+    var DINO_DUCK_H = 13 * CONFIG.PIX; // 39
 
     /* ==================== 音效（WebAudio 合成，零文件依赖） ==================== */
 
@@ -286,7 +322,6 @@
         this.bestScoreEl = document.getElementById('best-score');
         this.startBtn = document.getElementById('start-btn');
         this.restartBtn = document.getElementById('restart-btn');
-        this.duckBtn = document.getElementById('duck-btn');
         this.soundBtn = document.getElementById('sound-button');
         this.difficultySelect = document.getElementById('difficulty-select');
         this.boardContainer = document.querySelector('.game-board-container');
@@ -325,9 +360,11 @@
         // 位图尺寸跟随容器 CSS 尺寸（×dpr 保证高清屏清晰）
         this.canvas.width = Math.round(rect.width * dpr);
         this.canvas.height = Math.round(rect.height * dpr);
-        // 逻辑坐标固定 760×220，整体缩放到实际宽度——任何屏幕都完整显示同一画面
-        var scale = (rect.width / CONFIG.WIDTH) * dpr;
+        // 逻辑高度固定 220，按容器高度缩放——内容撑满画面（手机端恐龙/障碍更大）；
+        // 代价是视野（可见逻辑宽）变窄：viewW = 容器宽 ÷ 缩放比，手机约 493（PC 760）
+        var scale = (rect.height / CONFIG.HEIGHT) * dpr;
         this.ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        this.viewW = rect.width / (rect.height / CONFIG.HEIGHT);
     };
 
     DinoGame.prototype.reset = function () {
@@ -337,7 +374,9 @@
         this.lastScoreMilestone = 0;
 
         this.dino = {
-            x: 60,
+            // 贴左站位：PC 宽视口（76:22，viewW≈760）保持 60 与原版一致；
+            // 手机窄视口（76:34，viewW≈492）内容放大后同比例显远，收紧到 3%（约 15）
+            x: this.viewW >= 700 ? 60 : Math.round(this.viewW * 0.03),
             y: GROUND_Y - DINO_H,
             vy: 0,
             jumping: false,
@@ -374,6 +413,28 @@
     DinoGame.prototype.bindEvents = function () {
         var self = this;
 
+        // 触屏适配：body 打标记（按钮显隐由 CSS .is-touch 驱动），
+        // 操作说明按输入能力切换（JS 判定，替代兼容性不稳的 CSS media query）
+        if (IS_TOUCH) {
+            document.body.classList.add('is-touch');
+            var kb = document.querySelector('.help-keyboard');
+            var tc = document.querySelector('.help-touch');
+            if (kb) kb.style.display = 'none';
+            if (tc) tc.style.display = 'block';
+            // 触控区（fixed 覆盖层）top = 控制行底部：上方主体保持垂直居中，
+            // 条通栏盖住控制行以下全部空白；视口/布局变化时重测
+            self.syncTouchZoneTop();
+            window.addEventListener('resize', function () { self.syncTouchZoneTop(); });
+            window.addEventListener('orientationchange', function () {
+                setTimeout(function () { self.syncTouchZoneTop(); }, 300);
+            });
+            if (typeof ResizeObserver !== 'undefined') {
+                var ro2 = new ResizeObserver(function () { self.syncTouchZoneTop(); });
+                var controlsEl = document.querySelector('.game-controls');
+                if (controlsEl) ro2.observe(controlsEl);
+            }
+        }
+
         document.addEventListener('keydown', function (e) { self.onKeyDown(e); });
         document.addEventListener('keyup', function (e) { self.onKeyUp(e); });
 
@@ -387,42 +448,45 @@
         this.soundBtn.addEventListener('click', function () { self.toggleSound(); });
         this.updateSoundIcon();
 
-        // 画布触摸：点击/上滑跳跃，下滑蹲伏（绑画布作用域，不拦页面滚动）
-        var touchStartY = null;
-        var touchDucking = false;
+        // 画布触摸：点击 = 开始 / 跳跃 / 重来（触屏蹲伏走下方左右分区触控条）
         this.canvas.addEventListener('touchstart', function (e) {
             e.preventDefault();
-            touchStartY = e.touches[0].clientY;
             self.onJumpInput();
         }, { passive: false });
-        this.canvas.addEventListener('touchmove', function (e) {
-            e.preventDefault();
-            if (touchStartY === null) return;
-            var dy = e.touches[0].clientY - touchStartY;
-            if (dy > 36 && !touchDucking) {
-                touchDucking = true;
+
+        // 触控分区条（移动端主控，原按钮位置）：左「跳」= 开始/跳跃/重来，右「蹲」= 按住蹲伏
+        this.touchJump = document.getElementById('touch-jump');
+        this.touchDuck = document.getElementById('touch-duck');
+        if (this.touchJump && this.touchDuck) {
+            this.touchJump.addEventListener('touchstart', function (e) {
+                e.preventDefault();
+                self.onJumpInput();
+                self.setZonePressed(self.touchJump, true);
+            }, { passive: false });
+            this.touchJump.addEventListener('touchend', function () {
+                self.setZonePressed(self.touchJump, false);
+            });
+            this.touchJump.addEventListener('touchcancel', function () {
+                self.setZonePressed(self.touchJump, false);
+            });
+            this.touchDuck.addEventListener('touchstart', function (e) {
+                e.preventDefault();
                 self.duckHeld = true;
                 self.setDucking(true);
-            }
-        }, { passive: false });
-        this.canvas.addEventListener('touchend', function (e) {
-            e.preventDefault();
-            if (touchDucking) { touchDucking = false; self.duckHeld = false; self.setDucking(false); }
-            touchStartY = null;
-        }, { passive: false });
-
-        // 蹲伏按钮（移动端主控）
-        this.duckBtn.addEventListener('touchstart', function (e) {
-            e.preventDefault();
-            self.duckHeld = true;
-            self.setDucking(true);
-        }, { passive: false });
-        this.duckBtn.addEventListener('touchend', function (e) {
-            e.preventDefault();
-            self.duckHeld = false;
-            self.setDucking(false);
-        }, { passive: false });
-        this.duckBtn.addEventListener('touchcancel', function () { self.duckHeld = false; self.setDucking(false); });
+                self.setZonePressed(self.touchDuck, true);
+            }, { passive: false });
+            this.touchDuck.addEventListener('touchend', function (e) {
+                e.preventDefault();
+                self.duckHeld = false;
+                self.setDucking(false);
+                self.setZonePressed(self.touchDuck, false);
+            }, { passive: false });
+            this.touchDuck.addEventListener('touchcancel', function () {
+                self.duckHeld = false;
+                self.setDucking(false);
+                self.setZonePressed(self.touchDuck, false);
+            });
+        }
 
         // 失焦自动暂停
         window.addEventListener('blur', function () {
@@ -446,6 +510,20 @@
             self.readPalette();
             self.draw();
         });
+    };
+
+    // 触控区覆盖层定位：top = 控制行底部 + 10px 间距（主体垂直居中不受影响，
+    // 条盖住下方空白，与上方控制行拉开距离更协调）
+    // 触控区按压视觉态：移动端 :active 被 touchstart 的 preventDefault 抑制，改 JS 加类驱动
+    DinoGame.prototype.setZonePressed = function (el, on) {
+        if (el) el.classList.toggle('is-pressed', on);
+    };
+
+    DinoGame.prototype.syncTouchZoneTop = function () {
+        var controls = document.querySelector('.game-controls');
+        if (!controls) return;
+        var bottom = controls.getBoundingClientRect().bottom;
+        document.body.style.setProperty('--touch-zone-top', Math.round(bottom + 10) + 'px');
     };
 
     DinoGame.prototype.onKeyDown = function (e) {
@@ -671,7 +749,7 @@
             var heights = [GROUND_Y - 42, GROUND_Y - 87, GROUND_Y - 120];
             ob = {
                 type: 'bird',
-                x: CONFIG.WIDTH + 10,
+                x: this.viewW + 10,
                 y: heights[Math.random() * 3 | 0],
                 w: 54,
                 h: 42
@@ -702,7 +780,7 @@
             totalW += pw;
             if (ph > maxH) maxH = ph;
         }
-        return { type: 'cactus', parts: parts, x: CONFIG.WIDTH + 10, y: GROUND_Y - maxH, w: totalW, h: maxH };
+        return { type: 'cactus', parts: parts, x: this.viewW + 10, y: GROUND_Y - maxH, w: totalW, h: maxH };
     };
 
     DinoGame.prototype.pickObstacleType = function () {
@@ -731,8 +809,9 @@
         var boxes;
         if (d.ducking) {
             // 单个宽扁盒（高度远低于站立，可躲中位翼龙）；
-            // 右缘 93 = 头部视觉轮廓右缘 87 + 6（障碍盒内缩 3 + 半帧位移 3），判死与视觉对齐
-            boxes = [{ x: d.x + 6, y: this.duckTop() + 3, w: DINO_DUCK_W - 3, h: DINO_DUCK_H - 6 }];
+            // 右缘 d.x+90 = 身体视觉轮廓右缘 84（28 列矩阵最右 col27）+ 6
+            // （障碍盒内缩 3 + 半帧位移 3），判死帧视觉 ±3px 对齐，与站立盒同约定
+            boxes = [{ x: d.x + 6, y: this.duckTop() + 3, w: DINO_DUCK_W, h: DINO_DUCK_H - 6 }];
         } else {
             // 站立：头 / 身 / 腿 三盒；各盒右缘 = 对应轮廓视觉右缘 + 6
             // （障碍盒内缩 3 + 半帧位移 3），使判死时刻与视觉相接对齐
@@ -780,7 +859,7 @@
             if (this.clouds[i].x < -80) this.clouds.splice(i, 1);
         }
         if (this.clouds.length < CONFIG.MAX_CLOUDS && Math.random() < CONFIG.CLOUD_FREQUENCY * dt * 6) {
-            this.clouds.push({ x: CONFIG.WIDTH + rand(0, 200), y: rand(24, 90) });
+            this.clouds.push({ x: this.viewW + rand(0, 200), y: rand(24, 90) });
         }
     };
 
@@ -800,16 +879,16 @@
         var fg = this.isNight ? p.nightFg : p.fg;
         var bg = this.isNight ? p.nightBg : p.bg;
 
-        // 背景
+        // 背景（铺满可见视野）
         ctx.fillStyle = bg;
-        ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+        ctx.fillRect(0, 0, this.viewW, CONFIG.HEIGHT);
 
         // 月亮与星星（夜晚）
         if (this.isNight) {
             ctx.fillStyle = fg;
             ctx.globalAlpha = 0.85;
             ctx.beginPath();
-            ctx.arc(660, 48, 16, 0, Math.PI * 2);
+            ctx.arc(this.viewW - 100, 48, 16, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 0.4;
             var stars = [[120, 40], [200, 70], [320, 36], [420, 60], [520, 44], [600, 74], [710, 60], [80, 84]];
@@ -834,9 +913,9 @@
 
         // 地面
         ctx.fillStyle = fg;
-        ctx.fillRect(0, GROUND_Y, CONFIG.WIDTH, 2);
+        ctx.fillRect(0, GROUND_Y, this.viewW, 2);
         // 地面滚动石子
-        for (var g = -this.groundOffset; g < CONFIG.WIDTH; g += 24) {
+        for (var g = -this.groundOffset; g < this.viewW; g += 24) {
             ctx.globalAlpha = 0.5;
             ctx.fillRect(g, GROUND_Y + 8, 6, 2);
             ctx.fillRect(g + 12, GROUND_Y + 14, 4, 2);
@@ -864,11 +943,11 @@
 
         // 暂停提示
         if (this.state === 'paused') {
-            this.drawOverlay(ctx, '已暂停', IS_TOUCH ? '点击画面继续' : '按 P 或点击开始继续', fg);
+            this.drawOverlay(ctx, '已暂停', IS_TOUCH ? '点击画面或跳继续' : '按 P 或点击开始继续', fg);
         }
         // 结束遮罩
         if (this.state === 'over') {
-            this.drawOverlay(ctx, '游戏结束', '得分 ' + pad5(this.score) + (IS_TOUCH ? ' · 点击画面重来' : ' · 按空格重来'), fg);
+            this.drawOverlay(ctx, '游戏结束', '得分 ' + pad5(this.score) + (IS_TOUCH ? ' · 点击画面或跳重来' : ' · 按空格重来'), fg);
         }
         // 待开始提示
         if (this.state === 'ready') {
@@ -876,16 +955,19 @@
             ctx.globalAlpha = 0.65;
             ctx.font = 'bold 18px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(IS_TOUCH ? '点击画面开始' : '按 空格 / 点击画面 开始', CONFIG.WIDTH / 2, 64);
+            ctx.fillText(IS_TOUCH ? '点击「跳」或画面开始' : '按 空格 / 点击画面 开始', this.viewW / 2, 64);
             ctx.globalAlpha = 1;
         }
     };
 
     DinoGame.prototype.drawDino = function (ctx, fg, bg) {
         var d = this.dino;
-        // 蹲伏造型（仅着地状态）
+        // 蹲伏造型（仅着地状态）：身体 + 腿部两帧交替（一上一下）
         if (d.ducking) {
             drawMatrix(ctx, DINO_DUCK, d.x, this.duckTop(), CONFIG.PIX, fg, bg);
+            var duckLegs = (d.dead || this.state === 'ready') ? DINO_DUCK_LEGS_A
+                : (this.runFrame ? DINO_DUCK_LEGS_B : DINO_DUCK_LEGS_A);
+            drawMatrix(ctx, duckLegs, d.x, this.duckTop() + 9 * CONFIG.PIX, CONFIG.PIX, fg, bg);
             return;
         }
         var top = d.jumping ? d.y : GROUND_Y - DINO_H;
@@ -910,14 +992,14 @@
 
     DinoGame.prototype.drawOverlay = function (ctx, title, subtitle, fg) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.fillRect(0, 0, CONFIG.WIDTH, CONFIG.HEIGHT);
+        ctx.fillRect(0, 0, this.viewW, CONFIG.HEIGHT);
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = 'bold 26px Arial';
-        ctx.fillText(title, CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 - 14);
+        ctx.fillText(title, this.viewW / 2, CONFIG.HEIGHT / 2 - 14);
         ctx.font = '16px Arial';
-        ctx.fillText(subtitle, CONFIG.WIDTH / 2, CONFIG.HEIGHT / 2 + 20);
+        ctx.fillText(subtitle, this.viewW / 2, CONFIG.HEIGHT / 2 + 20);
     };
 
     /* ---------- UI ---------- */
@@ -944,11 +1026,35 @@
         this.difficultySelect.value = this.difficulty;
     };
 
+    /* ==================== 手机端标题垂直联动 ==================== */
+    /* max-width:600px 断点下标题为 fixed 定位（脱流），无法随分数卡自动移动：
+       这里实测分数卡 top，反推标题 top = 分数卡 top - 标题高 - 间距，
+       任何屏高、字号断点下都刚性跟随；空间不足时间距压缩到保底值，永不重叠。
+       PC 与横屏矮屏（标题为 static）由 computed position 自动跳过 */
+
+    var TITLE_GAP = 50, TITLE_MIN_GAP = 8, TITLE_MIN_TOP = 12;
+
+    function syncTitleToScores() {
+        var h1 = document.querySelector('.game-header h1');
+        var scores = document.querySelector('.scores-container');
+        if (!h1 || !scores) return;
+        if (window.getComputedStyle(h1).position !== 'fixed') return;
+        var st = scores.getBoundingClientRect().top;
+        var h = h1.offsetHeight;
+        var top = st - h - TITLE_GAP;
+        if (top < TITLE_MIN_TOP) top = st - h - TITLE_MIN_GAP; // 极端矮屏：压间距保不重叠
+        h1.style.top = top + 'px';
+    }
+
     /* ==================== 启动 ==================== */
     /* 调试/测试句柄：便于自动化脚本精确断言内部状态（夜晚、碰撞、分数等） */
 
     function boot() {
         window.__dinoGame = new DinoGame();
+        syncTitleToScores();
+        requestAnimationFrame(syncTitleToScores); // 布局稳定后再校准一次
+        window.addEventListener('resize', syncTitleToScores);
+        window.addEventListener('orientationchange', syncTitleToScores);
     }
 
     if (document.readyState === 'loading') {
