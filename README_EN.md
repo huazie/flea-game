@@ -17,7 +17,7 @@ Flea Game is a collection of small web-based games, aiming to provide a series o
 | [Gomoku](./gomoku/) | Classic strategy game — line up five in a row to win | 🛠️🛠️🛠️ | 🎮🎮🎮🎮 | ✅ Completed |
 | [Match 3](./match3/) | Classic match-3 game — connect identical elements for high scores | 🛠️🛠️ | 🎮🎮 | ✅ Completed |
 | [Sokoban](./sokoban/) | Classic box-pushing puzzle game — push all boxes to the targets, with level creation, sharing, and batch export | 🛠️🛠️🛠️ | 🎮🎮🎮 | ✅ Completed |
-| [Dino Run](./dino/) | Pixel dino runner — jump over cacti, duck under pterodactyls, with long-press high jumps and dive drops | 🛠️🛠️🛠️ | 🎮🎮 | ✅ Completed |
+| [Dino Run](./dino/) | Pixel dino runner — jump over cacti, duck under pterodactyls, faithful to the Chromium original, with split touch controls on mobile | 🛠️🛠️🛠️ | 🎮🎮 | ✅ Completed |
 
 ### Dev Difficulty (🛠️)
 - 🛠️ Beginner: basic DOM operations, simple logic
