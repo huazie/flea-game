@@ -33,6 +33,9 @@
         GAP_COEFFICIENT: 0.6,
         BASE_GAP: 120,         // 基础间距
         MAX_OBSTACLE_LENGTH: 3,      // 仙人掌簇最大数量
+        WIDE_CLUSTER_SPEED: 6.5,     // 三连簇速度门槛：低于此速度簇限两株
+                                     // （滞空帧数固定，速度越低跳跃水平覆盖越短，
+                                     //   低速下三连簇起跳窗口不足，稍跳早即落回簇尾）
         MAX_OBSTACLE_DUPLICATION: 2, // 同类型障碍最大连续次数
         BIRD_SPEED_THRESHOLD: 8.5,   // 翼龙出现速度门槛
         LARGE_CACTUS_SPEED: 5.5,     // 大仙人掌出现速度门槛（低于起步速度，开局即可大小混合）
@@ -764,9 +767,13 @@
 
     // 生成仙人掌簇：1~3 株大小随机混合（对标原版高矮错落，如一大两小），
     // 逐株底部对齐着地、紧贴无隙；低速时全小株，速度超门槛后大株按概率入簇；
-    // 三株簇限一大（三株全大株时墙体过宽，起跳窗口不足，形同必死）
+    // 三株簇限一大（三株全大株时墙体过宽，起跳窗口不足，形同必死）；
+    // 低速（< WIDE_CLUSTER_SPEED）簇限两株：滞空帧数固定，跳跃水平覆盖随速度缩短，
+    // 低速下三连簇起跳窗口过窄，稍跳早即落回簇尾
     DinoGame.prototype.spawnCactus = function () {
-        var count = 1 + (Math.random() * CONFIG.MAX_OBSTACLE_LENGTH | 0);
+        var maxLen = this.speed < CONFIG.WIDE_CLUSTER_SPEED
+            ? CONFIG.MAX_OBSTACLE_LENGTH - 1 : CONFIG.MAX_OBSTACLE_LENGTH;
+        var count = 1 + (Math.random() * maxLen | 0);
         var parts = [];
         var totalW = 0, maxH = 0, bigCount = 0;
         for (var k = 0; k < count; k++) {
