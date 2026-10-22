@@ -1068,23 +1068,63 @@
         this.difficultySelect.value = this.difficulty;
     };
 
-    /* ==================== 手机端标题垂直联动 ==================== */
+    /* ==================== 手机端标题联动与画布精确居中 ==================== */
     /* max-width:600px 断点下标题为 fixed 定位（脱流），无法随分数卡自动移动：
-       这里实测分数卡 top，反推标题 top = 分数卡 top - 标题高 - 间距，
-       任何屏高、字号断点下都刚性跟随；空间不足时间距压缩到保底值，永不重叠。
-       PC 与横屏矮屏（标题为 static）由 computed position 自动跳过 */
+       这里实测分数卡 top，把标题垂直居中于「浮动按钮行底沿 ～ 分数卡顶沿」的
+       顶部空间内，任何屏高、字号断点下都刚性跟随；空间不足时贴分数卡（保底间距）。
+       同时修正画布垂直居中偏差：header（分数卡）与控制行高度不等，容器弹性空间
+       均分时画布中心偏离屏幕中心 (headerH - controlsH) / 2，实测后把偏差从
+       上侧 margin 挪到下侧（元素位置关系与原布局完全一致，仅画布回正）。
+       注意：画布偏置会移动分数卡，标题定位必须在其之后测量。
+       PC 与横屏矮屏（标题为 static）清除偏置后跳过，走 CSS 均分 */
 
-    var TITLE_GAP = 50, TITLE_MIN_GAP = 8, TITLE_MIN_TOP = 12;
+    var TITLE_MIN_GAP = 8;
 
     function syncTitleToScores() {
         var h1 = document.querySelector('.game-header h1');
         var scores = document.querySelector('.scores-container');
-        if (!h1 || !scores) return;
-        if (window.getComputedStyle(h1).position !== 'fixed') return;
+        var header = document.querySelector('.game-header');
+        var controls = document.querySelector('.game-controls');
+        if (!h1 || !scores || !header || !controls) return;
+        if (window.getComputedStyle(h1).position !== 'fixed') {
+            // 非 fixed 断点（PC/横屏矮屏）：清除手机端写入的 margin 偏置，回归 CSS 均分
+            header.style.marginTop = '';
+            controls.style.marginBottom = '';
+            return;
+        }
+
+        // 画布居中偏置：按实测高度重分上下弹性空间（偏置 = (headerH - controlsH) / 2）
+        var board = document.querySelector('.game-board-container');
+        var container = document.querySelector('.game-container');
+        if (board && container) {
+            var cs = getComputedStyle(container);
+            var pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+            var gap = parseFloat(cs.rowGap) || 0;
+            var free = container.clientHeight - pad - header.offsetHeight -
+                       board.offsetHeight - controls.offsetHeight - gap * 2;
+            if (free > 0) { // 内容超高（极端矮屏）时交还 CSS 均分，允许滚动
+                var bias = (header.offsetHeight - controls.offsetHeight) / 2;
+                var mt = Math.max(0, free / 2 - bias);
+                header.style.marginTop = mt + 'px';
+                controls.style.marginBottom = (free - mt) + 'px'; // 差值全给下侧，总和恰为 free
+            } else {
+                header.style.marginTop = '';
+                controls.style.marginBottom = '';
+            }
+        }
+
+        // 标题居中：顶部空间 = 浮动按钮行底沿（实测各控制按钮最大 bottom，兜底 54）
+        // ～ 分数卡顶沿；标题在该空间内垂直居中，空间不足时贴分数卡（保底间距 8px）
         var st = scores.getBoundingClientRect().top;
         var h = h1.offsetHeight;
-        var top = st - h - TITLE_GAP;
-        if (top < TITLE_MIN_TOP) top = st - h - TITLE_MIN_GAP; // 极端矮屏：压间距保不重叠
+        var btnBottom = 54;
+        var btns = document.querySelectorAll('.control-button');
+        for (var i = 0; i < btns.length; i++) {
+            var b = btns[i].getBoundingClientRect().bottom;
+            if (b > btnBottom) btnBottom = b;
+        }
+        var top = btnBottom + Math.max(0, (st - btnBottom - h) / 2);
+        if (top + h > st - TITLE_MIN_GAP) top = st - h - TITLE_MIN_GAP;
         h1.style.top = top + 'px';
     }
 
