@@ -437,8 +437,9 @@ button:disabled {
 @media (max-width: 600px) {
     /* 手机端标题上移顶部正中间：fixed 在浮动按钮（top 12 + 高 42 + 间距）下方，
        填补页面顶部空白；标题脱离流后分数卡独占 header，水平居中贴画布上方。
-       top 为兜底初始值，实际位置由 game.js syncTitleToScores 按分数卡实时联动
-       （矮屏时间距自动压缩，不与分数/最高分卡重叠） */
+       top 为兜底初始值，实际位置由 game.js syncTitleToScores 实测——在
+       「浮动按钮底沿 ～ 分数卡顶沿」的顶部空间内垂直居中（矮屏自动贴分数卡，
+       不与分数/最高分卡重叠）；字号较基准加大（2.2em ≈ 35px） */
     .game-header h1 {
         position: fixed;
         top: 118px;
@@ -446,6 +447,7 @@ button:disabled {
         transform: translateX(-50%);
         margin: 0;
         white-space: nowrap;
+        font-size: 2.2em;
         z-index: 10;
     }
 
@@ -481,7 +483,7 @@ button:disabled {
 
     .score-container, .best-container {
         padding: 5px 8px;
-        min-width: 62px;
+        min-width: 72px;
     }
 
     .score-label {
@@ -489,7 +491,7 @@ button:disabled {
     }
 
     #score, #best-score {
-        font-size: 1em;
+        font-size: 1.25em;
     }
 
     .control-buttons {

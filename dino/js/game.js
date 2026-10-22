@@ -33,6 +33,9 @@
         GAP_COEFFICIENT: 0.6,
         BASE_GAP: 120,         // 基础间距
         MAX_OBSTACLE_LENGTH: 3,      // 仙人掌簇最大数量
+        WIDE_CLUSTER_SPEED: 6.5,     // 三连簇速度门槛：低于此速度簇限两株
+                                     // （滞空帧数固定，速度越低跳跃水平覆盖越短，
+                                     //   低速下三连簇起跳窗口不足，稍跳早即落回簇尾）
         MAX_OBSTACLE_DUPLICATION: 2, // 同类型障碍最大连续次数
         BIRD_SPEED_THRESHOLD: 8.5,   // 翼龙出现速度门槛
         LARGE_CACTUS_SPEED: 5.5,     // 大仙人掌出现速度门槛（低于起步速度，开局即可大小混合）
@@ -201,38 +204,65 @@
         '...###...'
     ];
 
-    // 翼龙（18×14，翅膀上/下两帧）
-    var BIRD_UP = [
-        '.......#####........',
-        '.....#########......',
-        '...#############....',
-        '.###############....',
-        '.###############....',
-        '#######.....######..',
-        '...#####...#####....',
-        '....####.####.......',
-        '......#####.........',
-        '.......###..........',
-        '........###.........',
-        '........###.........',
-        '........###.........',
-        '........####........'
+    // 翼龙两帧（23×20 格 = 69×60px，1 格 = 2 原版 px，渲染 1.5 倍原版尺寸）：
+    // 从原版 2x 精灵表 PTERODACTYL 块（hdpi x260/y2，帧宽 92@2x）逐格提取，
+    // 形态：水平身体 + 右侧张嘴双颚（row10 上颚长、row12 下颚短）+ 左上小冠；
+    // 帧差异在翅膀——帧1 翼朝下（身下三角渐收 rows12-18），帧2 翼朝上
+    // （身上竖立大翼 rows1-7），167ms 交替即原版扇翅节奏
+    var BIRD_WING_DOWN = [
+        '.......................',
+        '.......................',
+        '.......................',
+        '.......................',
+        '.....##................',
+        '....###................',
+        '...#####...............',
+        '..######...............',
+        '.##############........',
+        '.......#########.......',
+        '........##############.',
+        '.........##########....',
+        '.........############..',
+        '.........#########.....',
+        '.........####..........',
+        '.........###...........',
+        '.........##............',
+        '.........##............',
+        '.........#.............',
+        '.......................'
     ];
-    var BIRD_DOWN = [
-        '.......#####........',
-        '......#######.......',
-        '......#######.......',
-        '#######.....######..',
-        '.###############....',
-        '.###############....',
-        '...#####...#####....',
-        '....####.####.......',
-        '......#####.........',
-        '.......###..........',
-        '........###.........',
-        '........###.........',
-        '........###.........',
-        '........####........'
+    var BIRD_WING_UP = [
+        '.......................',
+        '........#..............',
+        '........##.............',
+        '........###............',
+        '.....##..###...........',
+        '....###..####..........',
+        '...#####.#####.........',
+        '..######.######........',
+        '.##############........',
+        '.......#########.......',
+        '........##############.',
+        '.........##########....',
+        '..........###########..',
+        '...........#######.....',
+        '.......................',
+        '.......................',
+        '.......................',
+        '.......................',
+        '.......................',
+        '.......................'
+    ];
+
+    // 翼龙碰撞盒（原版 5 盒按 1.5 倍缩放，1x 原值 [{15,15,16,5},{18,21,24,6},
+    // {2,14,4,3},{6,10,4,7},{10,8,6,9}]）：覆盖喙/身/翼根，两帧共用；
+    // 翼尖与身体下方镂空区不入盒（原版即如此），跨翼龙判定不过严
+    var BIRD_BOXES = [
+        { x: 22, y: 22, w: 24, h: 8 },
+        { x: 27, y: 32, w: 36, h: 9 },
+        { x: 3, y: 21, w: 6, h: 5 },
+        { x: 9, y: 15, w: 6, h: 10 },
+        { x: 15, y: 12, w: 9, h: 14 }
     ];
 
     var DINO_W = 22 * CONFIG.PIX;  // 66
@@ -701,7 +731,7 @@
         this.runFrameTime += dt * 16.667;
         if (this.runFrameTime >= 90) { this.runFrameTime = 0; this.runFrame = this.runFrame ? 0 : 1; }
         this.birdFrameTime += dt * 16.667;
-        if (this.birdFrameTime >= 200) { this.birdFrameTime = 0; this.birdFrame = this.birdFrame ? 0 : 1; }
+        if (this.birdFrameTime >= 167) { this.birdFrameTime = 0; this.birdFrame = this.birdFrame ? 0 : 1; }
 
         // 眨眼
         this.blinkTimer -= dt * 16.667;
@@ -745,14 +775,16 @@
         if (type === 'cactus') {
             ob = this.spawnCactus();
         } else {
-            // 翼龙：低（跳）/ 中（蹲或跳）/ 高（站立可无视）
-            var heights = [GROUND_Y - 42, GROUND_Y - 87, GROUND_Y - 120];
+            // 翼龙：低（跳）/ 中（蹲或跳）/ 高（站立可无视）。
+            // 三档高度按原版 yPos [100,75,50] 相对地面线的偏移（-31.3/-56.3/-81.3 @1x）
+            // 1.5 倍映射 → -47/-85/-122；低档翼身嵌入地面线下 13px（原版即如此）
+            var heights = [GROUND_Y - 47, GROUND_Y - 85, GROUND_Y - 122];
             ob = {
                 type: 'bird',
                 x: this.viewW + 10,
                 y: heights[Math.random() * 3 | 0],
-                w: 54,
-                h: 42
+                w: 69,
+                h: 60
             };
         }
         this.obstacles.push(ob);
@@ -764,9 +796,13 @@
 
     // 生成仙人掌簇：1~3 株大小随机混合（对标原版高矮错落，如一大两小），
     // 逐株底部对齐着地、紧贴无隙；低速时全小株，速度超门槛后大株按概率入簇；
-    // 三株簇限一大（三株全大株时墙体过宽，起跳窗口不足，形同必死）
+    // 三株簇限一大（三株全大株时墙体过宽，起跳窗口不足，形同必死）；
+    // 低速（< WIDE_CLUSTER_SPEED）簇限两株：滞空帧数固定，跳跃水平覆盖随速度缩短，
+    // 低速下三连簇起跳窗口过窄，稍跳早即落回簇尾
     DinoGame.prototype.spawnCactus = function () {
-        var count = 1 + (Math.random() * CONFIG.MAX_OBSTACLE_LENGTH | 0);
+        var maxLen = this.speed < CONFIG.WIDE_CLUSTER_SPEED
+            ? CONFIG.MAX_OBSTACLE_LENGTH - 1 : CONFIG.MAX_OBSTACLE_LENGTH;
+        var count = 1 + (Math.random() * maxLen | 0);
         var parts = [];
         var totalW = 0, maxH = 0, bigCount = 0;
         for (var k = 0; k < count; k++) {
@@ -830,8 +866,10 @@
             var ob = this.obstacles[i];
             var obBoxes;
             if (ob.type === 'bird') {
-                // 翼龙：左缘贴左翅尖（BIRD_UP 第 5 行 col 0），顶/底/右各内缩 3~6 避让镂空
-                obBoxes = [{ x: ob.x, y: ob.y + 6, w: ob.w - 6, h: ob.h - 15 }];
+                // 翼龙：原版 5 盒按 1.5 倍缩放（见 BIRD_BOXES 定义处），帧内相对坐标
+                obBoxes = BIRD_BOXES.map(function (b) {
+                    return { x: ob.x + b.x, y: ob.y + b.y, w: b.w, h: b.h };
+                });
             } else {
                 // 仙人掌簇逐株判定：混合大小下，小株旁的空间不误判，大株正常判
                 obBoxes = [];
@@ -926,7 +964,7 @@
         for (var o = 0; o < this.obstacles.length; o++) {
             var ob = this.obstacles[o];
             if (ob.type === 'bird') {
-                drawMatrix(ctx, this.birdFrame ? BIRD_DOWN : BIRD_UP, ob.x, ob.y, CONFIG.PIX, fg);
+                drawMatrix(ctx, this.birdFrame ? BIRD_WING_UP : BIRD_WING_DOWN, ob.x, ob.y, CONFIG.PIX, fg);
             } else {
                 // 仙人掌簇：逐株紧贴绘制，每株底部对齐着地（大株高、小株矮，错落有致）
                 var off = 0;
@@ -972,14 +1010,18 @@
         }
         var top = d.jumping ? d.y : GROUND_Y - DINO_H;
         var body = DINO_BODY.slice();
-        // 眨眼：闭眼（眼睛行变实线）
+        // 眨眼：闭眼——仅把眼孔（col13）填成实心，头轮廓（col14-20）保持不变；
+        // 旧写法把整行截到 col17，眨眼瞬间吻部右缘缺 3 格，观感像轮廓弹出一条线
         if (this.isBlinking && !d.dead) {
-            body[2] = '...........#######....';
+            body[2] = '...........##########.';
         }
-        // 死亡：眼变叉（x 镂空）+ 张嘴（脖子行中缝）
+        // 死亡脸（逐格复刻原版 CRASHED 帧，无自创元素）：
+        // 活体单格眼睁大为 2×2 方孔（rows2-3 × cols13-14），下颚前伸满宽（row6，
+        // 原版开口是下颚向右补满，不是嘴缝）
         if (d.dead) {
-            body[2] = '...........#x#x####...';
-            body[6] = '...........###.##......';
+            body[2] = '...........##..######.';
+            body[3] = '...........##..######.';
+            body[6] = '...........##########.';
         }
         drawMatrix(ctx, body, d.x, top, CONFIG.PIX, fg, bg);
         var legs;
@@ -1026,23 +1068,63 @@
         this.difficultySelect.value = this.difficulty;
     };
 
-    /* ==================== 手机端标题垂直联动 ==================== */
+    /* ==================== 手机端标题联动与画布精确居中 ==================== */
     /* max-width:600px 断点下标题为 fixed 定位（脱流），无法随分数卡自动移动：
-       这里实测分数卡 top，反推标题 top = 分数卡 top - 标题高 - 间距，
-       任何屏高、字号断点下都刚性跟随；空间不足时间距压缩到保底值，永不重叠。
-       PC 与横屏矮屏（标题为 static）由 computed position 自动跳过 */
+       这里实测分数卡 top，把标题垂直居中于「浮动按钮行底沿 ～ 分数卡顶沿」的
+       顶部空间内，任何屏高、字号断点下都刚性跟随；空间不足时贴分数卡（保底间距）。
+       同时修正画布垂直居中偏差：header（分数卡）与控制行高度不等，容器弹性空间
+       均分时画布中心偏离屏幕中心 (headerH - controlsH) / 2，实测后把偏差从
+       上侧 margin 挪到下侧（元素位置关系与原布局完全一致，仅画布回正）。
+       注意：画布偏置会移动分数卡，标题定位必须在其之后测量。
+       PC 与横屏矮屏（标题为 static）清除偏置后跳过，走 CSS 均分 */
 
-    var TITLE_GAP = 50, TITLE_MIN_GAP = 8, TITLE_MIN_TOP = 12;
+    var TITLE_MIN_GAP = 8;
 
     function syncTitleToScores() {
         var h1 = document.querySelector('.game-header h1');
         var scores = document.querySelector('.scores-container');
-        if (!h1 || !scores) return;
-        if (window.getComputedStyle(h1).position !== 'fixed') return;
+        var header = document.querySelector('.game-header');
+        var controls = document.querySelector('.game-controls');
+        if (!h1 || !scores || !header || !controls) return;
+        if (window.getComputedStyle(h1).position !== 'fixed') {
+            // 非 fixed 断点（PC/横屏矮屏）：清除手机端写入的 margin 偏置，回归 CSS 均分
+            header.style.marginTop = '';
+            controls.style.marginBottom = '';
+            return;
+        }
+
+        // 画布居中偏置：按实测高度重分上下弹性空间（偏置 = (headerH - controlsH) / 2）
+        var board = document.querySelector('.game-board-container');
+        var container = document.querySelector('.game-container');
+        if (board && container) {
+            var cs = getComputedStyle(container);
+            var pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+            var gap = parseFloat(cs.rowGap) || 0;
+            var free = container.clientHeight - pad - header.offsetHeight -
+                       board.offsetHeight - controls.offsetHeight - gap * 2;
+            if (free > 0) { // 内容超高（极端矮屏）时交还 CSS 均分，允许滚动
+                var bias = (header.offsetHeight - controls.offsetHeight) / 2;
+                var mt = Math.max(0, free / 2 - bias);
+                header.style.marginTop = mt + 'px';
+                controls.style.marginBottom = (free - mt) + 'px'; // 差值全给下侧，总和恰为 free
+            } else {
+                header.style.marginTop = '';
+                controls.style.marginBottom = '';
+            }
+        }
+
+        // 标题居中：顶部空间 = 浮动按钮行底沿（实测各控制按钮最大 bottom，兜底 54）
+        // ～ 分数卡顶沿；标题在该空间内垂直居中，空间不足时贴分数卡（保底间距 8px）
         var st = scores.getBoundingClientRect().top;
         var h = h1.offsetHeight;
-        var top = st - h - TITLE_GAP;
-        if (top < TITLE_MIN_TOP) top = st - h - TITLE_MIN_GAP; // 极端矮屏：压间距保不重叠
+        var btnBottom = 54;
+        var btns = document.querySelectorAll('.control-button');
+        for (var i = 0; i < btns.length; i++) {
+            var b = btns[i].getBoundingClientRect().bottom;
+            if (b > btnBottom) btnBottom = b;
+        }
+        var top = btnBottom + Math.max(0, (st - btnBottom - h) / 2);
+        if (top + h > st - TITLE_MIN_GAP) top = st - h - TITLE_MIN_GAP;
         h1.style.top = top + 'px';
     }
 
