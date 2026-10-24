@@ -270,47 +270,12 @@
     var DINO_DUCK_W = 28 * CONFIG.PIX; // 84
     var DINO_DUCK_H = 13 * CONFIG.PIX; // 39
 
-    /* ==================== 音效（WebAudio 合成，零文件依赖） ==================== */
+    /* ==================== 音效（公共 WebAudio 模块） ==================== */
 
     var SoundFx = {
-        ctx: null,
-        enabled: true,
-
-        ensureCtx: function () {
-            if (!this.enabled) return false;
-            if (!this.ctx) {
-                var AC = window.AudioContext || window.webkitAudioContext;
-                if (!AC) { this.enabled = false; return false; }
-                try { this.ctx = new AC(); } catch (e) { this.enabled = false; return false; }
-            }
-            if (this.ctx.state === 'suspended') {
-                this.ctx.resume().catch(function () { /* 用户手势前可能失败 */ });
-            }
-            return true;
-        },
-
-        tone: function (freq, dur, type, delay, vol, endFreq) {
-            if (!this.ensureCtx()) return;
-            var t = this.ctx.currentTime + (delay || 0);
-            var osc = this.ctx.createOscillator();
-            var gain = this.ctx.createGain();
-            osc.type = type || 'square';
-            osc.frequency.setValueAtTime(freq, t);
-            if (endFreq) osc.frequency.linearRampToValueAtTime(endFreq, t + dur);
-            gain.gain.setValueAtTime(vol || 0.1, t);
-            gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-            osc.connect(gain);
-            gain.connect(this.ctx.destination);
-            osc.start(t);
-            osc.stop(t + dur + 0.02);
-        },
-
-        jump: function () { this.tone(560, 0.09, 'square', 0, 0.10); },
-        point: function () {
-            this.tone(880, 0.06, 'square', 0, 0.09);
-            this.tone(880, 0.06, 'square', 0.09, 0.09);
-        },
-        die: function () { this.tone(320, 0.3, 'sawtooth', 0, 0.12, 70); }
+        jump:  function () { FleaSound.jump(); },
+        point: function () { FleaSound.point(); },
+        die:   function () { FleaSound.die(); }
     };
 
     /* ==================== 工具 ==================== */
@@ -361,7 +326,7 @@
 
         this.state = 'ready'; // ready | running | paused | over
         this.soundOn = DinoStorage.isSoundOn();
-        SoundFx.enabled = this.soundOn;
+        FleaSound.setEnabled(this.soundOn);
 
         this.palette = {};
         this.readPalette();
@@ -647,7 +612,7 @@
 
     DinoGame.prototype.toggleSound = function () {
         this.soundOn = !this.soundOn;
-        SoundFx.enabled = this.soundOn;
+        FleaSound.setEnabled(this.soundOn);
         DinoStorage.saveSound(this.soundOn);
         this.updateSoundIcon();
         if (this.soundOn) SoundFx.jump();
