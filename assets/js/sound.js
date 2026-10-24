@@ -150,6 +150,19 @@ window.FleaSound = (function () {
         tone(880,    0.20, 'triangle', 0.27, 0.12);
     }
 
+    // ── 2048 预设 ──────────────────────────────────────────────
+
+    /** 滑动：轻柔"唰"声下滑音（方块整体平移的听感） */
+    function slide() { tone(240, 0.07, 'sine', 0, 0.06, 160); }
+
+    /** 合并：value 越大音高越高（4→2048 每级升一个全音），主音+纯五度泛音清脆"叮" */
+    function merge(value) {
+        var step = Math.max(1, Math.min(Math.log2(value || 4) - 1, 10));
+        var f = 392 * Math.pow(1.122462, step);
+        tone(f, 0.10, 'triangle', 0, 0.12);
+        tone(f * 1.5, 0.12, 'triangle', 0.05, 0.07);
+    }
+
     // ── 背景音乐序列器：按 [频率Hz|null(休止), 拍数] 序列循环播放 ──
 
     var bgm = {
@@ -273,6 +286,7 @@ window.FleaSound = (function () {
         swap: swap, invalid: invalid, win: win, lose: lose,
         jump: jump, point: point, die: die,
         move: move, rotate: rotate, lock: lock, drop: drop,
-        clear: clear, levelUp: levelUp
+        clear: clear, levelUp: levelUp,
+        slide: slide, merge: merge
     };
 })();

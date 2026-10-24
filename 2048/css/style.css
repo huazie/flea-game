@@ -123,6 +123,12 @@ body {
     color: var(--theme-toggle-color);
 }
 
+/* 音效开关按钮（主题按钮左侧：20 + 50 + 12） */
+#sound-button {
+    right: 82px;
+    color: var(--text-light);
+}
+
 .game-container {
     width: 100%;
     max-width: 500px;
