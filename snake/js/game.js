@@ -109,6 +109,15 @@ class SnakeGame {
     }
 
     bindEvents() {
+        // 音效开关（状态持久化在 FleaSound）
+        FleaSound.init(GameStorage.KEY_SOUND);
+        this._updateSoundIcon();
+        document.getElementById('sound-button')?.addEventListener('click', () => {
+            FleaSound.toggle();
+            this._updateSoundIcon();
+            if (FleaSound.isEnabled()) FleaSound.swap();  // 开启时给个反馈音
+        });
+
         // 键盘控制
         document.addEventListener('keydown', (e) => this.handleKeyPress(e));
 
@@ -207,6 +216,7 @@ class SnakeGame {
         if (head.x === this.food.x && head.y === this.food.y) {
             this.score += 10;
             this.updateScore();
+            FleaSound.eat();
             this.generateFood();
         } else {
             this.snake.pop();
@@ -304,6 +314,7 @@ class SnakeGame {
         // 如果这是游戏第一次启动
         if (!this.isGameStarted && !this.isPaused) {
             this.isGameStarted = true;
+            FleaSound.swap();  // 开始反馈音
         }
         
         this.updateButtons();
@@ -320,13 +331,25 @@ class SnakeGame {
         this.isGameStarted = true;
         this.updateButtons();
         this.draw();
+        FleaSound.swap();  // 开始反馈音
         // 启动游戏循环
         requestAnimationFrame(() => this.gameLoop());
+    }
+
+    /**
+     * 同步音效开关图标
+     */
+    _updateSoundIcon() {
+        const icon = document.querySelector('#sound-button i');
+        if (!icon) return;
+        icon.classList.toggle('fa-volume-high', FleaSound.isEnabled());
+        icon.classList.toggle('fa-volume-xmark', !FleaSound.isEnabled());
     }
 
     gameOver() {
         this.isGameOver = true;
         this.isPaused = true;
+        FleaSound.lose();
         
         // 检查是否更新最高分
         if (this.score > this.bestScore) {
