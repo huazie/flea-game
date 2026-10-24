@@ -1,7 +1,7 @@
 # 消消乐游戏 (Match3)
 
 <p align="center">
-  <img src="../assets/images/match3.png" alt="消消乐游戏" width="200">
+  <img src="../assets/images/match3.svg" alt="消消乐游戏" width="200">
 </p>
 
 一个现代化、功能丰富的 Match3 消除游戏，支持特殊宝石、连击系统、关卡进度等特性。无论您是在桌面电脑还是移动设备上，都能享受到流畅的游戏体验。

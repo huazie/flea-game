@@ -114,8 +114,8 @@
       "status": "active",
       "categories": ["puzzle", "classic"],
       "images": {
-        "light": "assets/images/match3.png",
-        "dark": "assets/images/match3-dark.png"
+        "light": "assets/images/match3.svg",
+        "dark": "assets/images/match3-dark.svg"
       }
     },
     {
