@@ -4,6 +4,7 @@
 class GameStorage {
     static STORAGE_KEY = '2048_game';
     static BEST_SCORE_KEY = '2048_best_score';
+    static KEY_SOUND  = '2048_sound';
 
     /**
      * 保存当前游戏状态

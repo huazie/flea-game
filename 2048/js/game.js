@@ -60,6 +60,15 @@ class Game2048 {
      */
     setupEventListeners() {
 
+        // 音效开关（状态持久化在 FleaSound）
+        FleaSound.init(GameStorage.KEY_SOUND);
+        this._updateSoundIcon();
+        document.getElementById('sound-button')?.addEventListener('click', () => {
+            FleaSound.toggle();
+            this._updateSoundIcon();
+            if (FleaSound.isEnabled()) FleaSound.swap();  // 开启时给个反馈音
+        });
+
         // 键盘事件
         document.addEventListener('keydown', (e) => {
             if (!this.gameOver) {
@@ -231,17 +240,19 @@ class Game2048 {
         };
 
         let moved = false;
+        let maxMerged = 0; // 本步所有合并中的最大数值
         const rotated = this.rotateGrid(direction);
-        
+
         // 创建一个二维数组来跟踪合并的位置
         const mergedCells = Array(this.size).fill().map(() => Array(this.size).fill(false));
-        
+
         for (let i = 0; i < this.size; i++) {
             const line = rotated[i];
             const merged = this.mergeLine(line);
             rotated[i] = merged.line;
             if (merged.moved) moved = true;
             this.score += merged.score;
+            if (merged.maxMerged > maxMerged) maxMerged = merged.maxMerged;
             
             // 记录这一行中合并的位置
             if (merged.mergedPositions && merged.mergedPositions.length > 0) {
@@ -285,6 +296,9 @@ class Game2048 {
             this.mergedCells = mergedCells; // 保存合并的位置信息
             this.moveHistory.push(previousState);
             this.hasMovedSinceLastAdd = true; // 标记发生了有效移动
+            // 音效：滑动"唰" + 有合并时按数值升调"叮"
+            FleaSound.slide();
+            if (maxMerged > 0) FleaSound.merge(maxMerged);
             return true;
         }
         return false;
@@ -301,6 +315,7 @@ class Game2048 {
         let moved = newLine.length !== line.length;
         // 记录合并的位置
         const mergedPositions = [];
+        let maxMerged = 0; // 本次合并产生的最大数值（音效按数值升调）
 
         for (let i = 0; i < newLine.length - 1; i++) {
             if (newLine[i] === newLine[i + 1]) {
@@ -310,6 +325,7 @@ class Game2048 {
                 moved = true;
                 // 记录这个位置是合并的
                 mergedPositions.push(i);
+                maxMerged = Math.max(maxMerged, newLine[i]);
                 if (newLine[i] === 2048 && !this.won && !this.continueAfterWin) {
                     this.won = true;
                 }
@@ -324,7 +340,8 @@ class Game2048 {
             line: newLine,
             score: score,
             moved: moved,
-            mergedPositions: mergedPositions // 返回合并位置信息
+            mergedPositions: mergedPositions, // 返回合并位置信息
+            maxMerged: maxMerged
         };
     }
 
@@ -420,9 +437,11 @@ class Game2048 {
         // 检查游戏状态
         if (this.won && !this.continueAfterWin) {
             this.showMessage('游戏胜利！', true);
+            FleaSound.win();
         } else if (!this.canMove()) {
             this.gameOver = true;
             this.showMessage('游戏结束！');
+            FleaSound.lose();
         }
         
         // 重置合并单元格和新添加单元格数组，为下一次移动做准备
@@ -536,6 +555,16 @@ class Game2048 {
     continueGame() {
         this.continueAfterWin = true;
         this.hideMessage();
+    }
+
+    /**
+     * 同步音效开关图标
+     */
+    _updateSoundIcon() {
+        const icon = document.querySelector('#sound-button i');
+        if (!icon) return;
+        icon.classList.toggle('fa-volume-high', FleaSound.isEnabled());
+        icon.classList.toggle('fa-volume-xmark', !FleaSound.isEnabled());
     }
 
     /**
