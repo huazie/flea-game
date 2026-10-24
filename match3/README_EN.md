@@ -1,7 +1,7 @@
 # Match 3 Game
 
 <p align="center">
-  <img src="../assets/images/match3.png" alt="Match 3 Game" width="200">
+  <img src="../assets/images/match3.svg" alt="Match 3 Game" width="200">
 </p>
 
 A modern, feature-rich Match 3 puzzle game with special gems, combo systems, level progression, and more. Enjoy a smooth gaming experience on both desktop and mobile devices.
