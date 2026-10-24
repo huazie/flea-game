@@ -390,7 +390,9 @@ class GameController {
         this.addLongPressButtonEvents(downBtn, 'down');
 
         // 防止长按时触发浏览器的默认行为
-        document.querySelectorAll('.dpad-btn, .action-btn').forEach(button => {
+        // （排除开始/暂停钮：它无长按动作，touchstart preventDefault 会抑制 tap 合成的 click，
+        //   与重置钮同属纯点击钮，不拦截触摸默认行为）
+        document.querySelectorAll('.dpad-btn, .action-btn:not(#play-pause-btn)').forEach(button => {
             button.addEventListener('touchstart', (e) => e.preventDefault());
             button.addEventListener('contextmenu', (e) => e.preventDefault());
         });
@@ -625,6 +627,19 @@ class GameController {
     }
 }
 
+// 背景音乐：Korobeiniki（俄罗斯民歌，公有领域，经典俄罗斯方块 BGM）
+// 音符序列 [频率Hz|null(休止), 拍数]，由 FleaSound.bgm 循环调度
+const TETRIS_BGM = [
+    [659.25, 1], [493.88, 0.5], [523.25, 0.5], [587.33, 1], [523.25, 0.5], [493.88, 0.5],
+    [440, 1],    [440, 0.5],    [523.25, 0.5], [659.25, 1], [587.33, 0.5], [523.25, 0.5],
+    [493.88, 1.5], [523.25, 0.5], [587.33, 1], [659.25, 1],
+    [523.25, 1], [440, 1],      [440, 2],
+    [null, 0.5], [587.33, 1],   [698.46, 0.5], [880, 1], [783.99, 0.5], [698.46, 0.5],
+    [659.25, 1.5], [523.25, 0.5], [659.25, 1], [587.33, 0.5], [523.25, 0.5],
+    [493.88, 1], [493.88, 0.5], [523.25, 0.5], [587.33, 1], [659.25, 1],
+    [523.25, 1], [440, 1],      [440, 2]
+];
+
 // 主游戏类
 class TetrisGame {
     constructor() {
@@ -660,6 +675,22 @@ class TetrisGame {
         
         // 初始化游戏控制器
         this.controller = new GameController(this);
+
+        // 音效/背景音乐开关（两个独立开关，状态持久化在 FleaSound）
+        FleaSound.init('tetris_sound', 'tetris_music');
+        this._updateSoundIcons();
+        document.getElementById('sfx-btn')?.addEventListener('click', () => {
+            FleaSound.toggle();
+            this._updateSoundIcons();
+        });
+        document.getElementById('music-btn')?.addEventListener('click', () => {
+            const on = FleaSound.toggleBgm();
+            this._updateSoundIcons();
+            // 游戏进行中开启音乐 → 立即响起；关闭 → 序列器内部自动停止
+            if (on && this.isGameStarted && !this.isPaused && !this.isGameOver) {
+                this._startBgm();
+            }
+        });
         
         // 调整游戏大小以适应窗口
         this.resizeGame(true);
@@ -793,9 +824,30 @@ class TetrisGame {
         // 获取当前选中的难度
         const difficultySelect = document.getElementById('difficulty-select');
         this.gameSpeed = parseInt(difficultySelect.value);
-        
+
         // 重置游戏状态
         this.reset();
+    }
+
+    // ── 音效/背景音乐 ──────────────────────────────────────────
+
+    /** 游戏进行中启动背景音乐（FleaSound.bgm 内部自检音乐开关状态） */
+    _startBgm() {
+        FleaSound.bgm.start(TETRIS_BGM, { beat: 0.28, vol: 0.045 });
+    }
+
+    _stopBgm() {
+        FleaSound.bgm.stop();
+    }
+
+    _updateSoundIcons() {
+        const sfxIcon = document.querySelector('#sfx-btn i');
+        if (sfxIcon) {
+            sfxIcon.classList.toggle('fa-volume-high', FleaSound.isEnabled());
+            sfxIcon.classList.toggle('fa-volume-xmark', !FleaSound.isEnabled());
+        }
+        document.getElementById('sfx-btn')?.classList.toggle('off', !FleaSound.isEnabled());
+        document.getElementById('music-btn')?.classList.toggle('off', !FleaSound.isBgmEnabled());
     }
 
     generateRandomPiece() {
@@ -827,18 +879,20 @@ class TetrisGame {
 
     moveLeft() {
         if (this.isPaused || this.isGameOver || !this.isGameStarted) return;
-        
+
         if (this.board.isValidMove(this.currentPiece, -1, 0)) {
             this.currentPiece.x--;
+            FleaSound.move();
             this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
         }
     }
 
     moveRight() {
         if (this.isPaused || this.isGameOver || !this.isGameStarted) return;
-        
+
         if (this.board.isValidMove(this.currentPiece, 1, 0)) {
             this.currentPiece.x++;
+            FleaSound.move();
             this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
         }
     }
@@ -854,6 +908,7 @@ class TetrisGame {
         
         // 如果发生碰撞，固定当前方块
         const result = this.board.lockPiece(this.currentPiece);
+        FleaSound.lock();
         
         // 检查是否游戏结束
         if (!result) {
@@ -879,6 +934,8 @@ class TetrisGame {
         // 检查旋转后是否发生碰撞，如果是则恢复原始形状
         if (!this.board.isValidMove(this.currentPiece)) {
             this.currentPiece = originalPiece;
+        } else {
+            FleaSound.rotate();
         }
         
         this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
@@ -886,16 +943,17 @@ class TetrisGame {
 
     hardDrop() {
         if (this.isPaused || this.isGameOver || !this.isGameStarted) return;
-        
+
         let dropDistance = 0;
-        
+
         // 计算可以下落的最大距离
         while (this.board.isValidMove(this.currentPiece, 0, dropDistance + 1)) {
             dropDistance++;
         }
-        
+
         // 应用下落
         this.currentPiece.y += dropDistance;
+        FleaSound.drop();
         
         // 更新分数（每个格子2分）
         this.updateScore(dropDistance * 2);
@@ -916,6 +974,7 @@ class TetrisGame {
 
     lockPiece() {
         const result = this.board.lockPiece(this.currentPiece);
+        FleaSound.lock();
         if (!result) {
             this.gameOver();
             return false;
@@ -929,6 +988,7 @@ class TetrisGame {
         if (linesCleared > 0) {
             // 更新已清除的行数
             this.lines += linesCleared;
+            FleaSound.clear(linesCleared);
             
             // 根据清除的行数计算分数
             // 1行=100分，2行=300分，3行=500分，4行=800分
@@ -1065,6 +1125,7 @@ class TetrisGame {
     levelUp() {
         this.level++;
         this.levelElement.textContent = this.level;
+        FleaSound.levelUp();
         
         // 提高游戏速度
         this.gameSpeed = Math.max(100, 1000 - (this.level - 1) * 100);
@@ -1106,6 +1167,7 @@ class TetrisGame {
             // 暂停游戏
             clearInterval(this.gameInterval);
             this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+            this._stopBgm();
             
             // 显示暂停消息
             this.renderer.showPause();
@@ -1117,8 +1179,9 @@ class TetrisGame {
             // 继续游戏
             this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
             this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            this._startBgm();
             this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
-            
+
             this.showNotification('游戏继续', 1500);
         }
     }
@@ -1143,10 +1206,11 @@ class TetrisGame {
                         this.isGameStarted = true;
                         this.isPaused = false;
                         this.isGameOver = false;
-                    
+
                         this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
                         this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                    
+                        this._startBgm();
+
                         this.showNotification('游戏进度已恢复', 2000);
                         return;
                     }
@@ -1163,10 +1227,11 @@ class TetrisGame {
             // 开始游戏循环
             this.isGameStarted = true;
             this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
-        
+            this._startBgm();
+
             // 更新按钮状态
             this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        
+
             // 显示通知
             this.showNotification('游戏开始！', 1500);
         } catch (error) {
@@ -1174,6 +1239,7 @@ class TetrisGame {
             // 确保游戏至少能启动
             this.isGameStarted = true;
             this.gameInterval = setInterval(() => this.moveDown(), this.gameSpeed);
+            this._startBgm();
             this.playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
         }
     }
@@ -1181,6 +1247,8 @@ class TetrisGame {
     gameOver() {
         this.isGameOver = true;
         clearInterval(this.gameInterval);
+        this._stopBgm();
+        FleaSound.lose();
         
         // 更新按钮状态
         this.playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
@@ -1196,6 +1264,7 @@ class TetrisGame {
     reset() {
         // 重置游戏状态
         this.board.reset();
+        this._stopBgm();
         this.score = 0;
         this.level = 1;
         this.lines = 0;

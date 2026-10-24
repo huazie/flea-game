@@ -469,7 +469,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    margin: 0px 20px; 
+    margin: 0px 12px;
 }
 
 .dpad-middle {
@@ -510,26 +510,55 @@ body {
 .action-buttons {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    margin-right: 20px;
+    gap: 12px;
+    margin-right: 12px;
 }
 
+/* 播放/重置/音乐/音效 4 钮单行紧凑排布：
+ * 钮径收小（42px），整行高度与原两钮行相当，控制区不增高 */
 .control-buttons {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    gap: 30px;
-    padding: 15px;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
     background-color: var(--control-panel-bg);
     border-radius: 50px;
     box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.control-buttons .btn {
+    width: 44px;
+    height: 44px;
+}
+
+/* 音乐/音效开关钮：与功能钮（红）区分的青色系，关闭时置灰
+ * （选择器带 .btn 提升优先级，压过 .btn 的深灰蓝渐变） */
+.btn.btn-toggle {
+    background: linear-gradient(145deg, #26c6b9, #00897b);
+}
+
+.btn.btn-toggle.off {
+    background: linear-gradient(145deg, #9e9e9e, #616161);
+    opacity: 0.75;
+}
+
+/* .btn:hover（灰蓝）排在本组之后，同优先级会覆盖上面的青色渐变，需显式声明 hover 态 */
+.btn.btn-toggle:hover {
+    background: linear-gradient(145deg, #2ed3c5, #009184);
+}
+
+.btn.btn-toggle.off:hover {
+    background: linear-gradient(145deg, #a8a8a8, #6e6e6e);
 }
 
 .game-buttons {
     display: flex;
     flex-direction: row;
     justify-content: center;
-    gap: 20px;
+    align-items: center;
+    gap: 14px;
 }
 
 .action-btn {
@@ -577,9 +606,9 @@ body {
     align-items: center;
     justify-content: center;
     padding: 0;
-    background: linear-gradient(145deg, #ff5252, #d32f2f);
+    background: linear-gradient(145deg, #78909c, #455a64);
     color: white;
-    box-shadow: 0 4px 0 #b71c1c, 0 6px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 0 #2e3e46, 0 6px 10px rgba(0, 0, 0, 0.3);
     position: relative;
     overflow: hidden;
     -webkit-tap-highlight-color: transparent;
@@ -603,12 +632,12 @@ body {
 
 .btn:hover {
     transform: translateY(-2px);
-    background: linear-gradient(145deg, #ff6262, #e33f3f);
+    background: linear-gradient(145deg, #8296a2, #4f6472);
 }
 
 .btn:active {
     transform: translateY(2px);
-    box-shadow: 0 2px 0 #b71c1c, 0 3px 5px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 0 #2e3e46, 0 3px 5px rgba(0, 0, 0, 0.3);
 }
 
 .btn:disabled {
@@ -686,6 +715,17 @@ body {
         width: 50px;
         height: 50px;
     }
+
+    /* 控制区 4 钮保持单行：移动端收小（覆盖基础 44px） */
+    .control-buttons {
+        gap: 8px;
+        padding: 6px 8px;
+    }
+
+    .control-buttons .btn {
+        width: 40px;
+        height: 40px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -724,6 +764,17 @@ body {
     .dpad-btn {
         width: 40px;
         height: 40px;
+    }
+
+    /* 窄屏（≤480）三钮胶囊收窄一档，防止与 D-pad 挤压溢出 */
+    .control-buttons .btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    /* A/B 行间距同步收紧：360 宽下 3×45 + D-pad 154 会挤溢出 */
+    .game-buttons {
+        gap: 10px;
     }
 }
 
@@ -773,8 +824,15 @@ body {
     }
 
     .control-buttons {
-        gap: 20px;
-        padding: 8px 15px;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 30px;
+    }
+
+    /* 同优先级覆盖基础 44px，保证窄屏 4 钮单行放得下 */
+    .control-buttons .btn {
+        width: 40px;
+        height: 40px;
     }
 
     .action-btn, .btn {
@@ -785,6 +843,11 @@ body {
     /* 说明字号已缩小到单列可完整容纳，矮视口不再需要两列排布 */
     .controls-hint {
         font-size: 0.52rem;
+    }
+
+    /* 矮视口纵向空间紧张：音乐/音效开关为图标自解释项，隐藏避免说明溢出 */
+    .hint .toggle-hint {
+        display: none;
     }
 }
 
@@ -811,8 +874,13 @@ body {
     }
 
     .control-buttons {
-        padding: 10px;
-        gap: 20px;
+        padding: 6px 10px;
+        gap: 8px;
+    }
+
+    .control-buttons .btn {
+        width: 38px;
+        height: 38px;
     }
 }
 
@@ -918,5 +986,41 @@ body {
     .action-buttons {
         margin-right: 0;
         gap: 12px;
+    }
+}
+/* 极窄屏（<360，如 320px 老设备）：整体再收一档，保证 D-pad + 按钮簇同行放得下
+ * （置于文件末尾：同优先级媒体查询按出现顺序取胜，需压过上方所有尺寸块） */
+@media (max-width: 359px) {
+    .dpad-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .dpad-container {
+        margin: 0 4px;
+        gap: 3px;
+    }
+
+    .action-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .game-buttons {
+        gap: 6px;
+    }
+
+    .control-buttons {
+        gap: 6px;
+        padding: 4px 6px;
+    }
+
+    .control-buttons .btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .action-buttons {
+        margin-right: 6px;
     }
 }
