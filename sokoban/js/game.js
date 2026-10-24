@@ -259,15 +259,19 @@ class SokobanGame {
             if (handled) e.preventDefault();
         });
 
-        // 触摸滑动（棋盘）：在棋盘上轻扫即可控制方向；
+        // 触摸滑动（全页）：在棋盘上或棋盘外的空白区域轻扫均可控制方向；
         // 起点在按钮 / 输入框 / 评论抽屉等交互元素上时不启用，避免误触。
-        // 长关卡时棋盘可滚动：在棋盘上"拖拽"= 平移查看，"原地轻扫"= 移动（二者靠是否触发滚动区分）。
-        // 注意：棋盘**外**区域不跟踪手势、不拦截 touchmove —— 矮屏手机 / 大关卡时
-        // 页面总高可能超过视口，必须允许页面原生滚动查看下方（按钮行 / 说明），
-        // 否则页面被 preventDefault 卡死，出现"游戏下面部分看不到"。
-        let sx = 0, sy = 0, tracking = false, startedOnBoard = false, boardSX = 0, boardSY = 0;
-        const TH = 24;
+        // 方向锁定策略（棋盘外也能玩，同时保住页面滚动能力）：
+        // - 棋盘上：可滚动关卡"拖拽=平移查看、轻扫=移动"（原行为不变）；
+        // - 棋盘外：横向滑动锁定为游戏移动（页面无横向滚动，互不冲突）；
+        //   纵向滑动优先页面原生滚动（矮屏 / 大关卡要查看下方按钮与说明），
+        //   仅当页面本身无纵向溢出（无可滚内容）时纵向也锁定为游戏移动。
+        let sx = 0, sy = 0, tracking = false, startedOnBoard = false, locked = null, boardSX = 0, boardSY = 0;
+        const TH = 24;   // 移动触发阈值
+        const LOCK = 10; // 方向锁定阈值（先于 TH 判定主方向）
         const board = this.$board;
+        const boardScrollable = () => board && (board.scrollWidth > board.clientWidth + 1 || board.scrollHeight > board.clientHeight + 1);
+        const pageScrollable = () => document.documentElement.scrollHeight > window.innerHeight + 1;
         document.addEventListener('touchstart', (e) => {
             const target = e.target;
             if (target && target.closest && target.closest('button, input, select, textarea, a, .flea-comments-drawer, .flea-comments-backdrop, .level-backdrop, .level-panel, .level-fab')) {
@@ -276,33 +280,41 @@ class SokobanGame {
             }
             const t = e.changedTouches[0];
             sx = t.clientX; sy = t.clientY;
-            // 只跟踪棋盘上的手势：棋盘外滑动交给页面原生滚动（滚动页面 / 上下查看），
-            // 不参与游戏移动，也不 preventDefault。
+            locked = null;
             startedOnBoard = !!(board && target && board.contains(target));
-            if (!startedOnBoard) { tracking = false; return; }
             boardSX = board ? board.scrollLeft : 0;
             boardSY = board ? board.scrollTop : 0;
             tracking = true;
         }, { passive: true });
         document.addEventListener('touchmove', (e) => {
             if (!tracking) return;
-            // 棋盘可滚动时交给原生平移查看（不阻止）；棋盘不可滚动时阻止页面滚动，
-            // 保证棋盘上的轻扫=游戏移动不被页面滚动干扰。棋盘外区域从未进入 tracking，页面可自由滚动。
-            if (board && (board.scrollWidth > board.clientWidth + 1 || board.scrollHeight > board.clientHeight + 1)) {
-                return;
+            // 可滚动棋盘上的手势交给原生平移查看（不锁定、不阻止）
+            if (startedOnBoard && boardScrollable()) return;
+            if (!locked) {
+                const t = e.changedTouches[0];
+                const dx = t.clientX - sx, dy = t.clientY - sy;
+                if (Math.abs(dx) >= LOCK && Math.abs(dx) > Math.abs(dy)) {
+                    locked = 'h';
+                } else if (Math.abs(dy) >= LOCK && Math.abs(dy) > Math.abs(dx)) {
+                    locked = 'v';
+                    // 棋盘外的纵向手势：页面有可滚内容时让位给原生滚动，不参与游戏
+                    if (!startedOnBoard && pageScrollable()) { tracking = false; return; }
+                } else {
+                    return;
+                }
             }
             e.preventDefault();
         }, { passive: false });
         document.addEventListener('touchend', (e) => {
             if (!tracking) return;
             tracking = false;
+            const wasOnBoard = startedOnBoard;
+            startedOnBoard = false;
+            locked = null;
             // 起点在棋盘且本次手势触发了滚动(拖拽平移) → 仅查看，不移动
-            if (startedOnBoard && board) {
+            if (wasOnBoard && board) {
                 const scrolled = Math.abs(board.scrollLeft - boardSX) > 4 || Math.abs(board.scrollTop - boardSY) > 4;
-                startedOnBoard = false;
                 if (scrolled) return;
-            } else {
-                startedOnBoard = false;
             }
             const t = e.changedTouches[0];
             const dx = t.clientX - sx;
