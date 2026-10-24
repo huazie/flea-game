@@ -751,7 +751,7 @@ class TetrisGame {
             if (availW <= 0 || availH <= 0) return;
 
             /* 固定 15 列：块大小取「宽 / 15」与「高 / 16」（保底 16 行可容纳）的较小者，
-             * 行数按剩余高度自适应（16~40），方格大小与棋盘高度都贴合实际空间 */
+             * 行数按剩余高度自适应且不设上限（高瘦屏吃满纵向空间，上下留白不超过一个方格） */
             const FIXED_COLS = 15;
             let newBlockSize = Math.floor(Math.min(
                 availW / FIXED_COLS,
@@ -759,7 +759,7 @@ class TetrisGame {
             ));
             newBlockSize = Math.max(6, Math.min(newBlockSize, 40));
             const cols = FIXED_COLS;
-            const rows = Math.max(16, Math.min(Math.floor(availH / newBlockSize), 40));
+            const rows = Math.max(16, Math.floor(availH / newBlockSize));
 
             if (cols !== GAME_CONSTANTS.COLS || rows !== GAME_CONSTANTS.ROWS) {
                 this.applyGridSize(rows, cols);
