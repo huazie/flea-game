@@ -137,6 +137,13 @@ body {
     color: var(--text-accent);
 }
 
+#sound-button {
+    top: 16px;
+    right: 72px;   /* 主题按钮左侧：16 + 44 + 12 */
+    background: var(--bg-card);
+    color: var(--text-accent);
+}
+
 .control-button:hover {
     transform: scale(1.12) translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);

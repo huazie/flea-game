@@ -7,6 +7,7 @@ class GameStorage {
     static KEY_BEST   = 'match3_best';
     static KEY_LEVEL  = 'match3_level';
     static KEY_THEME  = 'match3_theme';
+    static KEY_SOUND  = 'match3_sound';
 
     static saveGame(state) {
         try {
