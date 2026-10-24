@@ -98,11 +98,27 @@ class Match3Game {
         // 重新洗牌
         this.$shuffleBtn?.addEventListener('click', () => this._shuffleBoard());
 
+        // 音效开关（状态持久化在 FleaSound）
+        FleaSound.init(GameStorage.KEY_SOUND);
+        this._updateSoundIcon();
+        document.getElementById('sound-button')?.addEventListener('click', () => {
+            FleaSound.toggle();
+            this._updateSoundIcon();
+            if (FleaSound.isEnabled()) FleaSound.swap();  // 开启时给个反馈音
+        });
+
         // 遮罩按钮
         document.getElementById('retry-btn')?.addEventListener('click', () => this._retry());
         document.getElementById('next-btn')?.addEventListener('click', () => this._nextLevel());
         document.getElementById('new-game-btn')?.addEventListener('click', () => this._restart());
         document.getElementById('restart-btn')?.addEventListener('click', () => this._restart());
+    }
+
+    _updateSoundIcon() {
+        const icon = document.querySelector('#sound-button i');
+        if (!icon) return;
+        icon.classList.toggle('fa-volume-high', FleaSound.isEnabled());
+        icon.classList.toggle('fa-volume-xmark', !FleaSound.isEnabled());
     }
 
     _applyTheme() {
@@ -165,6 +181,7 @@ class Match3Game {
         const scoreEl  = document.getElementById('victory-score');
         if (victoryEl) victoryEl.classList.add('visible');
         if (scoreEl)   scoreEl.textContent = `最终得分: ${this.score.toLocaleString()}`;
+        FleaSound.win();
     }
 
     _hideVictory() {
@@ -646,6 +663,7 @@ class Match3Game {
                         this.board[newR][newC]        = type;
                         this.specialBoard[newR][newC] = newSpec;
                         this._setGemCell(newR, newC, true);
+                        FleaSound.special();
                     }, 400);
                 }
             }
@@ -794,6 +812,10 @@ class Match3Game {
     // ─── 计分 ───────────────────────────────────────────────
 
     _removeAndScore(cells) {
+        // 消除音效：首轮按消除数量变调，连锁沿音阶上行
+        if (this.comboCount >= 2) FleaSound.combo(this.comboCount);
+        else FleaSound.pop(cells.length);
+
         // 计算分数
         const baseScore = cells.length * 20;
         const comboBonus = Math.max(0, this.comboCount - 1) * 50;
@@ -918,6 +940,7 @@ class Match3Game {
         const dc = c2 - c1;
 
         if (invalid) {
+            FleaSound.invalid();
             gem1.classList.add('gem-invalid');
             gem2.classList.add('gem-invalid');
             await this._delay(400);
@@ -927,6 +950,7 @@ class Match3Game {
             this._syncGemStyles(gem1);
             this._syncGemStyles(gem2);
         } else {
+            FleaSound.swap();
             // 交换过渡：回弹曲线（与 .gem 基础 transition 同款）+ 缩放脉冲，保证位移可感知
             // fast：滑动拖拽提交（触发即时性靠阈值提交保证，交换过程必须清晰可见）
             gem1.style.transition = 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -1170,6 +1194,8 @@ class Match3Game {
         const nextBtn = document.getElementById('next-btn');
 
         if (!overlay) return;
+
+        FleaSound[won ? 'win' : 'lose']();
 
         if (title) {
             title.textContent = won ? '🎉 恭喜过关！' : '😢 步数用完';
