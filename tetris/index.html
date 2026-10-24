@@ -51,6 +51,8 @@
                             <p>B 快速落下</p>
                             <p><i class="fas fa-play"></i> 开始/暂停</p>
                             <p><i class="fas fa-redo"></i> 重置</p>
+                            <p class="toggle-hint"><i class="fas fa-music"></i> 音乐开关</p>
+                            <p class="toggle-hint"><i class="fas fa-volume-high"></i> 音效开关</p>
                         </div>
                         <div class="pc-hint">
                             <p>空格键快速落下</p>
@@ -73,12 +75,18 @@
             
             <div class="action-buttons">
                 <div class="game-buttons">
+                    <button id="play-pause-btn" class="action-btn" title="开始/暂停"><i class="fas fa-play"></i></button>
                     <button id="rotate-btn" class="action-btn">A</button>
                     <button id="drop-btn" class="action-btn">B</button>
                 </div>
                 <div class="control-buttons">
-                    <button id="play-pause-btn" class="btn"><i class="fas fa-play"></i></button>
                     <button id="reset-btn" class="btn"><i class="fas fa-redo"></i></button>
+                    <button id="music-btn" class="btn btn-toggle" title="背景音乐">
+                        <i class="fas fa-music"></i>
+                    </button>
+                    <button id="sfx-btn" class="btn btn-toggle" title="音效">
+                        <i class="fas fa-volume-high"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -86,6 +94,7 @@
 
     <script src="../assets/js/common.js"></script>
     <script src="../assets/js/notification.js"></script>
+    <script src="../assets/js/sound.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/game.js"></script>
 
