@@ -163,6 +163,11 @@ window.FleaSound = (function () {
         tone(f * 1.5, 0.12, 'triangle', 0.05, 0.07);
     }
 
+    // ── 贪吃蛇预设 ─────────────────────────────────────────────
+
+    /** 吃食物：短促上滑"啵" */
+    function eat() { tone(500, 0.08, 'sine', 0, 0.12, 780); }
+
     // ── 背景音乐序列器：按 [频率Hz|null(休止), 拍数] 序列循环播放 ──
 
     var bgm = {
@@ -287,6 +292,6 @@ window.FleaSound = (function () {
         jump: jump, point: point, die: die,
         move: move, rotate: rotate, lock: lock, drop: drop,
         clear: clear, levelUp: levelUp,
-        slide: slide, merge: merge
+        slide: slide, merge: merge, eat: eat
     };
 })();

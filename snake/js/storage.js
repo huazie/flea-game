@@ -2,6 +2,7 @@
 class GameStorage {
     static BEST_SCORE_PREFIX = 'snake_best_score_';
     static DIFFICULTY_KEY = 'snake_difficulty';
+    static KEY_SOUND = 'snake_sound';
 
     static getBestScoreKey(difficulty) {
         return this.BEST_SCORE_PREFIX + difficulty;
