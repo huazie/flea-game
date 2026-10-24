@@ -5,8 +5,8 @@ function getThemeVar(name) {
 
 // 游戏常量
 const GAME_CONSTANTS = {
-    COLS: 15,           // 游戏区域宽度（列数）
-    ROWS: 30,           // 游戏区域高度（行数）
+    COLS: 15,           // 游戏区域宽度（列数）——固定 15 列
+    ROWS: 30,           // 游戏区域高度（行数）——随视口自适应，resizeGame 中动态更新
     BLOCK_SIZE: 15,     // 方块大小（像素）
     COLORS: [
         null,
@@ -149,23 +149,31 @@ class Renderer {
     // 调整方块大小和画布尺寸
     resize(newBlockSize) {
         this.blockSize = newBlockSize;
-        
-        // 调整主画布尺寸
-        this.mainCanvas.width = GAME_CONSTANTS.COLS * this.blockSize;
-        this.mainCanvas.height = GAME_CONSTANTS.ROWS * this.blockSize;
-        
+
+        /* 位图尺寸 = 逻辑尺寸 × dpr，配合 setTransform 保证高分屏清晰 */
+        const dpr = window.devicePixelRatio || 1;
+        this.dpr = dpr;
+
+        // 调整主画布尺寸（位图 ×dpr，CSS 尺寸锁逻辑值，显示不缩放）
+        const boardW = GAME_CONSTANTS.COLS * newBlockSize;
+        const boardH = GAME_CONSTANTS.ROWS * newBlockSize;
+        this.mainCanvas.width = boardW * dpr;
+        this.mainCanvas.height = boardH * dpr;
+        this.mainCanvas.style.width = boardW + 'px';
+        this.mainCanvas.style.height = boardH + 'px';
+        this.mainCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
         // 调整预览画布尺寸 - 确保足够大以显示任何方块，但不超过一定大小
         const maxPreviewSize = 150; // 预览区域的最大尺寸
-        const previewBlockSize = this.blockSize * 0.8;
+        const previewBlockSize = newBlockSize * 0.8;
         const previewSize = Math.min(5 * previewBlockSize, maxPreviewSize);
-        
-        // 保持预览区域为正方形
-        this.nextCanvas.width = previewSize;
-        this.nextCanvas.height = previewSize;
-        
-        // 更新预览区域的样式，确保它在视觉上适应新的尺寸
-        this.nextCanvas.style.maxWidth = `${previewSize}px`;
-        this.nextCanvas.style.maxHeight = `${previewSize}px`;
+        this.previewSize = previewSize;
+
+        this.nextCanvas.width = previewSize * dpr;
+        this.nextCanvas.height = previewSize * dpr;
+        this.nextCanvas.style.width = previewSize + 'px';
+        this.nextCanvas.style.height = previewSize + 'px';
+        this.nextCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
     drawBlock(ctx, x, y, colorIndex) {
@@ -188,7 +196,8 @@ class Renderer {
     }
 
     drawBoard(board, currentPiece, isGameOver = false, score = 0) {
-        this.mainCtx.clearRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
+        /* transform 已含 dpr，按逻辑尺寸清屏即可 */
+        this.mainCtx.clearRect(0, 0, GAME_CONSTANTS.COLS * this.blockSize, GAME_CONSTANTS.ROWS * this.blockSize);
         
         // 绘制网格
         this.drawGrid();
@@ -247,7 +256,7 @@ class Renderer {
     }
 
     drawNextPiece(piece) {
-        this.nextCtx.clearRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
+        this.nextCtx.clearRect(0, 0, this.previewSize, this.previewSize);
         
         if (!piece) return;
         
@@ -257,9 +266,9 @@ class Renderer {
         const width = shape[0].length;
         const height = shape.length;
         
-        // 计算居中位置
-        const offsetX = (this.nextCanvas.width - width * previewBlockSize) / 2;
-        const offsetY = (this.nextCanvas.height - height * previewBlockSize) / 2;
+        // 计算居中位置（注意 transform 含 dpr，必须用逻辑尺寸 previewSize）
+        const offsetX = (this.previewSize - width * previewBlockSize) / 2;
+        const offsetY = (this.previewSize - height * previewBlockSize) / 2;
         
         // 绘制方块
         for (let y = 0; y < shape.length; y++) {
@@ -285,28 +294,32 @@ class Renderer {
 
     showGameOver(score) {
         this.mainCtx.fillStyle = getThemeVar('--game-over-overlay') || 'rgba(0, 0, 0, 0.7)';
-        this.mainCtx.fillRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
+        this.mainCtx.fillRect(0, 0, GAME_CONSTANTS.COLS * this.blockSize, GAME_CONSTANTS.ROWS * this.blockSize);
         
         this.mainCtx.font = 'bold 36px Arial';
         this.mainCtx.fillStyle = getThemeVar('--game-over-text') || '#ffffff';
         this.mainCtx.textAlign = 'center';
         this.mainCtx.textBaseline = 'middle';
-        this.mainCtx.fillText('游戏结束', this.mainCanvas.width / 2, this.mainCanvas.height / 2 - 30);
-        
+        /* transform 含 dpr，居中坐标必须用逻辑尺寸（canvas.width 是设备像素） */
+        const overW = GAME_CONSTANTS.COLS * this.blockSize;
+        const overH = GAME_CONSTANTS.ROWS * this.blockSize;
+        this.mainCtx.fillText('游戏结束', overW / 2, overH / 2 - 30);
+
         this.mainCtx.font = '24px Arial';
         this.mainCtx.fillStyle = getThemeVar('--game-over-text') || '#ffffff';
-        this.mainCtx.fillText(`最终分数: ${score}`, this.mainCanvas.width / 2, this.mainCanvas.height / 2 + 20);
+        this.mainCtx.fillText(`最终分数: ${score}`, overW / 2, overH / 2 + 20);
     }
 
     showPause() {
         this.mainCtx.fillStyle = getThemeVar('--pause-overlay') || 'rgba(0, 0, 0, 0.5)';
-        this.mainCtx.fillRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
+        this.mainCtx.fillRect(0, 0, GAME_CONSTANTS.COLS * this.blockSize, GAME_CONSTANTS.ROWS * this.blockSize);
         
         this.mainCtx.font = 'bold 36px Arial';
         this.mainCtx.fillStyle = getThemeVar('--game-over-text') || '#ffffff';
         this.mainCtx.textAlign = 'center';
         this.mainCtx.textBaseline = 'middle';
-        this.mainCtx.fillText('已暂停', this.mainCanvas.width / 2, this.mainCanvas.height / 2);
+        this.mainCtx.fillText('已暂停', (GAME_CONSTANTS.COLS * this.blockSize) / 2,
+            (GAME_CONSTANTS.ROWS * this.blockSize) / 2);
     }
 }
 
@@ -649,72 +662,131 @@ class TetrisGame {
         this.controller = new GameController(this);
         
         // 调整游戏大小以适应窗口
-        this.resizeGame();
-        
+        this.resizeGame(true);
+
+        // 容器尺寸变化不一定触发 window resize（如移动端地址栏收放、
+        // flex 收缩），用 ResizeObserver 兜底重算
+        if (typeof ResizeObserver !== 'undefined') {
+            const layoutTarget = document.querySelector('.game-container');
+            if (layoutTarget) {
+                this._boardRO = new ResizeObserver(() => this.resizeGame());
+                this._boardRO.observe(layoutTarget);
+            }
+        }
+
         // 添加窗口大小变化事件监听器
         window.addEventListener('resize', () => {
             this.resizeGame();
-            // 重新绘制游戏
-            this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
-            this.renderer.drawNextPiece(this.nextPiece);
         });
-        
+
         // 初始化游戏
         this.init();
     }
-    
-    // 调整游戏大小以适应窗口
-    resizeGame() {
+
+    // 调整游戏大小以适应棋盘容器；immediate=true 时跳过防抖立即执行
+    resizeGame(immediate) {
         // 防抖处理
         if (this.resizeTimeout) {
             clearTimeout(this.resizeTimeout);
         }
-        
-        this.resizeTimeout = setTimeout(() => {
-            // 获取游戏容器和其他UI元素
-            const gameContainer = document.querySelector('.game-container');
-            const controlsContainer = document.querySelector('.controls-container');
-            const containerStyle = window.getComputedStyle(gameContainer);
-            
-            // 计算容器的内边距
-            const paddingVertical = parseFloat(containerStyle.paddingTop) + parseFloat(containerStyle.paddingBottom);
-            const paddingHorizontal = parseFloat(containerStyle.paddingLeft) + parseFloat(containerStyle.paddingRight);
-            
-            // 计算控制区域的高度
-            const controlsHeight = controlsContainer ? controlsContainer.offsetHeight : 150;
-            
-            // 计算可用空间
-            const minWidth = 280; // 最小游戏区域宽度
-            const maxWidth = 500; // 最大游戏区域宽度
-            const availableHeight = window.innerHeight - paddingVertical - controlsHeight - 20; // 额外留出20px的间距
-            const availableWidth = Math.min(Math.max(window.innerWidth - paddingHorizontal, minWidth), maxWidth);
-            
-            // 计算基于宽高比的方块大小
-            const heightBasedSize = Math.floor(availableHeight / GAME_CONSTANTS.ROWS);
-            const widthBasedSize = Math.floor(availableWidth / GAME_CONSTANTS.COLS);
-            
-            // 选择较小的尺寸以确保完全适应
-            let newBlockSize = Math.min(heightBasedSize, widthBasedSize);
-            
-            // 根据设备类型设置不同的大小限制
-            const isMobile = window.innerWidth <= 768;
-            const minBlockSize = isMobile ? 12 : 15;
-            const maxBlockSize = isMobile ? 30 : 40;
-            
-            // 应用大小限制
-            newBlockSize = Math.max(minBlockSize, Math.min(newBlockSize, maxBlockSize));
-            
+
+        const run = () => {
+            /* 量 .game-display（宽高由外层布局固定、不随 canvas 变化，无震荡）：
+             * 说明面板固定占 1/3 宽，棋盘吃剩余；列数固定 15，
+             * 方格大小与行数随可用区域自适应，两个方向留白都不超过一个方格 */
+            const display = document.querySelector('.game-display');
+            if (!display) return;
+
+            const cs = window.getComputedStyle(display);
+            const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+            const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+            const INFO_BAR_H = 96;   // 与 CSS 竖屏高瘦屏 .game-info-panel flex-basis 同步
+            const LAYOUT_GAP = 10;   // 与 CSS .game-display gap 同步
+
+            /* 竖屏高瘦屏（媒体查询分支）：面板在棋盘下方成横条，棋盘吃满宽度；
+             * 其余场景：面板在右侧固定占 1/3（与 CSS flex-basis 33.33% 同步） */
+            const stacked = window.matchMedia(
+                '(orientation: portrait) and (min-height: 760px)').matches;
+            let availW, availH;
+            if (stacked) {
+                availW = display.clientWidth - padX;
+                availH = display.clientHeight - padY - INFO_BAR_H - LAYOUT_GAP;
+            } else {
+                const innerW = display.clientWidth - padX;
+                const panelW = Math.round(innerW / 3);
+                availW = innerW - LAYOUT_GAP - panelW;
+                availH = display.clientHeight - padY;
+            }
+            if (availW <= 0 || availH <= 0) return;
+
+            /* 固定 15 列：块大小取「宽 / 15」与「高 / 16」（保底 16 行可容纳）的较小者，
+             * 行数按剩余高度自适应（16~40），方格大小与棋盘高度都贴合实际空间 */
+            const FIXED_COLS = 15;
+            let newBlockSize = Math.floor(Math.min(
+                availW / FIXED_COLS,
+                availH / 16
+            ));
+            newBlockSize = Math.max(6, Math.min(newBlockSize, 40));
+            const cols = FIXED_COLS;
+            const rows = Math.max(16, Math.min(Math.floor(availH / newBlockSize), 40));
+
+            if (cols !== GAME_CONSTANTS.COLS || rows !== GAME_CONSTANTS.ROWS) {
+                this.applyGridSize(rows, cols);
+            }
+
             // 调整渲染器的方块大小和画布尺寸
             this.renderer.resize(newBlockSize);
-            
+
             // 重新绘制游戏画面
-            if (this.board && this.currentPiece) {
-                this.renderer.drawBoard(this.board, this.currentPiece);
+            if (this.board) {
+                this.renderer.drawBoard(this.board, this.currentPiece, this.isGameOver, this.score);
                 if (this.nextPiece) {
                     this.renderer.drawNextPiece(this.nextPiece);
                 }
             }
-        }, 150); // 150ms的防抖延迟
+        };
+
+        if (immediate) {
+            run();
+        } else {
+            this.resizeTimeout = setTimeout(run, 100); // 100ms的防抖延迟
+        }
+    }
+
+    // 网格尺寸自适应：更新常量并重建棋盘，重叠区域保留已固定的格子
+    applyGridSize(rows, cols) {
+        GAME_CONSTANTS.COLS = cols;
+        GAME_CONSTANTS.ROWS = rows;
+
+        const old = this.board;
+        this.board = new Board(rows, cols);
+        if (old) {
+            const minR = Math.min(old.rows, rows);
+            const minC = Math.min(old.cols, cols);
+            for (let y = 0; y < minR; y++) {
+                for (let x = 0; x < minC; x++) {
+                    this.board.grid[y][x] = old.grid[y][x];
+                }
+            }
+        }
+
+        // 当前方块安置：x 钳制进新边界，非法时逐格上移找空位，
+        // 实在放不下（堆到顶）则判游戏结束
+        if (this.currentPiece) {
+            const shapeW = this.currentPiece.shape[0].length;
+            this.currentPiece.x = Math.max(0, Math.min(this.currentPiece.x, cols - shapeW));
+            let tries = rows + 4;
+            while (!this.board.isValidMove(this.currentPiece) && tries-- > 0) {
+                this.currentPiece.y--;
+            }
+            if (!this.board.isValidMove(this.currentPiece)) {
+                this.currentPiece.x = Math.floor(cols / 2) - 1;
+                this.currentPiece.y = 0;
+                if (!this.board.isValidMove(this.currentPiece)) {
+                    this.gameOver();
+                }
+            }
+        }
     }
 
     init() {
@@ -940,8 +1012,16 @@ class TetrisGame {
         if (!gameState) return false;
         
         try {
+            // 存档网格尺寸与当前网格不一致（窗口/设备变了）则放弃恢复
+            const saved = gameState.board;
+            if (!Array.isArray(saved) || saved.length !== this.board.rows
+                || !Array.isArray(saved[0]) || saved[0].length !== this.board.cols) {
+                console.warn('存档网格尺寸与当前不一致，放弃恢复');
+                return false;
+            }
+
             // 恢复游戏板状态
-            this.board.grid = gameState.board;
+            this.board.grid = saved;
             
             // 恢复游戏状态
             this.score = gameState.score;
@@ -1151,6 +1231,7 @@ class TetrisGame {
 document.addEventListener('DOMContentLoaded', () => {
     // 创建游戏实例
     const game = new TetrisGame();
+    window.game = game; // 暴露到 window，便于调试与自动化测试
     
     // 主题切换功能
     document.getElementById('theme-button').addEventListener('click', () => {
