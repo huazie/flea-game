@@ -1,7 +1,7 @@
 /* Toast通知样式 */
 .toast-container {
     position: fixed;
-    top: 20px;
+    top: 72px;      /* 右上角控制按钮行（top:20 + 40 高 + 12 间距）下方，避免盖住主题/音效按钮 */
     right: 20px;
     z-index: 9999;
     display: flex;
