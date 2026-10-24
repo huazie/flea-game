@@ -85,6 +85,8 @@ class Match3Game {
             this._handleClick(r, c);
         });
 
+        this._bindSwipeEvents();
+
         // 返回
         document.getElementById('back-button')?.addEventListener('click', () => {
             window.location.href = '../index.html';
@@ -227,6 +229,198 @@ class Match3Game {
 
     // ─── 点击处理 ───────────────────────────────────────────────
 
+    /** 滑动交换（触屏）：宝石跟随手指拖动，越过阈值即时提交交换（不等松手），
+     *  未达阈值松手则弹回。用 Pointer Events 实现：touch 事件流目标锁定在起始
+     *  元素上，动画重建宝石后该元素游离会导致触摸事件不再冒泡到棋盘（拖动失效）；
+     *  pointer 事件按命中重定目标 + setPointerCapture，元素重建无影响。 */
+    _bindSwipeEvents() {
+        const COMMIT_RATIO = 0.25;  // 位移超过格宽 25% 提交交换（越低越跟手）
+        const TAP_SLOP = 8;         // 位移小于 8px 视为点击
+        let drag = null;            // { id, row, col, gem, startX, startY, size, committed }
+        let suppressClick = false;  // 拖动后抑制合成 click，避免误触发点选
+
+        this.$board.addEventListener('pointerdown', e => {
+            if (e.pointerType === 'mouse') return;  // 鼠标仍走点选
+            if (drag) return;                       // 已有手势进行中
+            suppressClick = false;                  // 新手势复位，防止残留吞掉合法 click
+            const cellEl = e.target.closest('.grid-cell');
+            if (!cellEl) return;
+            drag = {
+                id: e.pointerId,
+                row: +cellEl.dataset.row,
+                col: +cellEl.dataset.col,
+                gem: null,  // 惰性获取：起始宝石可能被动画重建
+                startX: e.clientX,
+                startY: e.clientY,
+                size: cellEl.getBoundingClientRect().width,
+                committed: false,
+                axis: null,  // 方向锁定：'x' | 'y'
+                dx: 0, dy: 0,
+                raf: 0,
+            };
+            try { this.$board.setPointerCapture(e.pointerId); } catch (_) { /* 忽略 */ }
+        });
+
+        // 拖动跟随 + 越过阈值即时提交（不等松手，消除松手延迟）
+        // 丝滑三要素：① rAF 合帧渲染（事件频率 > 刷新率时避免掉帧）
+        //            ② will-change + translate3d 提升合成层（宝石有多重阴影，避免每帧重绘）
+        //            ③ 方向锁定（避免对角拖动时主导轴来回跳变）
+        this.$board.addEventListener('pointermove', e => {
+            if (!drag || drag.committed || e.pointerId !== drag.id) return;
+            if (this.isAnimating || this.gameEnded) return;  // 动画中不跟随，手势保留
+            const rawDx = e.clientX - drag.startX;
+            const rawDy = e.clientY - drag.startY;
+
+            // 主导轴位移越过阈值 → 立即提交交换
+            if (Math.max(Math.abs(rawDx), Math.abs(rawDy)) >= drag.size * COMMIT_RATIO) {
+                const d = drag;
+                drag = null;
+                this._commitSwipe(d, rawDx, rawDy);
+                return;
+            }
+
+            // 方向锁定：一旦主导轴确定就不再切换
+            if (!drag.axis && (Math.abs(rawDx) > 3 || Math.abs(rawDy) > 3))
+                drag.axis = Math.abs(rawDx) >= Math.abs(rawDy) ? 'x' : 'y';
+
+            // 只保留锁定轴，并钳制在一格内
+            let dx = drag.axis === 'y' ? 0 : rawDx;
+            let dy = drag.axis === 'x' ? 0 : rawDy;
+            dx = Math.max(-drag.size, Math.min(drag.size, dx));
+            dy = Math.max(-drag.size, Math.min(drag.size, dy));
+            drag.dx = dx;
+            drag.dy = dy;
+
+            // rAF 合帧：一帧最多写一次样式
+            if (!drag.raf) {
+                const d = drag;
+                d.raf = requestAnimationFrame(() => {
+                    d.raf = 0;
+                    if (drag !== d || d.committed) return;
+                    if (!d.gem) {
+                        const cellEl = this._getCell(d.row, d.col);
+                        d.gem = cellEl ? cellEl.querySelector('.gem') : null;
+                    }
+                    if (d.gem) {
+                        d.gem.style.transition = 'none';
+                        d.gem.style.zIndex = 2;
+                        d.gem.style.willChange = 'transform';
+                        d.gem.style.transform =
+                            `translate3d(${d.dx || 0}px, ${d.dy || 0}px, 0)`;
+                    }
+                });
+            }
+        });
+
+        // 弹回原位
+        const resetGem = (gem, instant = false) => {
+            if (!gem) return;
+            gem.style.willChange = '';
+            if (instant) {
+                gem.style.transition = '';
+                gem.style.transform = '';
+                gem.style.zIndex = '';
+                return;
+            }
+            gem.style.transition = 'transform 0.15s ease-out';
+            gem.style.transform = 'translate(0, 0)';
+            setTimeout(() => {
+                if (drag && drag.gem === gem) return;  // 已开始新的拖动，勿清理
+                gem.style.transition = '';
+                gem.style.transform = '';
+                gem.style.zIndex = '';
+            }, 160);
+        };
+
+        // 取消挂起的跟随渲染帧
+        const cancelFollowRaf = d => {
+            if (d && d.raf) { cancelAnimationFrame(d.raf); d.raf = 0; }
+        };
+
+        // 提交换：主导轴定方向，fast 节奏吸附（拖动中已见位移，无需慢过渡）
+        this._commitSwipe = (d, rawDx, rawDy) => {
+            d.committed = true;
+            cancelFollowRaf(d);
+            suppressClick = true;
+
+            const absX = Math.abs(rawDx), absY = Math.abs(rawDy);
+            let tr = d.row, tc = d.col;
+            if (absX >= absY) tc += rawDx > 0 ? 1 : -1;
+            else              tr += rawDy > 0 ? 1 : -1;
+
+            // 目标格越界（边框向外滑）：不交换，宝石弹回原位
+            if (tr < 0 || tr >= this.size || tc < 0 || tc >= this.size) {
+                resetGem(d.gem);
+                return;
+            }
+
+            // 清除已有点选状态
+            if (this.selectedCell) {
+                this._highlightCell(this.selectedCell.row, this.selectedCell.col, false);
+                this.selectedCell = null;
+            }
+
+            // 宝石从当前位置吸附到目标格（与 _animateSwap 同参数，无缝衔接）
+            if (d.gem) {
+                d.gem.style.transition = 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                d.gem.style.transform =
+                    `translate(${(tc - d.col) * 100}%, ${(tr - d.row) * 100}%)`;
+            }
+            this._doSwap(d.row, d.col, tr, tc, true);
+        };
+
+        const finish = (e, cancelled) => {
+            if (!drag || drag.committed || e.pointerId !== drag.id) return;
+            const d = drag;
+            drag = null;
+            cancelFollowRaf(d);
+            const rawDx = e.clientX - d.startX;
+            const rawDy = e.clientY - d.startY;
+            const moved = Math.max(Math.abs(rawDx), Math.abs(rawDy));
+
+            // 取消或动画中松手：还原
+            if (cancelled || this.isAnimating || this.gameEnded) {
+                resetGem(d.gem, true);
+                return;
+            }
+
+            // 点击（位移很小）：直接走点选逻辑。
+            // pointerdown 时 setPointerCapture 会把合成 click 重定向到棋盘，
+            // 导致 click 点选失效，故此处自行调用并抑制合成 click。
+            if (moved < TAP_SLOP) {
+                resetGem(d.gem, true);
+                suppressClick = true;
+                this._handleClick(d.row, d.col);
+                return;
+            }
+
+            // 释放时达到阈值（快速轻扫可能跳过 pointermove）：提交
+            if (moved >= d.size * COMMIT_RATIO) {
+                this._commitSwipe(d, rawDx, rawDy);
+                return;
+            }
+
+            resetGem(d.gem);  // 未达阈值：弹回
+        };
+
+        this.$board.addEventListener('pointerup', e => finish(e, false));
+        this.$board.addEventListener('pointercancel', e => finish(e, true));
+
+        // touch 流仅用于抑制浏览器默认行为（拖动时防滚动；pointerup 先于 touchend，
+        // 拖动/弹回后 preventDefault 掉合成 click；接近原点的触摸保留 click 供点选）
+        this.$board.addEventListener('touchmove', e => {
+            const t = e.touches[0];
+            if (t && Math.hypot(t.clientX - (drag ? drag.startX : t.clientX),
+                                t.clientY - (drag ? drag.startY : t.clientY)) >= TAP_SLOP)
+                e.preventDefault();
+        }, { passive: false });
+        this.$board.addEventListener('touchend', e => {
+            if (suppressClick) { suppressClick = false; e.preventDefault(); }
+        });
+        // 长按会触发上下文菜单并取消触摸流，导致拖动失效（慢启动拖动尤甚）
+        this.$board.addEventListener('contextmenu', e => e.preventDefault());
+    }
+
     _handleClick(row, col) {
         if (!this.selectedCell) {
             this.selectedCell = { row, col };
@@ -263,7 +457,7 @@ class Match3Game {
 
     // ─── 交换逻辑 ───────────────────────────────────────────────
 
-    async _doSwap(r1, c1, r2, c2) {
+    async _doSwap(r1, c1, r2, c2, fast = false) {
         this.isAnimating = true;
         this._clearHint();
 
@@ -272,9 +466,9 @@ class Match3Game {
 
         // ★ 两个特殊宝石交换 → 直接触发双方效果
         if (spec1 !== SPECIAL.NONE && spec2 !== SPECIAL.NONE) {
-            await this._animateSwap(r1, c1, r2, c2);
+            await this._animateSwap(r1, c1, r2, c2, false, fast);
             this._swapData(r1, c1, r2, c2);
-            this._render();
+            this._swapDomGems(r1, c1, r2, c2);
 
             const toRemove = new Set();
             // 触发 gem1 的特殊效果（使用交换后的位置）
@@ -313,9 +507,9 @@ class Match3Game {
             // 对方宝石类型（交换前读取）
             const targetType = isRainbowFirst ? this.board[r2][c2] : this.board[r1][c1];
 
-            await this._animateSwap(r1, c1, r2, c2);
+            await this._animateSwap(r1, c1, r2, c2, false, fast);
             this._swapData(r1, c1, r2, c2);
-            this._render();
+            this._swapDomGems(r1, c1, r2, c2);
 
             // 交换后彩虹宝石的新位置
             const rainbowR = isRainbowFirst ? r2 : r1;
@@ -352,17 +546,19 @@ class Match3Game {
 
         // 普通交换逻辑
         this._swapData(r1, c1, r2, c2);
-        await this._animateSwap(r1, c1, r2, c2);
+        await this._animateSwap(r1, c1, r2, c2, false, fast);
 
         const matches = this._findMatches();
 
         if (matches.length === 0) {
-            // 无匹配，撤销
+            // 无匹配，撤销（元素未换位，抖动结束由 _animateSwap 清样式）
             this._swapData(r1, c1, r2, c2);
-            await this._animateSwap(r1, c1, r2, c2, true);
+            await this._animateSwap(r1, c1, r2, c2, true, fast);
             this.isAnimating = false;
             return;
         }
+
+        this._swapDomGems(r1, c1, r2, c2);  // 移动 DOM 节点落位（不再全量重建）
 
         // 消耗步数
         this.movesLeft--;
@@ -630,7 +826,8 @@ class Match3Game {
     // ─── 下落与填充 ───────────────────────────────────────────────
 
     async _dropAndFill() {
-        // 逐列下落
+        // 逐列下落（数据层），同时记录 DOM 移动计划
+        const moves = [];  // { c, fromR, toR }  fromR === -1 表示新宝石
         for (let c = 0; c < this.size; c++) {
             let writeRow = this.size - 1;
             for (let r = this.size - 1; r >= 0; r--) {
@@ -640,6 +837,7 @@ class Match3Game {
                         this.specialBoard[writeRow][c] = this.specialBoard[r][c];
                         this.board[r][c]        = -1;
                         this.specialBoard[r][c] = SPECIAL.NONE;
+                        moves.push({ c, fromR: r, toR: writeRow });
                     }
                     writeRow--;
                 }
@@ -648,17 +846,67 @@ class Match3Game {
             for (let r = writeRow; r >= 0; r--) {
                 this.board[r][c]        = Math.floor(Math.random() * GEM_TYPES.length);
                 this.specialBoard[r][c] = SPECIAL.NONE;
+                moves.push({ c, fromR: -1, toR: r });
             }
         }
 
-        // 渲染下落动画
-        this._render(true);
+        if (moves.length === 0) return;
+
+        // DOM 层：增量更新（只动受影响的宝石，不重建整个棋盘）
+        this.$board.querySelectorAll('.gem-removing').forEach(g => g.remove());
+
+        const animated = [];
+        for (const m of moves) {
+            const targetCell = this._getCell(m.toR, m.c);
+            if (!targetCell) continue;
+            let gem;
+            if (m.fromR === -1) {
+                // 新宝石：创建后从棋盘上方落入
+                gem = this._buildGem(m.toR, m.c);
+                targetCell.appendChild(gem);
+                gem.style.transition = 'none';
+                gem.style.transform  = `translateY(${-(m.toR + 1) * 110}%)`;
+            } else {
+                // 已有宝石：移动节点到目标格，从原位落下
+                const srcCell = this._getCell(m.fromR, m.c);
+                gem = srcCell?.querySelector('.gem');
+                if (!gem) continue;
+                targetCell.appendChild(gem);
+                gem.style.transition = 'none';
+                gem.style.transform  = `translateY(${(m.fromR - m.toR) * 100}%)`;
+            }
+            animated.push(gem);
+        }
+
+        // 强制回流后统一开 transition，一波落体动画
+        void this.$board.offsetHeight;
+        for (const gem of animated) {
+            gem.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            gem.style.transform  = 'translateY(0)';
+        }
+
         await this._delay(380);
+
+        for (const gem of animated) this._syncGemStyles(gem);
+    }
+
+    /** 按棋盘数据构造宝石元素（不含定位动画） */
+    _buildGem(row, col) {
+        const type = this.board[row][col];
+        const spec = this.specialBoard[row][col] ?? SPECIAL.NONE;
+        const gem = document.createElement('div');
+        gem.className = `gem gem-${GEM_TYPES[type].id}`;
+        if (spec === SPECIAL.STRIPED_H) gem.classList.add('striped-h');
+        else if (spec === SPECIAL.STRIPED_V) gem.classList.add('striped-v');
+        else if (spec === SPECIAL.BOMB) gem.classList.add('bomb');
+        else if (spec === SPECIAL.RAINBOW) gem.classList.add('rainbow');
+        gem.textContent = (spec === SPECIAL.BOMB) ? '💥' : GEM_TYPES[type].emoji;
+        return gem;
     }
 
     // ─── 动画 ───────────────────────────────────────────────
 
-    async _animateSwap(r1, c1, r2, c2, invalid = false) {
+    async _animateSwap(r1, c1, r2, c2, invalid = false, fast = false) {
         const cell1 = this._getCell(r1, c1);
         const cell2 = this._getCell(r2, c2);
         const gem1  = cell1?.querySelector('.gem');
@@ -675,15 +923,42 @@ class Match3Game {
             await this._delay(400);
             gem1.classList.remove('gem-invalid');
             gem2.classList.remove('gem-invalid');
+            // 清掉滑动残留的吸附 transform（抖动结束后宝石回原位）
+            this._syncGemStyles(gem1);
+            this._syncGemStyles(gem2);
         } else {
-            gem1.style.transition = 'transform 0.18s ease-in-out';
-            gem2.style.transition = 'transform 0.18s ease-in-out';
-            gem1.style.transform  = `translate(${dc * 100}%, ${dr * 100}%)`;
-            gem2.style.transform  = `translate(${-dc * 100}%, ${-dr * 100}%)`;
-            await this._delay(190);
+            // 交换过渡：回弹曲线（与 .gem 基础 transition 同款）+ 缩放脉冲，保证位移可感知
+            // fast：滑动拖拽提交（触发即时性靠阈值提交保证，交换过程必须清晰可见）
+            gem1.style.transition = 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            gem2.style.transition = 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            gem1.style.transform  = `translate(${dc * 100}%, ${dr * 100}%) scale(1.12)`;
+            gem2.style.transform  = `translate(${-dc * 100}%, ${-dr * 100}%) scale(1.12)`;
+            await this._delay(fast ? 185 : 190);
         }
+        // 不再全量 _render：调用方用 _swapDomGems 移动节点落位
+    }
 
-        this._render();
+    /** 清除宝石上的拖拽/吸附行内样式 */
+    _syncGemStyles(gem) {
+        if (!gem) return;
+        gem.style.transition = '';
+        gem.style.transform  = '';
+        gem.style.zIndex     = '';
+        gem.style.willChange = '';
+    }
+
+    /** 交换完成后移动 DOM 节点到各自新格（零重建，替代全量 _render） */
+    _swapDomGems(r1, c1, r2, c2) {
+        const cell1 = this._getCell(r1, c1);
+        const cell2 = this._getCell(r2, c2);
+        const gem1  = cell1?.querySelector('.gem');
+        const gem2  = cell2?.querySelector('.gem');
+        if (!gem1 || !gem2) return;
+
+        cell2.appendChild(gem1);  // 移动节点（不重建）
+        cell1.appendChild(gem2);
+        this._syncGemStyles(gem1);
+        this._syncGemStyles(gem2);
     }
 
     async _animateMatches(matches) {
@@ -832,27 +1107,14 @@ class Match3Game {
         const cell = this._getCell(row, col);
         if (!cell) return;
 
-        const type = this.board[row][col];
-        const spec = this.specialBoard[row][col] ?? SPECIAL.NONE;
-
         // 清除旧宝石
         const oldGem = cell.querySelector('.gem');
         if (oldGem) cell.removeChild(oldGem);
 
-        if (type === -1) return; // 空位
+        if (this.board[row][col] === -1) return; // 空位
 
-        const gem = document.createElement('div');
-        gem.className = `gem gem-${GEM_TYPES[type].id}`;
-
-        if (spec === SPECIAL.STRIPED_H) gem.classList.add('striped-h');
-        else if (spec === SPECIAL.STRIPED_V) gem.classList.add('striped-v');
-        else if (spec === SPECIAL.BOMB) gem.classList.add('bomb');
-        else if (spec === SPECIAL.RAINBOW) gem.classList.add('rainbow');
-
-        gem.textContent = (spec === SPECIAL.BOMB) ? '💥' : GEM_TYPES[type].emoji;
-
+        const gem = this._buildGem(row, col);
         if (animate) gem.classList.add('gem-new');
-
         cell.appendChild(gem);
     }
 

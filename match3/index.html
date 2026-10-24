@@ -25,47 +25,50 @@
     <!-- 游戏主体 -->
     <div class="game-wrapper">
 
-        <!-- 顶部状态栏 -->
-        <div class="top-bar">
-            <div class="game-title">消消乐</div>
-            <div class="stat-group">
-                <div class="stat-box">
-                    <div class="stat-label">分数</div>
-                    <div class="stat-value" id="score">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">最高</div>
-                    <div class="stat-value" id="best-score">0</div>
+        <!-- HUD 面板（竖屏在上、横屏在左） -->
+        <div class="hud-panel">
+            <!-- 顶部状态栏 -->
+            <div class="top-bar">
+                <div class="game-title">消消乐</div>
+                <div class="stat-group">
+                    <div class="stat-box">
+                        <div class="stat-label">分数</div>
+                        <div class="stat-value" id="score">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">最高</div>
+                        <div class="stat-value" id="best-score">0</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 关卡信息栏 -->
-        <div class="level-bar">
-            <div class="level-info">
-                <span class="level-badge" id="level-num">1</span>
-                <span class="level-desc">关卡目标: <strong id="target-score">1,000</strong></span>
-            </div>
-            <div class="moves-info">
-                <span class="moves-icon">👣</span>
-                <div>
-                    <div class="moves-count" id="moves-count">25</div>
-                    <div class="moves-label">剩余步数</div>
+            <!-- 关卡信息栏 -->
+            <div class="level-bar">
+                <div class="level-info">
+                    <span class="level-badge" id="level-num">1</span>
+                    <span class="level-desc">关卡目标: <strong id="target-score">1,000</strong></span>
+                </div>
+                <div class="moves-info">
+                    <span class="moves-icon">👣</span>
+                    <div>
+                        <div class="moves-count" id="moves-count">25</div>
+                        <div class="moves-label">剩余步数</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- 道具栏 -->
-        <div class="power-bar">
-            <button class="power-btn" id="hint-btn" title="显示提示">
-                <span>💡</span> 提示 <span class="count">3</span>
-            </button>
-            <button class="power-btn" id="shuffle-btn" title="重新洗牌">
-                <span>🔀</span> 洗牌 <span class="count">1</span>
-            </button>
-            <button class="power-btn" id="new-game-btn">
-                <span class="emoji">🎮</span> 新游戏
-            </button>
+            <!-- 道具栏 -->
+            <div class="power-bar">
+                <button class="power-btn" id="hint-btn" title="显示提示">
+                    <span>💡</span> 提示 <span class="count">3</span>
+                </button>
+                <button class="power-btn" id="shuffle-btn" title="重新洗牌">
+                    <span>🔀</span> 洗牌 <span class="count">1</span>
+                </button>
+                <button class="power-btn" id="new-game-btn">
+                    <span class="emoji">🎮</span> 新游戏
+                </button>
+            </div>
         </div>
 
         <!-- 游戏棋盘 -->
