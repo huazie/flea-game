@@ -185,6 +185,13 @@ html, body {
     overflow: hidden;
 }
 
+/* 移动端地址栏收放：支持 dvh 时用动态视口高，避免底部被遮挡 */
+@supports (height: 100dvh) {
+    html, body {
+        height: 100dvh;
+    }
+}
+
 body {
     font-family: 'Arial', sans-serif;
     background-color: var(--bg-color);
@@ -192,12 +199,15 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 10px;
     transition: background-color 0.3s ease;
 }
 
 .game-container {
     width: 100%;
     max-width: 450px;
+    height: 100%;       /* 撑满 body 内容区，flex:1 的屏幕才有"剩余空间"可分 */
+    min-height: 0;
     padding: 20px;
     display: flex;
     flex-direction: column;
@@ -283,6 +293,7 @@ body {
     width: 100%;
     max-width: 450px;
     flex: 1;
+    min-height: 0;      /* 允许 flex 收缩，小屏高度不足时压缩屏幕而非溢出裁切 */
     background-color: var(--screen-bg);  /* 经典LCD屏幕的绿色 */
     border-radius: 8px;
     padding: 15px;
@@ -313,17 +324,21 @@ body {
 
 .game-display {
     display: flex;
+    justify-content: center;    /* 棋盘+面板总宽不足时整体居中，两侧对称留白 */
     background-color: var(--screen-bg);
     border-radius: 4px;
     padding: 10px;
     gap: 10px;
     box-shadow: inset 0 0 5px var(--shadow-color);
     flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
 .game-board {
-    flex: 3;
+    flex: 0 0 auto;     /* 宽度随 canvas 实际尺寸收缩，运动区域与容器无缝贴合 */
+    min-width: 0;
+    min-height: 0;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -336,18 +351,21 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     max-width: 100%;
     max-height: 100%;
-    height: auto;
     display: block; /* 确保canvas正确显示 */
 }
 
 .game-info-panel {
-    flex: 1;
+    flex: 0 0 33.33%;   /* 说明面板固定占 1/3 宽（与 JS resizeGame 的面板宽度计算同步） */
+    min-width: 0;
+    max-width: none;
+    min-height: 0;
+    overflow-y: auto;   /* 内容（操作说明等）超出面板高度时可滚动，不被裁切 */
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     background-color: var(--board-bg);
     border-radius: 8px;
-    padding: 15px;
+    padding: 12px 15px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
@@ -361,7 +379,7 @@ body {
 .next-piece h3 {
     margin: 0;
     color: var(--text-color);
-    font-size: 0.9rem;
+    font-size: 0.65rem;   /* PC 面板文字整体调小（移动端媒体查询另有更小值） */
 }
 
 #next-piece-canvas {
@@ -373,7 +391,7 @@ body {
 }
 
 .high-score, .score, .level {
-    padding: 4px 8px;
+    padding: 3px 6px;
     border-radius: 4px;
     text-align: center;
     font-weight: bold;
@@ -396,8 +414,8 @@ body {
 
 .high-score, .score, .level, .difficulty-select {
     width: 100%;
-    max-width: 120px;
-    font-size: 0.9rem;
+    max-width: 110px;
+    font-size: 0.58rem;
     font-weight: bold;
 }
 
@@ -443,6 +461,7 @@ body {
     align-items: center;
     width: 100%;
     padding: 0px;
+    flex-shrink: 0; /* 控制区不被压缩 */
 }
 
 .dpad-container {
@@ -606,15 +625,24 @@ body {
     background-color: var(--board-bg);
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    font-size: 0.7rem;
+    font-size: 0.52rem;
     color: var(--text-color);
     text-align: center;
     padding-bottom: 2px;
+    overflow-x: hidden;   /* 配合 hint p 的 nowrap，兜底防溢出面板 */
 }
 
 .hint p {
     text-align: left;
     padding-left: 4px;
+    margin: 1px 0;
+    line-height: 1.35;
+    white-space: nowrap;  /* 每条说明固定一行展示 */
+}
+
+.controls-hint h3 {
+    margin: 4px 0;
+    font-size: 0.68rem;   /* 「操作说明」标题：未设值时会落到 h3 默认 1.17rem，PC 面板内明显过大 */
 }
 
 .pc-hint {
@@ -622,29 +650,15 @@ body {
 }
 
 @media (max-width: 768px) {
-    .game-body {
-        flex-direction: column;
-    }
-    
     .game-container {
         border-width: 10px;
         padding: 15px;
     }
-    
+
     .game-screen {
         flex: 1;
         margin-bottom: 5px;
         padding: 10px;
-    }
-    
-    #tetris-canvas {
-        width: 100%;
-        height: auto;
-        max-height: 100%;
-    }
-    
-    .game-sidebar {
-        width: 100%;
     }
 
     .next-piece h3 {
@@ -719,20 +733,58 @@ body {
         border-width: 8px;
         padding: 10px;
     }
-    
+
     .game-screen {
         padding: 8px;
         margin-bottom: 5px;
     }
-    
+
     .action-btn, .btn {
         width: 45px;
         height: 45px;
     }
-    
+
     .dpad-btn {
         width: 40px;
         height: 40px;
+    }
+}
+
+/* 矮视口（笔记本浏览器内容区常见 600~700px 高）：压缩 D-pad 控制区，
+ * 把垂直空间让给棋盘——block 由高度主导，控制区每省 1px 方格就大一分 */
+@media (min-width: 769px) and (max-height: 700px) {
+    .game-screen {
+        margin-bottom: 8px;
+    }
+
+    .dpad-container {
+        gap: 3px;
+        margin: 0 12px;
+    }
+
+    .dpad-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .dpad-center {
+        width: 24px;
+        height: 24px;
+    }
+
+    .control-buttons {
+        gap: 20px;
+        padding: 8px 15px;
+    }
+
+    .action-btn, .btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* 说明字号已缩小到单列可完整容纳，矮视口不再需要两列排布 */
+    .controls-hint {
+        font-size: 0.52rem;
     }
 }
 
@@ -741,25 +793,130 @@ body {
         border-width: 5px;
         padding: 5px;
     }
-    
+
     .game-screen {
         padding: 5px;
         margin-bottom: 5px;
         border-width: 5px;
     }
-    
+
     .action-btn, .btn {
         width: 40px;
         height: 40px;
     }
-    
+
     .dpad-btn {
         width: 35px;
         height: 35px;
     }
-    
+
     .control-buttons {
         padding: 10px;
         gap: 20px;
+    }
+}
+
+/* 竖屏高瘦屏（≥760px 高）：信息面板改为棋盘下方横条，棋盘吃满宽度——
+ * 等比棋盘在宽约束下会留下大量垂直留白，列布局让高度利用最大化 */
+@media (orientation: portrait) and (min-height: 760px) {
+    .game-display {
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+
+    .game-board {
+        width: 100%;
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+
+    .game-info-panel {
+        flex: 0 0 96px;     /* 高度锁死，与 JS resizeGame 的 INFO_BAR_H 同步 */
+        max-width: none;
+        min-width: 0;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+        gap: 10px;
+        padding: 8px 12px;
+        overflow: hidden;
+    }
+
+    .next-piece {
+        flex-direction: column;     /* 标题上、画布下，收窄占宽 */
+        align-items: center;
+        gap: 2px;
+    }
+
+    .next-piece h3 {
+        font-size: 0.65rem;
+        white-space: nowrap;
+    }
+
+    /* 预览画布 inline 尺寸随 block 增大，横条内强制限高防溢出 */
+    #next-piece-canvas {
+        max-height: 56px !important;
+        width: auto !important;
+    }
+
+    .game-stats {
+        flex-direction: row;
+        flex-wrap: wrap;            /* 三个徽章一行，难度选择换到第二行 */
+        align-items: center;
+        gap: 5px;
+        width: auto;
+    }
+
+    .high-score, .score, .level {
+        flex: 1 1 70px;
+        min-width: 0;
+        max-width: none;
+        padding: 4px 6px;
+        font-size: 0.72rem;
+    }
+
+    .difficulty-select {
+        flex: 1 1 100%;
+        min-width: 0;
+        max-width: none;
+        height: 30px;
+        font-size: 0.72rem;
+    }
+
+    .controls-hint {
+        display: none;      /* 横条放不下操作说明，隐藏 */
+    }
+}
+
+/* 横屏矮屏：屏幕与控制区左右分栏，把垂直空间全部让给棋盘 */
+@media (orientation: landscape) and (max-height: 540px) {
+    .game-container {
+        flex-direction: row;
+        align-items: stretch;
+        max-width: none;
+        gap: 10px;
+    }
+
+    .game-screen {
+        flex: 1;
+        margin-bottom: 0;
+        min-width: 0;
+    }
+
+    .game-dpad {
+        width: auto;    /* 基础规则 width:100% 在 row 容器里会吃满整行，把屏幕挤没 */
+        flex: 0 0 auto;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .dpad-container {
+        margin: 0;
+    }
+
+    .action-buttons {
+        margin-right: 0;
+        gap: 12px;
     }
 }
