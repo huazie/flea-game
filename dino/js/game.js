@@ -904,6 +904,7 @@
             ctx.arc(skyX + 7, skyY - 5, 13.5, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 0.4;
+            ctx.fillStyle = fg; // 挖月牙时 fillStyle 已切成背景色，星星须切回前景色
             var stars = [[120, 40], [200, 70], [320, 36], [420, 60], [520, 44], [600, 74], [710, 60], [80, 84]];
             for (var s = 0; s < stars.length; s++) {
                 ctx.fillRect(stars[s][0], stars[s][1], 3, 3);
