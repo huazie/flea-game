@@ -886,18 +886,45 @@
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, this.viewW, CONFIG.HEIGHT);
 
-        // 月亮与星星（夜晚）
-        if (this.isNight) {
+        // 太阳 / 月牙与星星：亮主题白天太阳、夜晚月牙；
+        // 暗主题视为夜晚场景（月牙常驻），游戏内夜晚触发时反转为亮底太阳
+        var skyX = this.viewW - 100, skyY = 48;
+        var darkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+        var sunUp = darkTheme ? this.isNight : !this.isNight;
+        if (!sunUp) {
             ctx.fillStyle = fg;
             ctx.globalAlpha = 0.85;
             ctx.beginPath();
-            ctx.arc(this.viewW - 100, 48, 16, 0, Math.PI * 2);
+            ctx.arc(skyX, skyY, 16, 0, Math.PI * 2);
+            ctx.fill();
+            // 背景色圆内切，挖出月牙（开口朝右上）
+            ctx.fillStyle = bg;
+            ctx.globalAlpha = 1;
+            ctx.beginPath();
+            ctx.arc(skyX + 7, skyY - 5, 13.5, 0, Math.PI * 2);
             ctx.fill();
             ctx.globalAlpha = 0.4;
             var stars = [[120, 40], [200, 70], [320, 36], [420, 60], [520, 44], [600, 74], [710, 60], [80, 84]];
             for (var s = 0; s < stars.length; s++) {
                 ctx.fillRect(stars[s][0], stars[s][1], 3, 3);
             }
+            ctx.globalAlpha = 1;
+        } else {
+            // 太阳：圆盘 + 8 向光芒
+            ctx.globalAlpha = 0.85;
+            ctx.strokeStyle = fg;
+            ctx.lineWidth = 3;
+            for (var r8 = 0; r8 < 8; r8++) {
+                var ang = Math.PI / 4 * r8;
+                ctx.beginPath();
+                ctx.moveTo(skyX + Math.cos(ang) * 21, skyY + Math.sin(ang) * 21);
+                ctx.lineTo(skyX + Math.cos(ang) * 27, skyY + Math.sin(ang) * 27);
+                ctx.stroke();
+            }
+            ctx.fillStyle = fg;
+            ctx.beginPath();
+            ctx.arc(skyX, skyY, 14, 0, Math.PI * 2);
+            ctx.fill();
             ctx.globalAlpha = 1;
         }
 
