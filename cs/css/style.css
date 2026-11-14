@@ -1,0 +1,284 @@
+/* 反恐突袭 - 全部颜色定义在 :root / [data-theme="dark"]，规则内一律 var() 引用。
+ * --cs-* 为画布调色板，由 renderer.js 经 getComputedStyle(documentElement) 读取并缓存。 */
+:root {
+    --bg-color: #eef2f7;
+    --text-color: #22303f;
+    --primary-color: #c2620c;
+    --icon-button-bg: #ffffff;
+    --icon-button-hover: #dce5ef;
+    --board-bg: #ffffff;
+    --board-border: #c6d2e0;
+    --theme-toggle-color: #e58a00;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --panel-border: #c6d2e0;
+    --panel-shadow: rgba(24, 40, 60, 0.22);
+    --overlay-bg: rgba(210, 222, 235, 0.72);
+    --accent: #c2620c;
+    --danger: #c62828;
+    --dim: #63748a;
+    --btn-bg: #c2620c;
+    --btn-text: #ffffff;
+    --btn-hover: #9c4e08;
+    --ghost-bg: rgba(120, 140, 165, 0.16);
+    --ghost-hover: rgba(120, 140, 165, 0.30);
+    --hud-bg: rgba(255, 255, 255, 0.74);
+    --hud-border: rgba(90, 110, 135, 0.38);
+    --hud-text: #22303f;
+    --hp-fill: #2e9e5b;
+    --reload-fill: #c2620c;
+    --crosshair: #1b2735;
+    --flash-bg: rgba(198, 40, 40, 0.38);
+    --touch-bg: rgba(255, 255, 255, 0.72);
+    --touch-border: rgba(90, 110, 135, 0.55);
+    --touch-text: #22303f;
+    /* 画布调色板（保持 hex，供 U.shade 派生明暗面） */
+    --cs-sky: #cfe0f3;
+    --cs-floor: #e4ebf3;
+    --cs-grid: #9db2c8;
+    --cs-wall-a: #93a5ba;
+    --cs-wall-b: #7d90a8;
+    --cs-wall-top: #bccadb;
+    --cs-wall-edge: #5a6d84;
+    --cs-bot: #a9530b;
+    --cs-bot-head: #f0c78d;
+    --cs-bot-hit: #e86363;
+    --cs-muzzle: #f6d365;
+    --cs-player: #1063a0;
+    --cs-player-head: #86cef2;
+    --cs-gun-body: #4a5a6e;
+    --cs-gun-dark: #2c3a4a;
+}
+
+[data-theme="dark"] {
+    --bg-color: #111a26;
+    --text-color: #e6edf5;
+    --primary-color: #e08a2c;
+    --icon-button-bg: #26344a;
+    --icon-button-hover: #354863;
+    --board-bg: #1a2637;
+    --board-border: #3a4b61;
+    --theme-toggle-color: #f2b53c;
+    --panel-bg: rgba(22, 32, 46, 0.95);
+    --panel-border: #3a4b61;
+    --panel-shadow: rgba(0, 0, 0, 0.55);
+    --overlay-bg: rgba(10, 16, 26, 0.76);
+    --accent: #e08a2c;
+    --danger: #ef6a6a;
+    --dim: #91a4bb;
+    --btn-bg: #c9701b;
+    --btn-text: #ffffff;
+    --btn-hover: #a75a12;
+    --ghost-bg: rgba(140, 160, 185, 0.18);
+    --ghost-hover: rgba(140, 160, 185, 0.32);
+    --hud-bg: rgba(20, 30, 44, 0.76);
+    --hud-border: rgba(140, 160, 185, 0.38);
+    --hud-text: #e6edf5;
+    --hp-fill: #3fbf74;
+    --reload-fill: #e08a2c;
+    --crosshair: #f2f7fc;
+    --flash-bg: rgba(220, 60, 60, 0.40);
+    --touch-bg: rgba(30, 42, 60, 0.72);
+    --touch-border: rgba(150, 170, 195, 0.55);
+    --touch-text: #e6edf5;
+    --cs-sky: #1d2c40;
+    --cs-floor: #26364b;
+    --cs-grid: #4a607a;
+    --cs-wall-a: #43618a;
+    --cs-wall-b: #38557b;
+    --cs-wall-top: #5b78a0;
+    --cs-wall-edge: #263b57;
+    --cs-bot: #d07a1e;
+    --cs-bot-head: #e8c38a;
+    --cs-bot-hit: #f08a8a;
+    --cs-muzzle: #ffe08a;
+    --cs-player: #3d9bd6;
+    --cs-player-head: #a5ddfb;
+    --cs-gun-body: #56718f;
+    --cs-gun-dark: #1f2e40;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    -webkit-tap-highlight-color: transparent;
+}
+button { font-family: inherit; cursor: pointer; }
+
+/* 浮动圆形按钮（与站点其它游戏一致） */
+.control-button {
+    position: fixed; top: 20px; width: 50px; height: 50px;
+    border: none; border-radius: 50%; padding: 0;
+    background-color: var(--icon-button-bg); color: var(--text-color);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25em; z-index: 1000; outline: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.control-button:hover { background-color: var(--icon-button-hover); transform: scale(1.05); }
+.control-button:active { transform: scale(0.95); }
+#back-button { left: 20px; color: var(--primary-color); }
+.floating-buttons { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 1000; }
+.floating-buttons .control-button { position: static; }
+#sound-button { color: var(--primary-color); }
+#theme-button { color: var(--theme-toggle-color); }
+
+/* 满屏舞台：canvas 位图可降分辨率，由 CSS 拉伸 */
+.game-container { position: fixed; inset: 0; }
+#cs-stage { position: absolute; inset: 0; overflow: hidden; }
+#cs-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+/* ── HUD：6 个信息块 ── */
+.hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; }
+.is-playing .hud { opacity: 1; }
+.hud-block {
+    position: absolute; padding: 8px 12px; border-radius: 8px;
+    background-color: var(--hud-bg); border: 1px solid var(--hud-border);
+    color: var(--hud-text); font-size: 13px; line-height: 1.35;
+}
+.hud-label { font-size: 11px; letter-spacing: 1px; color: var(--dim); }
+.hud-big { font-size: 20px; font-weight: bold; }
+.hud-tiny { font-size: 10px; color: var(--dim); }
+.hud-dot { padding: 0 6px; color: var(--dim); }
+.hud-wave { top: 20px; left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+.hud-score { top: 20px; right: 150px; text-align: right; }
+.hud-hp { bottom: 20px; left: 20px; min-width: 156px; }
+.hud-ammo { bottom: 20px; right: 20px; min-width: 128px; text-align: right; }
+.hud-view { top: 20px; left: 84px; font-weight: bold; letter-spacing: 1px; transition: background-color 0.2s ease; }
+.hud-view.is-hi { background-color: var(--accent); color: var(--btn-text); }
+.hud-row { white-space: nowrap; }
+.hud-gap { display: none; color: var(--accent); font-weight: bold; font-size: 12px; }
+.hud-gap.is-on { display: block; }
+.hud-bar { height: 7px; margin: 5px 0; border-radius: 4px; background-color: var(--ghost-bg); overflow: hidden; }
+.hud-bar-fill { height: 100%; width: 100%; border-radius: 4px; background-color: var(--hp-fill); transition: width 0.12s linear; }
+.reload-progress, #reload-text { display: none; }
+.reload-progress { height: 6px; margin-top: 5px; border-radius: 3px; background-color: var(--ghost-bg); overflow: hidden; }
+.reload-progress.is-on, .reload-progress.is-on ~ #reload-text { display: block; }
+#reload-fill { height: 100%; width: 0; background-color: var(--reload-fill); }
+@keyframes ammoBlink {
+    0%, 100% { color: var(--hud-text); }
+    25%, 75% { color: var(--danger); }
+}
+#ammo-value.is-empty { animation: ammoBlink 0.4s ease 2; }
+
+/* 准星：4 段间隙随散布实时变化 */
+.crosshair { --ch-gap: 4px; position: absolute; left: 50%; top: 50%; z-index: 3; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+.is-playing .crosshair { opacity: 0.95; }
+.ch { position: absolute; display: block; background-color: var(--crosshair); }
+.ch-t { width: 2px; height: 9px; left: -1px; top: calc(-9px - var(--ch-gap)); }
+.ch-b { width: 2px; height: 9px; left: -1px; top: var(--ch-gap); }
+.ch-l { height: 2px; width: 9px; top: -1px; left: calc(-9px - var(--ch-gap)); }
+.ch-r { height: 2px; width: 9px; top: -1px; left: var(--ch-gap); }
+.crosshair.is-fire .ch { background-color: var(--accent); }
+
+#damage-flash {
+    position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
+    box-shadow: inset 0 0 90px 24px var(--flash-bg);
+    transition: opacity 0.18s ease;
+}
+#damage-flash.is-on { opacity: 1; }
+
+/* ── 触控 ── */
+.touch-only { display: none; }
+#look-zone { position: absolute; left: 50%; right: 0; top: 0; bottom: 0; z-index: 5; touch-action: none; }
+#joystick {
+    position: absolute; left: 16px; bottom: 24px; width: 116px; height: 116px;
+    border-radius: 50%; z-index: 8; touch-action: none;
+    background-color: var(--touch-bg); border: 2px solid var(--touch-border);
+    align-items: center; justify-content: center;
+}
+#joy-knob { width: 44px; height: 44px; border-radius: 50%; background-color: var(--touch-border); }
+#touch-buttons { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+.tbtn {
+    position: absolute; pointer-events: auto; font-weight: bold; touch-action: none;
+    background-color: var(--touch-bg); color: var(--touch-text);
+    border: 2px solid var(--touch-border); border-radius: 12px;
+    -webkit-tap-highlight-color: transparent; outline: none;
+}
+.tbtn:active { transform: scale(0.94); }
+.tbtn-fire {
+    right: 16px; bottom: 150px; width: 76px; height: 76px; border-radius: 50%;
+    background-color: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg);
+}
+/* v2：跳钮（开火钮正上方 44px）与切换式蹲钮（跳钮左侧） */
+.tbtn-jump, .tbtn-crouch {
+    width: 44px; height: 44px; border-radius: 50%; font-size: 14px;
+}
+.tbtn-jump { right: 24px; bottom: 236px; }
+.tbtn-crouch { right: 76px; bottom: 236px; }
+.tbtn-crouch.is-on {
+    background-color: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg);
+}
+.tbtn-sm { right: 120px; width: 54px; height: 38px; font-size: 12px; }
+#btn-reload { bottom: 210px; }
+#btn-view { bottom: 162px; }
+#btn-pause { bottom: 114px; }
+
+/* ── 覆盖层 ── */
+.overlay {
+    position: absolute; inset: 0; z-index: 20; display: none;
+    align-items: center; justify-content: center; padding: 16px;
+    background-color: var(--overlay-bg); overflow: auto;
+}
+.overlay.is-active { display: flex; }
+.panel {
+    width: min(92vw, 520px); max-height: 92vh; overflow: auto; padding: 24px;
+    border-radius: 14px; text-align: center;
+    background-color: var(--panel-bg); border: 1px solid var(--panel-border);
+    box-shadow: 0 10px 40px var(--panel-shadow);
+}
+.panel h1 { font-size: clamp(1.9em, 6vw, 2.8em); letter-spacing: 2px; }
+.panel h2 { font-size: 1.6em; margin-bottom: 8px; }
+.panel h3 { font-size: 1em; color: var(--accent); margin-bottom: 6px; }
+.subtitle { font-size: 13px; color: var(--dim); margin: 8px 0 16px; line-height: 1.6; }
+.menu-line { margin: 10px 0; font-size: 14px; color: var(--dim); }
+.menu-line b { color: var(--text-color); }
+.mini-btn {
+    padding: 3px 12px; margin-left: 6px; border-radius: 6px; font-weight: bold;
+    background-color: var(--ghost-bg); color: var(--text-color); border: 1px solid var(--panel-border);
+}
+.panel-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 18px; }
+.primary-btn, .ghost-btn {
+    padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; border: 1px solid var(--panel-border);
+}
+.primary-btn { background-color: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg); }
+.primary-btn:hover { background-color: var(--btn-hover); }
+.ghost-btn { background-color: var(--ghost-bg); color: var(--text-color); }
+.ghost-btn:hover { background-color: var(--ghost-hover); }
+.keys { font-size: 12px; color: var(--dim); line-height: 1.8; margin-top: 10px; }
+.help-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; text-align: left; margin-top: 12px; }
+.help-grid p { font-size: 12px; line-height: 1.9; color: var(--text-color); }
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 13px; text-align: left; margin: 14px 0; }
+.result-grid b { color: var(--accent); }
+.new-record { display: none; color: var(--accent); font-weight: bold; letter-spacing: 1px; }
+.new-record.is-on { display: block; }
+
+/* ── 响应式：PC 1100×800 用上方默认值；375×667 及触屏用下列覆盖 ── */
+@media (max-width: 820px), (pointer: coarse) {
+    .control-button { top: 10px; width: 42px; height: 42px; font-size: 1.1em; }
+    #back-button { left: 10px; }
+    .floating-buttons { top: 10px; right: 10px; gap: 8px; }
+    .hud-wave { top: 62px; font-size: 12px; }
+    .hud-score { top: 62px; right: 10px; }
+    .hud-view { top: 62px; left: 10px; }
+    .hud-hp { bottom: 150px; left: 10px; min-width: 124px; }
+    .hud-ammo { bottom: 290px; right: 10px; min-width: 104px; }
+    .hud-big { font-size: 17px; }
+    .touch-only { display: block; }
+    #joystick { display: flex; }
+    .help-grid { grid-template-columns: 1fr; }
+    .panel { padding: 18px; }
+}
+@media (max-height: 520px) {
+    .hud-hp { bottom: 10px; }
+    .hud-ammo { bottom: 88px; }
+    .tbtn-fire { bottom: 96px; width: 62px; height: 62px; }
+    .tbtn-jump { bottom: 168px; right: 20px; }
+    .tbtn-crouch { bottom: 168px; right: 72px; }
+    #btn-reload { bottom: 150px; }
+    #btn-view { bottom: 108px; }
+    #btn-pause { bottom: 66px; }
+    #joystick { bottom: 10px; width: 96px; height: 96px; }
+}

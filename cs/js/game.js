@@ -1,0 +1,445 @@
+/* 反恐突袭 - 主循环与状态机：menu / playing / paused / over
+ * 全部射速、换弹、Bot 开火、波间整备按累计 dt 计时（dt 上限 0.05s），不按帧计数。
+ * v2：玩家引入 y 轴（跳/蹲），射线固定从实际眼位 (x, y+eyeCur, z) 发出，与相机位完全解耦。 */
+(function (global) {
+    'use strict';
+    var CS = global.CS || (global.CS = {});
+    var C = CS.CFG, U = CS.Util, W = CS.World, E = CS.Entities;
+    var Sfx = CS.Sfx;
+
+    var BEST_KEY = 'cs_best';
+    function getBest() { try { return parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { return 0; } }
+    function setBest(v) { try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) { /* 忽略 */ } }
+
+    function Game() {
+        var self = this;
+        this.canvas = document.getElementById('cs-canvas');
+        this.stage = document.getElementById('cs-stage');
+        this.player = { x: 0, z: 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0,
+            kick: 0, kickT: 0, onGround: true, crouch: false,
+            eyeCur: C.EYE_STAND, eyeFrom: C.EYE_STAND, eyeTarget: C.EYE_STAND,
+            eyeT: 0, eyePend: -1,
+            hp: C.PLAYER_HP, ammo: C.MAG, reloading: false, reloadT: 0, fireT: 0 };
+        this.bots = E.createBots();
+        this.state = 'menu';
+        this.viewMode = 'fps';
+        this.last = 0;
+        this.lastLookDX = 0; this.lastLookDY = 0;
+        this.boundFrame = this.frame.bind(this);
+        this.boundAction = this.onAction.bind(this);
+        CS.game = this;   // 供 QA/自动化驱动（不持有渲染状态，仅暴露编排实例）
+
+        CS.Renderer.init(this.canvas, this.stage);
+        CS.HUD.init({
+            start: function () { self.start(); },
+            resume: function () { self.resume(); },
+            restart: function () { self.start(); },
+            menu: function () { self.toMenu(); },
+            view: function () { self.toggleView(); }
+        });
+        CS.Input.init(this.canvas, this.stage, this.boundAction);
+
+        this.resetRun();
+        CS.HUD.showMenu(this.best, this.viewMode);
+        this.bindGlobal();
+        this.renderStatic();
+        global.requestAnimationFrame(this.boundFrame);
+    }
+
+    Game.prototype.resetRun = function () {
+        var p = this.player;
+        p.x = 0; p.z = 0; p.y = 0; p.vy = 0; p.vx = 0; p.vz = 0;
+        p.yaw = 0; p.pitch = 0; p.kick = 0; p.kickT = 0;
+        p.onGround = true; p.crouch = false;
+        p.eyeCur = p.eyeFrom = p.eyeTarget = C.EYE_STAND;
+        p.eyeT = 0; p.eyePend = -1;
+        p.hp = C.PLAYER_HP; p.ammo = C.MAG;
+        p.reloading = false; p.reloadT = 0; p.fireT = 0;
+        this.waveIdx = 0; this.intermission = 0;
+        this.score = 0; this.kills = 0; this.shotsFired = 0; this.shotsHit = 0;
+        this.elapsed = 0; this.moveSpeed = 0; this.spreadDeg = 0;
+        this.landT = 0; this.stepAccum = 0;
+        this.pendingDamage = 0; this.shooterSlots = 0; this.botFired = false;
+        this.best = getBest();
+        E.spawnWave(this.bots, 0);
+        CS.Renderer.clearFx();
+        CS.HUD.reset();
+    };
+
+    Game.prototype.renderStatic = function () {
+        CS.Renderer.beginFrame(this.player, this.viewMode);
+        CS.Renderer.endFrame(0, this);
+    };
+
+    /* ── 状态切换 ── */
+    Game.prototype.start = function () {
+        this.resetRun();
+        this.state = 'playing';
+        CS.Renderer.resize();                  // 布局此刻必已就绪，修正 init 期的瞬态尺寸
+        CS.HUD.setScreen('hud');
+        CS.Input.setEnabled(true);
+        CS.Input.reset();
+        Sfx.resume();                          // 首次手势链路里 resume AudioContext
+        this.last = global.performance.now();
+        if (!CS.Input.isTouch) CS.Input.requestLock();
+        Sfx.wave();
+    };
+
+    Game.prototype.pause = function () {
+        if (this.state !== 'playing') return;
+        this.state = 'paused';
+        CS.Input.setEnabled(false);          // 顺带清空输入，冻结 dt 不补算
+        CS.HUD.setScreen('pause');
+        this.last = global.performance.now();
+        if (document.pointerLockElement) {
+            try { document.exitPointerLock(); } catch (e) { /* 忽略 */ }
+        }
+    };
+
+    Game.prototype.resume = function () {
+        if (this.state !== 'paused') return;
+        this.state = 'playing';
+        CS.Renderer.resize();
+        CS.HUD.setScreen('hud');
+        CS.Input.setEnabled(true);
+        CS.Input.reset();
+        this.last = global.performance.now();   // 恢复须主动点「继续」，禁止累计大 dt 补算
+        if (!CS.Input.isTouch) CS.Input.requestLock();
+    };
+
+    Game.prototype.toMenu = function () {
+        this.state = 'menu';
+        CS.Input.setEnabled(false);
+        if (document.pointerLockElement) {
+            try { document.exitPointerLock(); } catch (e) { /* 忽略 */ }
+        }
+        this.resetRun();
+        CS.HUD.showMenu(this.best, this.viewMode);
+        this.renderStatic();
+    };
+
+    Game.prototype.toggleView = function () {
+        this.viewMode = this.viewMode === 'fps' ? 'tps' : 'fps';
+        CS.HUD.setView(this.viewMode, true);
+        Sfx.view();
+        if (this.state !== 'playing') this.renderStatic();
+        /* 仅相机位与模型显隐变化：射击/换弹/受击/计时/射线/数值一律不中断，无无敌帧 */
+    };
+
+    Game.prototype.finish = function (win) {
+        this.state = 'over';
+        CS.Input.setEnabled(false);           // 死亡/通关立即冻结输入与波次生成
+        if (document.pointerLockElement) {
+            try { document.exitPointerLock(); } catch (e) { /* 忽略 */ }
+        }
+        var best = getBest(), isNew = this.score > best;
+        if (isNew) { setBest(this.score); best = this.score; }
+        this.best = best;
+        CS.HUD.showResult(this, win, isNew);
+        if (win) Sfx.win(); else Sfx.lose();
+    };
+
+    Game.prototype.onAction = function (code) {
+        switch (code) {
+            case 'jump': if (this.state === 'playing') this.tryJump(); break;
+            case 'reload': if (this.state === 'playing') this.startReload(false); break;
+            case 'view': this.toggleView(); break;
+            case 'pauseToggle':
+                if (this.state === 'playing') this.pause();
+                else if (this.state === 'paused') this.resume();
+                break;
+            case 'locklost': if (this.state === 'playing') this.pause(); break;
+            case 'confirm':
+                if (this.state === 'menu' || this.state === 'over') this.start();
+                else if (this.state === 'paused') this.resume();
+                break;
+        }
+    };
+
+    /* ── 跳跃：落地即可再跳；蹲跳 ×0.85；不翻越掩体（x/z 碰撞不变）── */
+    Game.prototype.tryJump = function () {
+        var p = this.player;
+        if (!p.onGround) return;
+        p.vy = p.crouch ? C.JUMP_V * C.CROUCH_JUMP_MUL : C.JUMP_V;
+        p.onGround = false;
+        this.stepAccum = 0;
+        Sfx.jump();
+    };
+
+    /* ── 逐帧逻辑 ── */
+    Game.prototype.applyLook = function () {
+        var dx = CS.Input.lookDX, dy = CS.Input.lookDY;
+        this.lastLookDX = dx; this.lastLookDY = dy;   // 供视图模型 lag 采样
+        CS.Input.lookDX = 0; CS.Input.lookDY = 0;
+        if (dx || dy) {
+            this.player.yaw += dx;
+            this.player.pitch = U.clamp(this.player.pitch - dy, -C.PITCH_LIMIT, C.PITCH_LIMIT);
+        }
+    };
+
+    /* 地面维持 v1 直接置速；空中按 3.6 m/s² 向期望速度加速；重力 12 m/s² */
+    Game.prototype.applyMove = function (dt) {
+        var p = this.player;
+        p.crouch = CS.Input.crouch;
+        var ix = CS.Input.moveX, iz = CS.Input.moveZ;
+        var mag = Math.sqrt(ix * ix + iz * iz);
+        if (mag > 1) { ix /= mag; iz /= mag; mag = 1; }
+        var yaw = p.yaw, sy = Math.sin(yaw), cy = Math.cos(yaw);
+        var spd = CS.Input.aim ? C.AIM_WALK : (p.crouch ? C.CROUCH_SPEED : C.WALK);
+        if (p.onGround) {
+            var vx = (sy * iz + cy * ix) * spd * mag;
+            var vz = (cy * iz - sy * ix) * spd * mag;
+            if (mag > 0) W.move(p, vx * dt, vz * dt);
+            p.vx = vx; p.vz = vz;
+            this.moveSpeed = spd * mag;
+            /* 脚步声：步频 = 速度/步幅（4.0 m/s ÷ 1.8 m ≈ 2.2 Hz），仅地面 */
+            if (this.moveSpeed > 0.5) {
+                this.stepAccum += this.moveSpeed * dt;
+                if (this.stepAccum >= C.FOOTSTRIDE) { this.stepAccum -= C.FOOTSTRIDE; Sfx.footstep(); }
+            } else this.stepAccum = 0;
+        } else {
+            var dvx = (sy * iz + cy * ix) * spd * mag;
+            var dvz = (cy * iz - sy * ix) * spd * mag;
+            var axd = dvx - p.vx, azd = dvz - p.vz;
+            var al = Math.sqrt(axd * axd + azd * azd);
+            var amax = C.AIR_ACCEL * dt;
+            if (al > amax && al > 0) { axd = axd / al * amax; azd = azd / al * amax; }
+            p.vx += axd; p.vz += azd;
+            W.move(p, p.vx * dt, p.vz * dt);
+            this.moveSpeed = Math.sqrt(p.vx * p.vx + p.vz * p.vz);
+        }
+        /* 垂直：跳跃不改 x/z 碰撞、不支持站上 AABB 顶面（y>=0 即落地） */
+        if (!p.onGround) {
+            p.vy -= C.GRAVITY * dt;
+            p.y += p.vy * dt;
+            if (p.y <= 0) {
+                this.landV = -p.vy;
+                p.y = 0; p.vy = 0; p.onGround = true;
+                this.landT = C.LAND_DECAY;          // 落地散布窗口
+                Sfx.land(this.landV);
+            }
+        }
+        this.updateEye(dt);
+        this.updateSpread(dt);
+    };
+
+    /* 蹲眼位 1.60↔1.05 平滑 0.15s；过渡期反向输入排队，过渡结束才执行 */
+    Game.prototype.updateEye = function (dt) {
+        var p = this.player;
+        var target = p.crouch ? C.EYE_CROUCH : C.EYE_STAND;
+        if (p.eyeT > 0) {
+            p.eyeT -= dt;
+            if (target !== p.eyeTarget && target !== p.eyePend) p.eyePend = target;
+            if (p.eyeT <= 0) {
+                p.eyeCur = p.eyeTarget; p.eyeT = 0;
+                if (p.eyePend >= 0 && p.eyePend !== p.eyeTarget) {
+                    p.eyeFrom = p.eyeCur; p.eyeTarget = p.eyePend; p.eyeT = C.EYE_TRANS;
+                }
+                p.eyePend = -1;
+            } else {
+                var f = 1 - p.eyeT / C.EYE_TRANS;
+                p.eyeCur = p.eyeFrom + (p.eyeTarget - p.eyeFrom) * f;
+            }
+        } else if (p.eyeCur !== target) {
+            p.eyeFrom = p.eyeCur; p.eyeTarget = target; p.eyeT = C.EYE_TRANS;
+        }
+    };
+
+    /* 散布模型：空中 ±12（Shift 无效）＞落地 ±10→0（0.30s 线性）＞蹲/步行/Shift 档位 */
+    Game.prototype.updateSpread = function (dt) {
+        var p = this.player;
+        if (!p.onGround) { this.spreadDeg = C.AIR_SPREAD; return; }
+        if (this.landT > 0) {
+            this.landT -= dt;
+            if (this.landT < 0) this.landT = 0;
+        }
+        var base;
+        if (CS.Input.aim) base = 0;
+        else if (p.crouch) base = this.moveSpeed > C.MOVE_EPS ? C.CROUCH_SPREAD : 0;
+        else base = this.moveSpeed > C.MOVE_EPS ? C.SPREAD_DEG : 0;
+        if (p.eyeT > 0) base += C.CROUCH_SPREAD;    // 蹲起过渡 +1.0
+        var landS = this.landT > 0 ? C.LAND_SPREAD * (this.landT / C.LAND_DECAY) : 0;
+        this.spreadDeg = base > landS ? base : landS;
+    };
+
+    Game.prototype.tickTimers = function (dt) {
+        var p = this.player;
+        if (p.fireT > 0) p.fireT -= dt;
+        if (!CS.Input.firing && p.fireT < 0) p.fireT = 0;
+        if (p.fireT < -C.FIRE_INTERVAL) p.fireT = -C.FIRE_INTERVAL;
+        if (p.kickT > 0) {                          // 视角上踢 0.15s 线性回落
+            p.kickT -= dt;
+            if (p.kickT <= 0) { p.kickT = 0; p.kick = 0; }
+            else p.kick = C.KICK_RAD * (p.kickT / C.KICK_TIME);
+        }
+        if (p.reloading) {                          // 跳中换弹允许，计时继续
+            p.reloadT -= dt;
+            if (p.reloadT <= 0) {
+                p.reloading = false; p.reloadT = 0; p.ammo = C.MAG;
+                Sfx.reloadDone();
+            }
+        }
+    };
+
+    Game.prototype.startReload = function (auto) {
+        var p = this.player;
+        if (p.reloading) return;              // 换弹期间重复输入不排队第二次计时
+        if (p.ammo >= C.MAG) return;          // 弹匣已满忽略
+        p.reloading = true; p.reloadT = C.RELOAD_TIME;
+        if (auto) { CS.HUD.flashAmmo(); Sfx.empty(); }
+        else Sfx.reload();
+    };
+
+    Game.prototype.tryShoot = function () {
+        var p = this.player;
+        if (!CS.Input.firing || p.reloading) return;
+        if (p.ammo <= 0) { this.startReload(true); return; }   // 空仓：不发射/不消耗/不计空枪分
+        if (p.fireT > 0) return;
+        p.fireT += C.FIRE_INTERVAL;
+        p.ammo--;
+        this.shotsFired++;
+        p.kickT = C.KICK_TIME; p.kick = C.KICK_RAD;   // 视角上踢 +1.2°（真实进射线）
+        this.doHitscan();
+        Sfx.shoot();
+        CS.HUD.flashMuzzle();
+        CS.Renderer.vmFire(this);
+    };
+
+    /* hitscan：固定从实际眼位 (x, y+eyeCur, z) + yaw/pitch(+kick) + 散布发出，与相机位解耦 */
+    Game.prototype.doHitscan = function () {
+        var p = this.player;
+        var pitch = p.pitch + p.kick;
+        var cp = Math.cos(pitch), sp = Math.sin(pitch);
+        var fx = Math.sin(p.yaw) * cp, fy = sp, fz = Math.cos(p.yaw) * cp;
+        var rx = Math.cos(p.yaw), ry = 0, rz = -Math.sin(p.yaw);
+        var ux = -sp * Math.sin(p.yaw), uy = cp, uz = -sp * Math.cos(p.yaw);
+        var dx = fx, dy = fy, dz = fz;
+        if (this.spreadDeg > 0) {
+            var a = (Math.random() * 2 - 1) * this.spreadDeg * Math.PI / 180;
+            var b = (Math.random() * 2 - 1) * this.spreadDeg * Math.PI / 180;
+            var ta = Math.tan(a), tb = Math.tan(b);
+            dx = fx + rx * ta + ux * tb;
+            dy = fy + ry * ta + uy * tb;
+            dz = fz + rz * ta + uz * tb;
+        }
+        var len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        dx /= len; dy /= len; dz /= len;
+        var ox = p.x, oy = p.y + p.eyeCur, oz = p.z;
+        var wallT = W.rayWalls(ox, oy, oz, dx, dy, dz, C.FAR);   // 先判墙
+        var idx = E.hitScan(this.bots, ox, oy, oz, dx, dy, dz, wallT); // 再判 Bot 公告板，取最近
+        if (idx < 0) {
+            if (wallT < C.FAR) {
+                var hx = ox + dx * wallT, hy = oy + dy * wallT, hz = oz + dz * wallT;
+                var hnx = W.hitAxis === 0 ? W.hitSign : 0;
+                var hny = W.hitAxis === 1 ? W.hitSign : 0;
+                var hnz = W.hitAxis === 2 ? W.hitSign : 0;
+                CS.Renderer.addBulletHole(hx, hy, hz, W.hitAxis, W.hitSign);
+                CS.Renderer.spawnParticles(hx, hy, hz, hnx, hny, hnz, 8, 0);
+                Sfx.hitWall();
+            }
+            return;
+        }
+        this.shotsHit++;
+        this.score += C.SCORE_HIT;
+        var b = this.bots[idx];
+        b.hp -= C.DMG; b.hitFlash = 0.12;
+        CS.Renderer.spawnParticles(ox + dx * E.hitT, oy + dy * E.hitT, oz + dz * E.hitT,
+            -dx, 0.2, -dz, 10, 1);
+        Sfx.hitBot();
+        if (b.hp <= 0) {
+            b.hp = 0; b.alive = false;
+            this.kills++; this.score += C.SCORE_KILL;
+            CS.Renderer.addFloat(b.x, C.BOT_SPLIT, b.z);
+            Sfx.kill();
+        }
+    };
+
+    Game.prototype.applyDamage = function (dmg) {
+        var p = this.player;
+        p.hp -= dmg;
+        if (p.hp < 0) p.hp = 0;               // HP 下限 0
+        CS.HUD.flashHurt();
+        Sfx.hurt();
+        if (p.hp <= 0) this.finish(false);
+    };
+
+    Game.prototype.checkWave = function (dt) {
+        if (this.intermission > 0) {
+            this.intermission -= dt;
+            if (this.intermission <= 0) {
+                this.intermission = 0;
+                this.waveIdx++;
+                E.spawnWave(this.bots, this.waveIdx);
+                Sfx.wave();
+            }
+            return;
+        }
+        if (E.aliveCount(this.bots) > 0) return;
+        if (this.waveIdx >= 2) { this.finish(true); return; }   // 3 波清场 = 通关
+        this.intermission = C.WAVE_GAP;
+        var p = this.player;
+        p.ammo = C.MAG;                       // 整备：补满弹匣
+        p.reloading = false; p.reloadT = 0;
+        p.hp = Math.min(C.PLAYER_HP, p.hp + C.WAVE_HEAL);  // +20 上限 100，不重置位置
+        Sfx.wave();
+    };
+
+    Game.prototype.update = function (dt) {
+        this.elapsed += dt;
+        this.applyLook();
+        this.applyMove(dt);
+        this.tickTimers(dt);
+        this.shooterSlots = 0; this.pendingDamage = 0; this.botFired = false;
+        E.updateBots(this.bots, this.player, this, dt);
+        if (this.botFired) Sfx.botFire();
+        if (this.pendingDamage > 0) this.applyDamage(this.pendingDamage); // 同帧伤害统一判定
+        if (this.state !== 'playing') return;   // 死亡立即冻结输入与波次生成
+        this.tryShoot();
+        this.checkWave(dt);
+    };
+
+    Game.prototype.frame = function (now) {
+        global.requestAnimationFrame(this.boundFrame);
+        if (this.state !== 'playing') { this.last = now; return; }  // 暂停/失焦停帧，冻结 dt
+        var dt = (now - this.last) / 1000;
+        this.last = now;
+        if (dt > C.DT_MAX) dt = C.DT_MAX;      // 极端 dt 钳制，高刷设备一致
+        if (dt <= 0) return;
+        this.update(dt);
+        CS.Renderer.checkPerf(dt);             // <45fps 自动切 Renderer2DFlat
+        CS.Renderer.beginFrame(this.player, this.viewMode);
+        CS.Renderer.endFrame(dt, this);
+        CS.HUD.update(dt, this);
+    };
+
+    Game.prototype.bindGlobal = function () {
+        var self = this;
+        global.addEventListener('blur', function () { if (self.state === 'playing') self.pause(); });
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden && self.state === 'playing') self.pause();
+        });
+        document.addEventListener('themeChanged', function () {
+            if (self.state !== 'playing') self.renderStatic();
+        });
+        global.addEventListener('resize', function () {
+            CS.Renderer.resize();
+            if (self.state !== 'playing') self.renderStatic();
+        });
+
+        var sb = document.getElementById('sound-button');
+        var icon = sb.querySelector('i');
+        function paint(on) {
+            icon.classList.toggle('fa-volume-high', on);
+            icon.classList.toggle('fa-volume-xmark', !on);
+            sb.title = on ? '关闭音效' : '开启音效';
+        }
+        paint(Sfx.isEnabled());
+        sb.addEventListener('click', function () {
+            var on = Sfx.toggle();
+            paint(on);
+            if (on) Sfx.view();
+        });
+    };
+
+    new Game();
+})(window);
