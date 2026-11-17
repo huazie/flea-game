@@ -15,19 +15,32 @@
     function $(id) { return document.getElementById(id); }
     function text(node, v) { if (node && node.textContent !== v) node.textContent = v; }
 
+    /* 站点分享/评论 FAB 只在「纯主菜单」显示：任何子页面（游戏/暂停/结算/
+     * 操作说明/布局编辑/旋转引导）都不展示，避免挡触控与抢视觉。
+     * 白名单式：非纯主菜单即加 cs-fab-off（CSS display:none!important）。 */
+    function syncFab() {
+        var menu = el.menu && el.menu.classList.contains('is-active');
+        var help = el.help && el.help.classList.contains('is-active');
+        var edit = document.body.classList.contains('is-tcfg-edit');
+        var gate = $('screen-rotate');
+        var rotating = gate && gate.classList.contains('is-active');
+        document.body.classList.toggle('cs-fab-off', !(menu && !help && !edit && !rotating));
+    }
+
     function setScreen(name) {
         el.help.classList.remove('is-active');   // 任何状态切换都收起操作说明，避免遮挡
         el.menu.classList.toggle('is-active', name === 'menu');
         el.pause.classList.toggle('is-active', name === 'pause');
         el.result.classList.toggle('is-active', name === 'result');
         stage.classList.toggle('is-playing', name === 'hud');
+        syncFab();
     }
 
-    function showHelp() { el.help.classList.add('is-active'); }
-    function hideHelp() { el.help.classList.remove('is-active'); }
+    function showHelp() { el.help.classList.add('is-active'); syncFab(); }
+    function hideHelp() { el.help.classList.remove('is-active'); syncFab(); }
 
     function setView(mode, highlight) {
-        text(el.view, mode === 'tps' ? 'TPS' : 'FPS');
+        text(el.viewMode, mode === 'tps' ? 'TPS' : 'FPS');
         text(el.menuViewBtn, mode === 'tps' ? 'TPS' : 'FPS');
         if (highlight) { el.view.classList.add('is-hi'); viewHiTimer = C.VIEW_HI_TIME; }
     }
@@ -36,6 +49,15 @@
         text(el.menuBest, String(best));
         setView(viewMode, false);
         setScreen('menu');
+    }
+
+    /* 实测帧率读数：0.5s 窗口汇报，change-guard 防逐帧 DOM 写 */
+    var lastFps = '';
+    function setFps(v) {
+        var s = String(v);
+        if (s === lastFps) return;
+        lastFps = s;
+        text(el.fpsValue, s);
     }
 
     function showResult(game, win, isNew) {
@@ -75,6 +97,7 @@
         el.reloadWrap.classList.remove('is-on');
         last.hp = last.ammo = last.wave = last.left = last.score = -1;
         last.gap = last.prog = -1; last.gapText = ''; last.reloading = false;
+        lastFps = '';
     }
 
     function update(dt, game) {
@@ -149,8 +172,9 @@
         el.ammo = $('ammo-value'); el.reloadWrap = $('reload-progress');
         el.reloadFill = $('reload-fill');
         el.waveLabel = $('wave-label'); el.waveLeft = $('wave-left'); el.gap = $('wave-gap');
-        el.score = $('score-value'); el.view = $('hud-view');
+        el.score = $('score-value'); el.view = $('hud-view'); el.viewMode = $('view-mode'); el.fpsValue = $('fps-value');
         el.menuBest = $('menu-best'); el.menuViewBtn = $('menu-view-btn');
+        el.menuTouchLine = $('menu-touch-line'); el.menuTouchBtn = $('menu-touch-btn');
         el.rTitle = $('result-title'); el.rNew = $('result-new');
         el.rWave = $('r-wave'); el.rKills = $('r-kills'); el.rAcc = $('r-acc');
         el.rHp = $('r-hp'); el.rTime = $('r-time'); el.rScore = $('r-score'); el.rBest = $('r-best');
@@ -164,12 +188,33 @@
         $('btn-again').addEventListener('click', function () { cb.restart(); });
         $('btn-result-menu').addEventListener('click', function () { cb.menu(); });
         el.menuViewBtn.addEventListener('click', function () { cb.view(); });
+        /* 左上角视角·帧率块点击切换 FPS/TPS（playing 态直接点击，菜单态另有起始视角钮） */
+        if (el.view) el.view.addEventListener('click', function () { cb.view(); });
+        /* 按钮布局入口：仅触屏绑定（入口行本身已由 CSS (pointer: coarse) 分流，双保险） */
+        if (el.menuTouchBtn) {
+            if (CS.Input && CS.Input.isTouch) el.menuTouchBtn.addEventListener('click', function () { cb.touch(); });
+            else if (el.menuTouchLine) el.menuTouchLine.style.display = 'none';
+        }
+        syncFab();   /* 初始态：主菜单激活，FAB 可见；其余子页面由状态切换维护 */
+    }
+
+    /* 降级等系统级提示条：is-show 类由 CSS 过渡显隐，2.6s 自动消失 */
+    var toastTimer = 0;
+    function toast(msg) {
+        var t = document.getElementById('perf-toast');
+        if (!t) return;
+        t.textContent = msg;
+        t.classList.add('is-show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { t.classList.remove('is-show'); }, 2600);
     }
 
     CS.HUD = {
         init: init, reset: reset, update: update,
-        setScreen: setScreen, setView: setView,
+        setScreen: setScreen, setView: setView, setFps: setFps,
+        syncFab: syncFab,
         showMenu: showMenu, showResult: showResult,
-        flashHurt: flashHurt, flashAmmo: flashAmmo, flashMuzzle: flashMuzzle
+        flashHurt: flashHurt, flashAmmo: flashAmmo, flashMuzzle: flashMuzzle,
+        toast: toast
     };
 })(window);

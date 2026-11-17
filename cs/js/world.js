@@ -5,10 +5,10 @@
     var CS = global.CS || (global.CS = {});
     var C = CS.CFG;
 
-    /* [minX, maxX, minZ, maxZ]；4 面围墙 + 8 块掩体，两两不相交 */
+    /* [minX, maxX, minZ, maxZ]；4 面围墙 + 8 块掩体，两两不相交（共边贴合不算相交） */
     var RAW = [
         [-16, -15, -16, 16], [15, 16, -16, 16],
-        [-14.8, 14.8, 15, 16], [-14.8, 14.8, -16, -15],
+        [-15, 15, 15, 16], [-15, 15, -16, -15],
         [-12, -8, -11, -9], [4.5, 7.5, -12.5, -9.5],
         [-6, -4, -7, -1], [0.5, 5.5, -4, -2],
         [-10, -8, -0.5, 4.5], [6.5, 9.5, 1, 5],
@@ -105,6 +105,43 @@
         return rayWalls(ax, ay, az, dx / d, dy / d, dz / d, d) >= d - 0.02;
     }
 
+    /* ── 相机遮挡淡出（X-ray）几何辅助：纯查询，不改任何游戏判定 ──
+     * occluderMask：线段(ax,az)→(bx,bz) 穿过的墙盒位掩码（bit k = boxes[k]）。
+     * nearBoxes：点(px,pz) 到盒 2D 距离 < r 的墙盒位掩码（墙 y 全高，恒覆盖相机高度）。 */
+    function occluderMask(ax, az, bx, bz) {
+        var mask = 0, k, b, dx, dz, t0, t1, u0, u1, tmp;
+        dx = bx - ax; dz = bz - az;
+        for (k = 0; k < boxes.length; k++) {
+            b = boxes[k]; t0 = 0; t1 = 1;
+            if (Math.abs(dx) < EPS) { if (ax < b.minX || ax > b.maxX) continue; }
+            else {
+                u0 = (b.minX - ax) / dx; u1 = (b.maxX - ax) / dx;
+                if (u0 > u1) { tmp = u0; u0 = u1; u1 = tmp; }
+                if (u0 > t0) t0 = u0;
+                if (u1 < t1) t1 = u1;
+            }
+            if (Math.abs(dz) < EPS) { if (az < b.minZ || az > b.maxZ) continue; }
+            else {
+                u0 = (b.minZ - az) / dz; u1 = (b.maxZ - az) / dz;
+                if (u0 > u1) { tmp = u0; u0 = u1; u1 = tmp; }
+                if (u0 > t0) t0 = u0;
+                if (u1 < t1) t1 = u1;
+            }
+            if (t1 > t0 && t1 > 0 && t0 < 1) mask |= (1 << k);
+        }
+        return mask;
+    }
+    function boxDist2D(px, pz, b) {
+        var dx = px < b.minX ? b.minX - px : (px > b.maxX ? px - b.maxX : 0);
+        var dz = pz < b.minZ ? b.minZ - pz : (pz > b.maxZ ? pz - b.maxZ : 0);
+        return Math.sqrt(dx * dx + dz * dz);
+    }
+    function nearBoxes(px, pz, r) {
+        var mask = 0, k;
+        for (k = 0; k < boxes.length; k++) if (boxDist2D(px, pz, boxes[k]) < r) mask |= (1 << k);
+        return mask;
+    }
+
     /* 圆(r=RADIUS) vs AABB：按 x / z 轴分离推出，形成贴墙滑动。直接改写 ent.x / ent.z。 */
     function move(ent, dx, dz) {
         var r = C.RADIUS, k, b, nx = ent.x + dx, nz = ent.z + dz;
@@ -134,6 +171,7 @@
         boxes: boxes, spawns: spawns, waypoints: waypoints,
         pickSpawns: pickSpawns, randomWaypoint: randomWaypoint,
         rayWalls: rayWalls, lineOfSight: lineOfSight, move: move,
+        occluderMask: occluderMask, nearBoxes: nearBoxes,
         get hitAxis() { return hitAxis; },
         get hitSign() { return hitSign; }
     };

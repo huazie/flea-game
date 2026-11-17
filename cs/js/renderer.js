@@ -14,7 +14,7 @@
     var faces = [], order = [], floats = [], i;
     for (i = 0; i < MAX_FACES; i++) {
         faces.push({ n: 0, sx: new Float64Array(MAX_VERTS), sy: new Float64Array(MAX_VERTS),
-            dist: 0, color: '', alpha: 1, stroke: false, tex: -1, shade: 1, fog: 0 });
+            dist: 0, color: '', alpha: 1, stroke: false, tex: -1, shade: 1, fog: 0, mark: 0 });
         order.push(0);
     }
     for (i = 0; i < 4; i++) floats.push({ x: 0, y: 0, z: 0, life: 0 });
@@ -35,16 +35,21 @@
         player: '', playerHead: '', accent: '',
         wallA: '', wallB: '', hole: '', shell: '',
         gunBody: '', gunDark: '', gunSight: '',
+        gunHi: 'rgba(255,255,255,0.15)', gunLo: 'rgba(0,0,0,0.22)',
         wallX: new Array(3), wallZ: new Array(3)
     };
 
     var canvas, ctx, stage, cssW = 1, cssH = 1, focal = 1, renderScale = 1;
+    var scaleOverride = 0;   /* 自适应降档：0.65（慢帧时先降内部分辨率，恢复不了再降 flat） */
     var camX = 0, camY = 0, camZ = 0;
     var fX = 0, fY = 0, fZ = 1, rX = 1, rY = 0, rZ = 0, uX = 0, uY = 1, uZ = 0;
     var px = 0, py = C.EYE_Y, pz = 0;
     var lastPitch = 0, lastView = 'fps';
     var playerAlpha = 1, camDist = 0;
+    /* 相机遮挡淡出（X-ray）：每墙盒的当前透明度，1=不透明（见 updateWallFade） */
+    var wallFade = new Float64Array(32).fill(1);
     var axX = 1, axZ = 0;   // 公告板水平轴（由相机方向算出）
+    var lastMark = { mark: 0, top: 0, bottom: 0, y: 0, y2: 0, y3: 0 };   // QA：最近一次脸部标记的屏幕几何（y=眼/盔带，y2=鼻/后脑带，y3=嘴）
 
     /* ── 伪光照：L = normalize(0.4, 0.7, 0.6)，6 个面朝向档位预计算 ── */
     var LN = Math.sqrt(0.4 * 0.4 + 0.7 * 0.7 + 0.6 * 0.6);
@@ -184,6 +189,8 @@
         palette.shell = U.shade(palette.accent, 1.25);
         palette.gunBody = v('--cs-gun-body') || palette.player;
         palette.gunDark = v('--cs-gun-dark') || palette.wallEdge;
+        palette.gunHi = v('--cs-gun-hi') || 'rgba(255,255,255,0.15)';
+        palette.gunLo = v('--cs-gun-lo') || 'rgba(0,0,0,0.22)';
         palette.gunSight = palette.accent;
         for (i = 0; i < 3; i++) {
             palette.wallX[i] = U.shade(wa || base, 0.84 + i * 0.13);
@@ -198,7 +205,7 @@
         cssW = Math.max(1, Math.round(rect.width));
         cssH = Math.max(1, Math.round(rect.height));
         var coarse = global.matchMedia && global.matchMedia('(pointer: coarse)').matches;
-        renderScale = (coarse || cssW < 700) ? 0.8 : 1;
+        renderScale = scaleOverride || ((coarse || cssW < 700) ? 0.8 : 1);
         var ratio = renderScale < 1 ? renderScale : Math.min(global.devicePixelRatio || 1, 2);
         var bw = Math.max(1, Math.round(cssW * ratio));
         var bh = Math.max(1, Math.round(cssH * ratio));
@@ -234,16 +241,37 @@
         playerAlpha = 1; camDist = 0;
         if (viewMode !== 'tps') { camX = px; camY = py; camZ = pz; return; }
 
-        var bx = -Math.sin(yaw) * C.TPS_BACK;
-        var by = C.TPS_UP;
-        var bz = -Math.cos(yaw) * C.TPS_BACK;
-        var len = Math.sqrt(bx * bx + by * by + bz * bz);
-        var dx = bx / len, dy = by / len, dz = bz / len;
+        /* 越肩第三人称（v3.18）：相机移到玩家右后上方，角色沉到画面左下，让出中央准星。
+         * 关键：hitscan 固定从眼位沿 yaw/pitch 发出（game.js），与本相机完全解耦——
+         * 相机朝向只用于投影，故准星在 FOCUS 距离处与真实射线重合，零数值收益改变(ADR-2)。 */
+        var sy = Math.sin(yaw), cy = Math.cos(yaw);
+        var SHOULDER = C.TPS_SHOULDER, BACK = C.TPS_BACK, UP = C.TPS_UP, FOCUS = C.TPS_FOCUS;
+        /* 目标相机位 = 眼位 - 前向水平*BACK + 右向*SHOULDER + 上抬*UP */
+        var ox = px - sy * BACK + cy * SHOULDER;
+        var oz = pz - cy * BACK - sy * SHOULDER;
+        var oy = py + UP;
+        /* 墙碰撞：从眼位朝目标相机方向投射，防穿墙 */
+        var vx = ox - px, vy = oy - py, vz = oz - pz;
+        var len = Math.sqrt(vx * vx + vy * vy + vz * vz);
+        var dx = vx / len, dy = vy / len, dz = vz / len;
         var hit = W.rayWalls(px, py, pz, dx, dy, dz, len);
         camDist = hit < len ? Math.max(C.TPS_MIN, hit - 0.15) : len;
         camX = px + dx * camDist;
         camY = py + dy * camDist;
         camZ = pz + dz * camDist;
+        /* 聚焦点 = 眼位 + 玩家前向(含 pitch)*FOCUS；相机看向它，使屏幕中心准星对准弹道 */
+        var gx = px + fX * FOCUS, gy = py + fY * FOCUS, gz = pz + fZ * FOCUS;
+        var ax = gx - camX, ay = gy - camY, az = gz - camZ;
+        var al = Math.sqrt(ax * ax + ay * ay + az * az) || 1;
+        fX = ax / al; fY = ay / al; fZ = az / al;
+        /* 以新前向重建正交基：right = cross(worldUp, fwd), up = cross(fwd, right) */
+        rX = fZ; rY = 0; rZ = -fX;
+        var rl = Math.sqrt(rX * rX + rZ * rZ);
+        if (rl < 1e-4) { rX = 1; rY = 0; rZ = 0; }
+        else { rX /= rl; rZ /= rl; }
+        uX = fY * rZ - fZ * rY;
+        uY = fZ * rX - fX * rZ;
+        uZ = fX * rY - fY * rX;
         playerAlpha = camDist < 1.1 ? 0.38 : 1;
     }
 
@@ -301,7 +329,7 @@
             f.sy[k] = cssH * 0.5 - focal * camOut[o + 1] / z;
         }
         f.n = n; f.color = color; f.alpha = alpha; f.stroke = stroke;
-        f.tex = tex; f.shade = shade;
+        f.tex = tex; f.shade = shade; f.mark = 0;
         dx = cx - camX; dy = cy - camY; dz = cz - camZ;
         f.dist = dx * dx + dy * dy + dz * dz;
         if (mode === 0) {
@@ -341,10 +369,11 @@
     }
 
     function genWalls() {
-        var boxes = W.boxes, k, b, cx, cz, t, colX, colZ;
+        var boxes = W.boxes, k, b, cx, cz, t, colX, colZ, fa;
         while (boxCount < boxes.length) { boxTex[boxCount] = boxCount < 4 ? 0 : (boxCount % 2 ? 2 : 1); boxCount++; }
         for (k = 0; k < boxes.length; k++) {
             b = boxes[k];
+            fa = wallFade[k];               /* 相机遮挡淡出：该盒被淡出时整盒半透明 */
             cx = (b.minX + b.maxX) * 0.5; cz = (b.minZ + b.maxZ) * 0.5;
             t = mode === 0 ? boxTex[k] : -1;
             colX = mode === 0 ? palette.wallA : palette.wallX[k % 3];
@@ -352,53 +381,119 @@
             if (camX > b.maxX) {
                 setQ(0, b.maxX, 0, b.minZ); setQ(1, b.maxX, C.WALL_H, b.minZ);
                 setQ(2, b.maxX, C.WALL_H, b.maxZ); setQ(3, b.maxX, 0, b.maxZ);
-                addFace(colX, 1, true, t, mode === 0 ? shadeO[0] : 1, b.maxX, C.WALL_H * 0.5, cz);
+                addFace(colX, fa, true, t, mode === 0 ? shadeO[0] : 1, b.maxX, C.WALL_H * 0.5, cz);
             }
             if (camX < b.minX) {
                 setQ(0, b.minX, 0, b.maxZ); setQ(1, b.minX, C.WALL_H, b.maxZ);
                 setQ(2, b.minX, C.WALL_H, b.minZ); setQ(3, b.minX, 0, b.minZ);
-                addFace(colX, 1, true, t, mode === 0 ? shadeO[1] : 1, b.minX, C.WALL_H * 0.5, cz);
+                addFace(colX, fa, true, t, mode === 0 ? shadeO[1] : 1, b.minX, C.WALL_H * 0.5, cz);
             }
             if (camZ > b.maxZ) {
                 setQ(0, b.minX, 0, b.maxZ); setQ(1, b.minX, C.WALL_H, b.maxZ);
                 setQ(2, b.maxX, C.WALL_H, b.maxZ); setQ(3, b.maxX, 0, b.maxZ);
-                addFace(colZ, 1, true, t, mode === 0 ? shadeO[4] : 1, cx, C.WALL_H * 0.5, b.maxZ);
+                addFace(colZ, fa, true, t, mode === 0 ? shadeO[4] : 1, cx, C.WALL_H * 0.5, b.maxZ);
             }
             if (camZ < b.minZ) {
                 setQ(0, b.maxX, 0, b.minZ); setQ(1, b.maxX, C.WALL_H, b.minZ);
                 setQ(2, b.minX, C.WALL_H, b.minZ); setQ(3, b.minX, 0, b.minZ);
-                addFace(colZ, 1, true, t, mode === 0 ? shadeO[5] : 1, cx, C.WALL_H * 0.5, b.minZ);
+                addFace(colZ, fa, true, t, mode === 0 ? shadeO[5] : 1, cx, C.WALL_H * 0.5, b.minZ);
             }
             if (camY > C.WALL_H) {
                 setQ(0, b.minX, C.WALL_H, b.minZ); setQ(1, b.minX, C.WALL_H, b.maxZ);
                 setQ(2, b.maxX, C.WALL_H, b.maxZ); setQ(3, b.maxX, C.WALL_H, b.minZ);
-                addFace(palette.wallTop, 1, true, t, mode === 0 ? shadeO[2] : 1, cx, C.WALL_H, cz);
+                addFace(palette.wallTop, fa, true, t, mode === 0 ? shadeO[2] : 1, cx, C.WALL_H, cz);
             }
         }
     }
 
+    /* 头部细节：纯 ctx 绘制、不占面池，由 drawFaces* 在画完该面后立刻调用（近处物体自然遮挡）。
+     * 屏幕坐标 y 向下；billboard 角点 Q0/Q1=世界 y0（底）、Q2/Q3=y1（顶），
+     * 投影后 sy[0]/sy[1] 是面的屏幕底（值大）、sy[2]/sy[3] 是面的屏幕顶（值小）。
+     * 因此一切"自顶向下 x%"的定位必须从 sy[3] 起、向 y 增大方向加。
+     * mark=1 敌人：正脸眼+鼻+嘴（敌人始终面向玩家，看到的是脸）——头面中下部。
+     * mark=2 玩家 TPS：越肩从背后跟随，看不到脸——头顶盔带 + 后脑勺横带，强化"背影"读感。 */
+    function drawFaceMark(f) {
+        if (f.n !== 4) return;                       // 被近裁剪切过的面不做插值
+        var lx = f.sx[0] + (f.sx[3] - f.sx[0]) * 0.58;
+        var rx = f.sx[1] + (f.sx[2] - f.sx[1]) * 0.58;
+        var span = rx - lx;
+        var hh = f.sy[3] - f.sy[0];                  // 面高（负值：sy3 顶、sy0 底）
+        var top = f.sy[3];
+        ctx.fillStyle = palette.gunDark;
+        if (f.mark === 2) {
+            /* 后脑勺：头顶一条头盔带 + 中部一条横向发型/护目带（不是眼睛），均自面顶向下 */
+            var bandY = top + Math.abs(hh) * 0.22;
+            var bandH = Math.max(2, Math.abs(hh) * 0.13);
+            ctx.fillRect(lx, bandY - bandH * 0.5, span, bandH);
+            var napeY = top + Math.abs(hh) * 0.62;
+            ctx.fillRect(lx + span * 0.16, napeY, span * 0.68, Math.max(1, Math.abs(hh) * 0.06));
+            lastMark.mark = 2; lastMark.top = top; lastMark.bottom = f.sy[0]; lastMark.y = bandY; lastMark.y2 = napeY; lastMark.y3 = napeY;
+        } else {
+            /* 敌人正脸（MC 风格三件套，均自面顶向下）：眼 48% 两只小方眼、
+             * 鼻 60% 居中窄方、嘴 78% 居中横条。远距离以 ≥1px 兜底可见。 */
+            var aw = Math.abs(span), ah = Math.abs(hh);
+            var ew = aw * 0.14, eh = ah * 0.10;
+            if (ew < 1) ew = 1;
+            if (eh < 1) eh = 1;
+            var ey = top + ah * 0.48;
+            ctx.fillRect(lx + span * 0.28 - ew * 0.5, ey - eh * 0.5, ew, eh);
+            ctx.fillRect(lx + span * 0.72 - ew * 0.5, ey - eh * 0.5, ew, eh);
+            var nw = Math.max(1, aw * 0.10), nh = Math.max(1, ah * 0.10);
+            var ny = top + ah * 0.60, nx = lx + span * 0.5;
+            ctx.fillRect(nx - nw * 0.5, ny - nh * 0.5, nw, nh);
+            var mw = Math.max(1, aw * 0.34), mh = Math.max(1, ah * 0.06);
+            var my = top + ah * 0.78;
+            ctx.fillRect(nx - mw * 0.5, my - mh * 0.5, mw, mh);
+            lastMark.mark = 1; lastMark.top = top; lastMark.bottom = f.sy[0]; lastMark.y = ey; lastMark.y2 = ny; lastMark.y3 = my;
+        }
+    }
+
+    /* MC 分块敌人：6 面（双腿+躯干+双臂+头）+ 1 面枪 stub + 开火时 1 面枪口火光。
+     * 所有部件落在 hitscan 公告板盒内（|u|≤0.32, y∈[0.10,1.85]）；视觉与判定彻底解耦。 */
     function genBots(bots) {
-        var k, b;
+        var k, b, f0, torsoDist;
         for (k = 0; k < bots.length; k++) {
             b = bots[k];
             if (!b.alive) continue;
             setAxes(camX, camZ, b.x, b.z);
             var col = b.hitFlash > 0 ? palette.botHit : palette.bot;
-            drawBillboard(b.x, b.z, C.BOT_Y0, C.BOT_SPLIT, C.BOT_HALF_W, col, 1, true);
+            /* 躯干半宽 0.24（小于判定 0.32）让双臂露出轮廓；腿/臂全部仍在判定盒内 */
+            drawBillboard(b.x - axX * 0.12, b.z - axZ * 0.12, C.BOT_Y0, 0.70, 0.11, col, 1, true);
+            drawBillboard(b.x + axX * 0.12, b.z + axZ * 0.12, C.BOT_Y0, 0.70, 0.11, col, 1, true);
+            f0 = faceCount;
+            drawBillboard(b.x, b.z, 0.70, C.BOT_SPLIT, 0.24, col, 1, true);
+            torsoDist = faceCount > f0 ? faces[faceCount - 1].dist : 0;
+            drawBillboard(b.x - axX * 0.25, b.z - axZ * 0.25, 0.78, 1.42, 0.07, col, 1, true);
+            drawBillboard(b.x + axX * 0.25, b.z + axZ * 0.25, 0.78, 1.42, 0.07, col, 1, true);
+            f0 = faceCount;
             drawBillboard(b.x, b.z, C.BOT_SPLIT, C.BOT_Y1, C.BOT_HEAD_HALF_W, palette.botHead, 1, true);
+            if (faceCount > f0) faces[faceCount - 1].mark = 1;
+            /* 枪 stub：与躯干共面时会被躯干（更靠近相机眼高）盖住，仅微调排序距离，
+             * 使它压在躯干/手臂之前；这不是游戏数值，只影响画家算法顺序。 */
+            f0 = faceCount;
+            drawBillboard(b.x + axX * 0.28, b.z + axZ * 0.28, 0.98, 1.18, 0.04, palette.gunBody, 1, false);
+            if (faceCount > f0 && torsoDist > 0) faces[faceCount - 1].dist = torsoDist - 0.02;
             if (b.flash > 0) {
+                f0 = faceCount;
                 drawBillboard(b.x + axX * 0.30, b.z + axZ * 0.30,
                     1.05, 1.25, 0.10, palette.muzzle, 1, false);
+                if (faceCount > f0 && torsoDist > 0) faces[faceCount - 1].dist = torsoDist - 0.04;
             }
         }
     }
 
-    /* TPS 玩家模型：2 面公告板 + 1 面竖条枪（3D 面池 +1）；y 跟随跳跃（11.8.3） */
+    /* TPS 玩家模型：6 面 MC 分块 + 1 面竖条枪（面池 +7）；y 跟随跳跃（11.8.3） */
     function genPlayer(player) {
         setAxes(camX, camZ, player.x, player.z);
-        var yb = player.y;
-        drawBillboard(player.x, player.z, yb + 0.10, yb + 1.35, 0.28, palette.player, playerAlpha, true);
-        drawBillboard(player.x, player.z, yb + 1.35, yb + 1.65, 0.16, palette.playerHead, playerAlpha, true);
+        var yb = player.y, f0;
+        drawBillboard(player.x - axX * 0.12, player.z - axZ * 0.12, yb + 0.10, yb + 0.70, 0.10, palette.player, playerAlpha, true);
+        drawBillboard(player.x + axX * 0.12, player.z + axZ * 0.12, yb + 0.10, yb + 0.70, 0.10, palette.player, playerAlpha, true);
+        drawBillboard(player.x, player.z, yb + 0.70, yb + 1.50, 0.20, palette.player, playerAlpha, true);
+        drawBillboard(player.x - axX * 0.22, player.z - axZ * 0.22, yb + 0.78, yb + 1.42, 0.07, palette.player, playerAlpha, true);
+        drawBillboard(player.x + axX * 0.22, player.z + axZ * 0.22, yb + 0.78, yb + 1.42, 0.07, palette.player, playerAlpha, true);
+        f0 = faceCount;
+        drawBillboard(player.x, player.z, yb + 1.50, yb + 1.65, 0.16, palette.playerHead, playerAlpha, true);
+        if (faceCount > f0) faces[faceCount - 1].mark = 2;
         drawBillboard(player.x + axX * 0.34, player.z + axZ * 0.34,
             yb + 0.55, yb + 1.30, 0.05, palette.gunBody, playerAlpha, false);
     }
@@ -483,7 +578,7 @@
     for (i = 0; i < C.PARTICLE_MAX; i++) parts.push({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 0, lifeMax: 1, kind: 0 });
     for (i = 0; i < C.SHELL_MAX; i++) shells.push({ x: 0, y: 0, vx: 0, vy: 0, life: 0 });
     var holeIdx = 0, partIdx = 0, shellIdx = 0;
-    var vm = { phase: 0, lagX: 0, lagY: 0, recoil: 0, muzzleT: 0 };
+    var vm = { phase: 0, lagX: 0, lagY: 0, recoil: 0, muzzleT: 0, aim: 0, aimGeom: 0 };
     var lagT = new Float64Array(4), lagDX = new Float64Array(4), lagDY = new Float64Array(4), lagI = 0;
 
     function addBulletHole(x, y, z, axis, sign) {
@@ -514,11 +609,17 @@
     }
 
     function drawHoles() {
-        var s = C.HOLE_SIZE * 0.5, off = C.HOLE_OFF, j, h, k, okAll;
+        var s = C.HOLE_SIZE * 0.5, off = C.HOLE_OFF, j, h, k, okAll, hb, b2;
         ctx.fillStyle = palette.hole;
         for (j = 0; j < C.HOLE_MAX; j++) {
             h = holes[j];
             if (!h.on) continue;
+            /* 弹孔属于哪面墙：该墙被相机遮挡淡出时弹孔同步淡出，避免悬浮空中 */
+            hb = 1;
+            for (k = 0; k < W.boxes.length; k++) {
+                b2 = W.boxes[k];
+                if (h.x >= b2.minX && h.x <= b2.maxX && h.z >= b2.minZ && h.z <= b2.maxZ) { hb = wallFade[k]; break; }
+            }
             okAll = true;
             for (k = 0; k < 4; k++) {
                 var sa = (k === 0 || k === 3) ? s : -s;
@@ -530,7 +631,7 @@
                 holeQx[k] = proj.sx; holeQy[k] = proj.sy;
             }
             if (!okAll) continue;
-            ctx.globalAlpha = 0.85;
+            ctx.globalAlpha = 0.85 * hb;
             ctx.beginPath();
             ctx.moveTo(holeQx[0], holeQy[0]);
             ctx.lineTo(holeQx[1], holeQy[1]);
@@ -576,13 +677,44 @@
         ctx.globalAlpha = 1;
     }
 
-    /* ── 枪械视图模型：屏幕空间 5 多边形，不占 3D 面池 ── */
-    var GUN_BARREL = [-150, -66, -40, -78, -40, -56, -150, -48];
-    var GUN_BODY = [-44, -82, 20, -82, 30, -18, 16, 6, -30, 6, -44, -38];
-    var GUN_SIGHT = [-104, -88, -78, -88, -78, -76, -104, -76];
-    var GUN_GRIP = [-4, 4, 18, 4, 28, 46, 6, 54];
-    var GUN_MAG = [-34, 4, -8, 6, -14, 56, -38, 48];
-    var MUZ_X = -150, MUZ_Y = -57;
+    /* ── 枪械视图模型：屏幕空间多边形（M4 卡宾枪分层轮廓），不占 3D 面池 ──
+     * 坐标系：枪口朝 -x，y 负为上；全部预分配，逐帧仅 fill/stroke。 */
+    var GUN_BARREL = [-158, -62, -98, -62, -98, -53, -158, -53];
+    var GUN_BRAKE = [-178, -64, -166, -67, -156, -67, -156, -47, -166, -47, -178, -50];
+    var GUN_FRONT_SIGHT = [-124, -53, -121, -82, -115, -82, -112, -53];
+    var GUN_HANDGUARD = [-98, -70, -94, -74, -44, -74, -40, -70, -40, -44, -44, -40, -94, -40, -98, -44];
+    var GUN_HAND_RAIL = [-96, -80, -42, -80, -42, -74, -96, -74];
+    var GUN_BODY = [-44, -82, 22, -82, 30, -18, 16, 6, -30, 6, -44, -38];
+    var GUN_RECV_RAIL = [-42, -88, 26, -88, 26, -82, -42, -82];
+    var GUN_SIGHT = [-16, -103, 8, -103, 8, -88, -16, -88];
+    var GUN_LENS = [-12, -100, 4, -100, 4, -91, -12, -91];
+    var GUN_EJECT = [-4, -68, 16, -68, 16, -57, -4, -57];
+    var GUN_MAG = [-36, 4, -10, 4, -16, 26, -27, 52, -49, 47, -41, 24];
+    var GUN_GRIP = [18, 4, 38, 4, 44, 40, 52, 56, 36, 60, 30, 40];
+    var GUN_TRIGGER = [3, 8, 9, 7, 7, 20, 2, 17];
+    /* 受光/背光条带与细节，随主题配色变量走（ADR-4） */
+    var GUN_BODY_HI = [-44, -82, 22, -82, 26, -74, -42, -74];
+    var GUN_BODY_LO = [-30, 6, 16, 6, 26, -6, -38, -6];
+    var GUN_GUARD_HI = [-94, -74, -44, -74, -40, -70, -96, -70];
+    var GUN_GUARD_LO = [-94, -40, -44, -40, -40, -44, -96, -44];
+    var GUN_MAG_LO = [-14, 4, -10, 4, -22, 50, -27, 52];
+    var GUN_GRIP_LO = [38, 4, 44, 40, 52, 56, 46, 54, 38, 40, 33, 4];
+    /* 枪托：枪口朝 -x，枪尾 +x；x 最大 108，窄屏按 vs 缩放后不越界（预分配，零分配） */
+    var GUN_STOCK = [28, -22, 54, -40, 88, -34, 102, -10, 100, 12, 70, 14, 40, 4, 22, -12];
+    var GUN_STOCK_HI = [28, -22, 54, -40, 88, -34, 84, -28, 52, -32, 26, -16];
+    var GUN_STOCK_LO = [40, 4, 70, 14, 100, 12, 102, -10, 78, -4, 48, -10];
+    var GUN_CHEEK = [48, -38, 78, -32, 84, -22, 54, -26];
+    var GUN_BUTT = [100, -12, 106, -10, 108, 10, 100, 12];
+    var GUN_STOCK_HOLE = [58, -20, 70, -22, 76, -10, 64, -8];
+    var GUARD_VENTS = [
+        [-90, -56, -80, -59, -80, -50, -90, -53],
+        [-76, -56, -66, -59, -66, -50, -76, -53],
+        [-62, -56, -52, -59, -52, -50, -62, -53]
+    ];
+    /* 导轨齿：护木 5 齿 + 机匣 5 齿 + 弹匣托弹纹/握把指槽，绘制时内联 fillRect/stroke */
+    var RIBS = [[-39, 20, -15, 20], [-42, 36, -21, 36]];      /* 弹匣托弹纹 */
+    var GROOVES = [[26, 20, 38, 20], [29, 30, 40, 30]];       /* 握把指槽 */
+    var MUZ_X = -180, MUZ_Y = -57;
 
     function fillPoly(pts, col) {
         ctx.fillStyle = col;
@@ -591,6 +723,16 @@
         for (var k = 2; k < pts.length; k += 2) ctx.lineTo(pts[k], pts[k + 1]);
         ctx.closePath();
         ctx.fill();
+    }
+
+    function strokePoly(pts, col, w) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = w;
+        ctx.beginPath();
+        ctx.moveTo(pts[0], pts[1]);
+        for (var k = 2; k < pts.length; k += 2) ctx.lineTo(pts[k], pts[k + 1]);
+        ctx.closePath();
+        ctx.stroke();
     }
 
     function drawViewmodel(dt, game) {
@@ -630,15 +772,78 @@
         var ax = cssW * C.VM_ANCHOR_X, ay = cssH * C.VM_ANCHOR_Y;
         var vs = cssW / 1100; if (vs > 1) vs = 1; if (vs < 0.5) vs = 0.5;
         var back = C.RECOIL_BACK * vm.recoil;
+        /* 枪口朝向射击方向：FPS 射击方向在屏幕空间恒为视图中心（准星）。
+         * 枪口局部位于 (MUZ_X, MUZ_Y)，绕锚点 (ax,ay) 随枪身旋转 α；求 α 使枪口射线穿过
+         * 中心：bx·sinα − by·cosα = −MUZ_Y·vs（枪管局部 -x），解析得 α=π−asin(k/R)−atan2(−by,bx)。
+         * aimGeom = α − VM_TILT 即相对基准姿态的附加角；开火 AIM_TAU 快抬、停火 REST_TAU 慢落。
+         * 仅改视图模型屏幕旋转，不碰 hitscan/散布/kick 任何数值。 */
+        var bx = cssW * 0.5 - ax, by = cssH * 0.5 - ay;
+        var rad = Math.sqrt(bx * bx + by * by) || 1;
+        var k = -MUZ_Y * vs / rad; if (k > 1) k = 1; else if (k < -1) k = -1;
+        var alpha = Math.PI - Math.asin(k) - Math.atan2(-by, bx);
+        while (alpha > Math.PI) alpha -= Math.PI * 2;
+        while (alpha < -Math.PI) alpha += Math.PI * 2;
+        var aimGeom = alpha - C.VM_TILT;
+        vm.aimGeom = aimGeom;
+        var firingNow = game.state === 'playing' && CS.Input && CS.Input.firing;
+        var aimTarget = firingNow ? aimGeom * C.VM_AIM_GAIN : 0;
+        var aimTau = firingNow ? C.VM_AIM_TAU : C.VM_REST_TAU;
+        vm.aim += (aimTarget - vm.aim) * (1 - Math.exp(-dt / aimTau));
+        if (Math.abs(vm.aim) < 0.0002) vm.aim = 0;
         ctx.save();
         ctx.translate(ax + swayX + vm.lagX + back * 0.5, ay - C.RECOIL_UP * vm.recoil + vm.lagY + back * 0.5 + C.VM_DROP * rf);
-        ctx.rotate((C.VM_TILT + C.VM_ROT * rf * Math.PI / 180));
+        ctx.rotate((C.VM_TILT + C.VM_ROT * rf * Math.PI / 180 + vm.aim));
         ctx.scale(vs * (1 - 0.05 * vm.recoil), vs * (1 - 0.05 * vm.recoil));
+        /* 枪管组：枪管 → 消焰器 → 准星 */
         fillPoly(GUN_BARREL, palette.gunDark);
-        fillPoly(GUN_BODY, palette.gunBody);
-        fillPoly(GUN_MAG, palette.gunDark);
+        fillPoly(GUN_BRAKE, palette.gunDark);
+        fillPoly(GUN_FRONT_SIGHT, palette.gunDark);
+        /* 护木：本体 → 明暗 → 顶部导轨+齿 → 散热槽 */
+        fillPoly(GUN_HANDGUARD, palette.gunBody);
+        fillPoly(GUN_GUARD_HI, palette.gunHi);
+        fillPoly(GUN_GUARD_LO, palette.gunLo);
+        fillPoly(GUN_HAND_RAIL, palette.gunDark);
+        var n;
+        for (n = 0; n < 5; n++) ctx.fillRect(-92 + n * 10, -80, 4, 6);
+        for (n = 0; n < GUARD_VENTS.length; n++) fillPoly(GUARD_VENTS[n], palette.gunLo);
+        /* 枪托：主体 → 受光 → 背光 → 托腮 → 底板 → 镂空；随后画握把/机匣压住前缘 */
+        fillPoly(GUN_STOCK, palette.gunBody);
+        fillPoly(GUN_STOCK_HI, palette.gunHi);
+        fillPoly(GUN_STOCK_LO, palette.gunLo);
+        fillPoly(GUN_CHEEK, palette.gunBody);
+        fillPoly(GUN_BUTT, palette.gunDark);
+        fillPoly(GUN_STOCK_HOLE, palette.gunLo);
+        /* 握把（右侧件先画，被机匣压住上沿） */
         fillPoly(GUN_GRIP, palette.gunDark);
-        fillPoly(GUN_SIGHT, palette.gunSight);
+        for (n = 0; n < GROOVES.length; n++) {
+            ctx.strokeStyle = palette.gunLo; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(GROOVES[n][0], GROOVES[n][1]); ctx.lineTo(GROOVES[n][2], GROOVES[n][3]);
+            ctx.stroke();
+        }
+        /* 机匣：本体 → 明暗 → 顶部导轨+齿 → 抛壳窗 */
+        fillPoly(GUN_BODY, palette.gunBody);
+        fillPoly(GUN_BODY_HI, palette.gunHi);
+        fillPoly(GUN_BODY_LO, palette.gunLo);
+        fillPoly(GUN_RECV_RAIL, palette.gunDark);
+        for (n = 0; n < 5; n++) ctx.fillRect(-38 + n * 12, -88, 4, 6);
+        fillPoly(GUN_EJECT, palette.gunLo);
+        /* red-dot 瞄具：镜体 → 镜片(accent) → 高光点 */
+        fillPoly(GUN_SIGHT, palette.gunDark);
+        fillPoly(GUN_LENS, palette.gunSight);
+        ctx.fillRect(-7, -97, 2, 2);
+        /* 扳机护圈（镂空描边）+ 扳机 */
+        strokePoly([-6, 7, -6, 29, 14, 29, 16, 7], palette.gunDark, 3.5);
+        fillPoly(GUN_TRIGGER, palette.gunDark);
+        /* 弹匣（左侧件最后画，盖住护圈左端）→ 托弹纹 → 背光 */
+        fillPoly(GUN_MAG, palette.gunDark);
+        for (n = 0; n < RIBS.length; n++) {
+            ctx.strokeStyle = palette.gunLo; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(RIBS[n][0], RIBS[n][1]); ctx.lineTo(RIBS[n][2], RIBS[n][3]);
+            ctx.stroke();
+        }
+        fillPoly(GUN_MAG_LO, palette.gunLo);
         if (vm.muzzleT > 0) {       // 枪口火光：0.04s 星形面片
             ctx.globalAlpha = vm.muzzleT / C.MUZZLE_TIME;
             ctx.fillStyle = palette.muzzle;
@@ -667,7 +872,8 @@
         for (j = 0; j < C.PARTICLE_MAX; j++) parts[j].life = 0;
         for (j = 0; j < C.SHELL_MAX; j++) shells[j].life = 0;
         holeIdx = partIdx = shellIdx = 0;
-        vm.recoil = 0; vm.muzzleT = 0; vm.phase = 0; vm.lagX = 0; vm.lagY = 0;
+        vm.recoil = 0; vm.muzzleT = 0; vm.phase = 0; vm.lagX = 0; vm.lagY = 0; vm.aim = 0;
+        for (j = 0; j < W.boxes.length; j++) wallFade[j] = 1;   /* 相机遮挡淡出复位 */
         clearFloats();
     }
 
@@ -717,6 +923,10 @@
                 ctx.lineWidth = 1;
                 ctx.stroke();
             }
+            if (f.mark) {                    // MC 脸部：紧跟所属面绘制，天然被更近的面遮挡
+                ctx.globalAlpha = f.alpha;
+                drawFaceMark(f);
+            }
         }
         ctx.globalAlpha = 1;
     }
@@ -736,12 +946,35 @@
                 ctx.lineWidth = 1;
                 ctx.stroke();
             }
+            if (f.mark) {
+                ctx.globalAlpha = f.alpha;
+                drawFaceMark(f);
+            }
         }
         ctx.globalAlpha = 1;
     }
 
+    /* ── 相机遮挡淡出（X-ray）：仅 TPS。挡在「相机→玩家」线段上的墙、或距相机
+     * < XRAY_PROX 的墙（贴围墙时相机被钳到墙前、墙面糊满视野的场景）平滑淡到
+     * XRAY_MIN；FPS 不淡出（防透视看墙后作弊）。其余遮挡保持真实近挡远。
+     * 纯视图层：不改 hitscan / LOS / 相机位任何数值。 */
+    function updateWallFade(dt, game) {
+        var mask = 0, k, tgt, tau;
+        if (lastView === 'tps') {
+            mask = W.occluderMask(camX, camZ, game.player.x, game.player.z) |
+                   W.nearBoxes(camX, camZ, C.XRAY_PROX);
+        }
+        for (k = 0; k < W.boxes.length; k++) {
+            tgt = (mask & (1 << k)) ? C.XRAY_MIN : 1;
+            tau = tgt < wallFade[k] ? C.XRAY_TAU : C.XRAY_REST_TAU;
+            wallFade[k] += (tgt - wallFade[k]) * (1 - Math.exp(-dt / tau));
+            if (wallFade[k] > 0.998) wallFade[k] = 1;
+        }
+    }
+
     /* ── Renderer 接口：endFrame ── */
     function endFrame(dt, game) {
+        updateWallFade(dt, game);
         gatherScene(game);
         sortFaces();
         if (mode === 0) drawFacesTex(); else drawFacesFlat();
@@ -762,12 +995,20 @@
         for (i = 0; i < floats.length; i++) floats[i].life = 0;
     }
 
-    /* ── <45fps 自动切换 Renderer2DFlat ── */
+    /* ── 慢帧自适应：<45fps 先降内部分辨率一档（0.8→0.65），仍不达标再降 Renderer2DFlat ── */
     var perfT = 0, perfN = 0;
     function checkPerf(dt) {
         perfT += dt; perfN++;
         if (perfT >= 1.0) {
-            if (perfN / perfT < C.FPS_MIN && mode === 0) useRenderer('flat');
+            if (perfN / perfT < C.FPS_MIN && mode === 0) {
+                if (!scaleOverride) {
+                    scaleOverride = 0.65;
+                    resize();              // 内部分辨率 300×534 → 244×433（375×667 手机）
+                    if (CS.HUD && CS.HUD.toast) CS.HUD.toast('已降低渲染分辨率以提升流畅度');
+                } else {
+                    useRenderer('flat');
+                }
+            }
             perfT = 0; perfN = 0;
         }
     }
@@ -789,8 +1030,11 @@
             vmFire: vmFire, clearFx: clearFx, checkPerf: checkPerf,
             get playerAlpha() { return playerAlpha; },
             get camDist() { return camDist; },
+            get wallFade() { return wallFade; },   /* QA：相机遮挡淡出状态 */
+            get lastMark() { return lastMark; },   /* QA：脸部标记屏幕几何（top≤y≤bottom 应恒成立） */
             get faceCount() { return faceCount; },
             get renderScale() { return renderScale; },
+            get vmAim() { return { cur: vm.aim, geom: vm.aimGeom, target: vm.aimGeom * C.VM_AIM_GAIN }; },  /* QA：枪口朝向射击方向的抬枪角 */
             get debugPatterns() { return [!!activePats[0], !!activePats[1], !!activePats[2], !!activePats[3]]; },
             get debugPatternTest() {
                 ctx.save();

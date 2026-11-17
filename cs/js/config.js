@@ -7,7 +7,7 @@
     CS.CFG = {
         PLAYER_HP: 100, DMG: 40, MAG: 8,
         FIRE_INTERVAL: 0.20, RELOAD_TIME: 1.4,
-        WALK: 4.0, AIM_WALK: 1.8,
+        WALK: 4.0, SPRINT: 6.0, AIM_WALK: 1.8,
         SPREAD_DEG: 3.0, MOVE_EPS: 0.2,
         FOV_DEG: 75, PITCH_LIMIT: 60 * Math.PI / 180,
         NEAR: 0.1, FAR: 60, DT_MAX: 0.05,
@@ -19,7 +19,12 @@
         WAVE_COUNTS: [3, 4, 5], WAVE_ACC: [0.35, 0.45, 0.55],
         WAVE_GAP: 2.0, WAVE_HEAL: 20,
         SCORE_KILL: 100, SCORE_HIT: 10,
-        TPS_BACK: 2.4, TPS_UP: 0.22, TPS_MIN: 0.3,
+        /* 越肩第三人称：BACK 拉远让角色变小、SHOULDER 右移让出准星、UP 抬高俯视、FOCUS 准星与弹道重合距离 */
+        TPS_BACK: 3.2, TPS_UP: 0.50, TPS_MIN: 0.3, TPS_SHOULDER: 0.38, TPS_FOCUS: 7,
+        /* 相机遮挡淡出（X-ray，仅 TPS）：挡在相机→玩家线段上、或距相机 < PROX 的墙
+         * 平滑淡到 MIN，其余遮挡保持真实近挡远；FPS 不淡出（防透视看墙后作弊）。
+         * TAU 快速淡出 / REST_TAU 缓慢恢复。纯视图层，不改 hitscan/LOS 数值。 */
+        XRAY_MIN: 0.16, XRAY_TAU: 0.07, XRAY_REST_TAU: 0.22, XRAY_PROX: 1.0,
         LOOK_SENS: 0.0022, TOUCH_SENS: 0.005, JOY_RADIUS: 48,
         BOT_Y0: 0.10, BOT_Y1: 1.85, BOT_SPLIT: 1.50,
         BOT_HALF_W: 0.32, BOT_HEAD_HALF_W: 0.20,
@@ -34,6 +39,9 @@
         RECOIL_UP: 12, RECOIL_BACK: 4, RECOIL_TAU: 0.10,
         VM_ANCHOR_X: 0.72, VM_ANCHOR_Y: 0.85,
         VM_DROP: 40, VM_ROT: 25, VM_TILT: -0.12,
+        /* 开火时枪口朝向射击方向（屏幕准星）：几何角自适应横竖屏，GAIN 控制抬起幅度；
+         * TAU 快速抬起 / REST_TAU 缓慢落回。 */
+        VM_AIM_GAIN: 0.58, VM_AIM_TAU: 0.06, VM_REST_TAU: 0.16,
         RELOAD_DOWN: 0.25, RELOAD_HOLD: 0.90, RELOAD_UP: 0.25,
         MUZZLE_TIME: 0.04, SHELL_LIFE: 0.5,
         PARTICLE_MAX: 64, SHELL_MAX: 8, HOLE_MAX: 32,

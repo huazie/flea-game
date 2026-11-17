@@ -24,6 +24,7 @@
         this.state = 'menu';
         this.viewMode = 'fps';
         this.last = 0;
+        this.lastPaint = 0; this.fpsT = 0; this.fpsN = 0;
         this.lastLookDX = 0; this.lastLookDY = 0;
         this.boundFrame = this.frame.bind(this);
         this.boundAction = this.onAction.bind(this);
@@ -35,13 +36,25 @@
             resume: function () { self.resume(); },
             restart: function () { self.start(); },
             menu: function () { self.toMenu(); },
-            view: function () { self.toggleView(); }
+            view: function () { self.toggleView(); },
+            touch: function () {
+                /* 仍在同一点击手势链路内：先请求全屏+锁横屏，再进编辑态，
+                 * 保证布局编辑器按横屏视口呈现（游戏实际游玩朝向） */
+                if (global.CS.Orientation) global.CS.Orientation.onConfig();
+                if (global.CS.TouchCfg) global.CS.TouchCfg.enter();
+            }
         });
         CS.Input.init(this.canvas, this.stage, this.boundAction);
+        if (global.CS.TouchCfg) global.CS.TouchCfg.init();   /* 触屏：加载并应用已保存的按钮布局 */
 
         this.resetRun();
         CS.HUD.showMenu(this.best, this.viewMode);
         this.bindGlobal();
+        /* 评论懒加载兜底：主菜单停留 5s 未开局也加载（浏览评论区）；已开局则跳过，留给结算触发 */
+        global.setTimeout(function () {
+            if (self.state === 'menu' && global.__csCommentsLazy) global.__csCommentsLazy();
+        }, 5000);
+        CS.Orientation.init(this);
         this.renderStatic();
         global.requestAnimationFrame(this.boundFrame);
     }
@@ -75,6 +88,7 @@
     Game.prototype.start = function () {
         this.resetRun();
         this.state = 'playing';
+        document.body.classList.add('cs-in-game');   /* 游戏中：隐藏站点分享/评论 FAB */
         CS.Renderer.resize();                  // 布局此刻必已就绪，修正 init 期的瞬态尺寸
         CS.HUD.setScreen('hud');
         CS.Input.setEnabled(true);
@@ -83,6 +97,7 @@
         this.last = global.performance.now();
         if (!CS.Input.isTouch) CS.Input.requestLock();
         Sfx.wave();
+        CS.Orientation.onStart();              // 仍在同一手势链路内：请求全屏 + 锁横屏 + 竖屏引导
     };
 
     Game.prototype.pause = function () {
@@ -98,6 +113,7 @@
 
     Game.prototype.resume = function () {
         if (this.state !== 'paused') return;
+        if (CS.Orientation.isBlocking()) return;   // 竖屏引导期间不允许绕过遮罩恢复
         this.state = 'playing';
         CS.Renderer.resize();
         CS.HUD.setScreen('hud');
@@ -109,12 +125,15 @@
 
     Game.prototype.toMenu = function () {
         this.state = 'menu';
+        document.body.classList.remove('cs-in-game');
+        CS.Orientation.stop();
         CS.Input.setEnabled(false);
         if (document.pointerLockElement) {
             try { document.exitPointerLock(); } catch (e) { /* 忽略 */ }
         }
         this.resetRun();
         CS.HUD.showMenu(this.best, this.viewMode);
+        if (global.__csCommentsLazy) global.__csCommentsLazy();   // 回主菜单同样触发评论懒加载
         this.renderStatic();
     };
 
@@ -128,6 +147,8 @@
 
     Game.prototype.finish = function (win) {
         this.state = 'over';
+        document.body.classList.remove('cs-in-game');   /* 结算页恢复分享/评论 FAB */
+        CS.Orientation.stop();
         CS.Input.setEnabled(false);           // 死亡/通关立即冻结输入与波次生成
         if (document.pointerLockElement) {
             try { document.exitPointerLock(); } catch (e) { /* 忽略 */ }
@@ -137,6 +158,7 @@
         this.best = best;
         CS.HUD.showResult(this, win, isNew);
         if (win) Sfx.win(); else Sfx.lose();
+        if (global.__csCommentsLazy) global.__csCommentsLazy();   // 结算时才加载评论（弱机游玩期间不抢主线程）
     };
 
     Game.prototype.onAction = function (code) {
@@ -185,7 +207,7 @@
         var mag = Math.sqrt(ix * ix + iz * iz);
         if (mag > 1) { ix /= mag; iz /= mag; mag = 1; }
         var yaw = p.yaw, sy = Math.sin(yaw), cy = Math.cos(yaw);
-        var spd = CS.Input.aim ? C.AIM_WALK : (p.crouch ? C.CROUCH_SPEED : C.WALK);
+        var spd = CS.Input.aim ? C.AIM_WALK : (p.crouch ? C.CROUCH_SPEED : (CS.Input.sprint ? C.SPRINT : C.WALK));
         if (p.onGround) {
             var vx = (sy * iz + cy * ix) * spd * mag;
             var vz = (cy * iz - sy * ix) * spd * mag;
@@ -400,11 +422,23 @@
 
     Game.prototype.frame = function (now) {
         global.requestAnimationFrame(this.boundFrame);
-        if (this.state !== 'playing') { this.last = now; return; }  // 暂停/失焦停帧，冻结 dt
+        if (this.state !== 'playing') { this.last = now; this.lastPaint = 0; return; }  // 暂停/失焦停帧，冻结 dt
+        /* 跳帧去抖：间隔 <8ms 的 rAF 帧跳过（dt 自然累计、DT_MAX 钳制）。
+         * 阈值必须远小于最矮目标帧间隔——此前用 15ms 会把 90Hz(11.1ms)/75Hz(13.3ms) 的
+         * 每一帧都误判为「过快」而跳过，导致 90Hz→45fps、75Hz→38fps（用户真机卡的根因）。
+         * 8ms 让 60/75/90/120Hz 各跑满原生刷新率；极端 144Hz(6.9ms) 跳成 72fps 仍流畅。
+         * 负载兜底交 checkPerf：<45fps 自动降分辨率→Flat，无需靠限帧牺牲高刷体验。 */
+        if (this.lastPaint && now - this.lastPaint < 8) return;
+        this.lastPaint = now;
         var dt = (now - this.last) / 1000;
         this.last = now;
         if (dt > C.DT_MAX) dt = C.DT_MAX;      // 极端 dt 钳制，高刷设备一致
         if (dt <= 0) return;
+        this.fpsT += dt; this.fpsN++;          /* 实测帧率：0.5s 窗口汇报 HUD，供真机诊断 */
+        if (this.fpsT >= 0.5) {
+            CS.HUD.setFps(Math.round(this.fpsN / this.fpsT)); this.fpsT = 0; this.fpsN = 0;
+            if (CS.Input.sanitize) CS.Input.sanitize();   /* 每 0.5s 检测触控 pointerId 泄漏，防卡死 */
+        }
         this.update(dt);
         CS.Renderer.checkPerf(dt);             // <45fps 自动切 Renderer2DFlat
         CS.Renderer.beginFrame(this.player, this.viewMode);
