@@ -1,1 +1,85 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" rx="36" fill="#eef2f7"/><path d="M0 206h320v114H0z" fill="#e4ebf3"/><path d="M0 206h320" stroke="#9db2c8" stroke-width="3"/><rect x="34" y="74" width="92" height="132" fill="#93a5ba" stroke="#5a6d84" stroke-width="4"/><rect x="196" y="108" width="90" height="98" fill="#7d90a8" stroke="#5a6d84" stroke-width="4"/><rect x="236" y="140" width="24" height="46" fill="#a9530b"/><circle cx="248" cy="130" r="12" fill="#f0c78d"/><circle cx="160" cy="160" r="40" fill="none" stroke="#1b2735" stroke-width="6"/><path d="M160 102v28m0 60v28m-58-58h28m60 0h28" stroke="#1b2735" stroke-width="6" stroke-linecap="round"/><circle cx="160" cy="160" r="5" fill="#c2620c"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <defs>
+    <clipPath id="round"><rect width="320" height="320" rx="36"/></clipPath>
+  </defs>
+  <g clip-path="url(#round)">
+    <!-- 天空 / 地面（游戏 CSS 变量 cs-sky / cs-floor） -->
+    <rect width="320" height="320" fill="#cfe0f3"/>
+    <path d="M0 214h320v106H0z" fill="#e4ebf3"/>
+    <!-- 地面透视网格 -->
+    <g stroke="#c3d2e2" stroke-width="1.5" fill="none" opacity="0.7">
+      <path d="M0 250h320M0 292h320M70 214L20 320M250 214l50 106M160 214v106"/>
+    </g>
+
+    <!-- 左砖墙掩体 -->
+    <g>
+      <rect x="20" y="118" width="96" height="96" fill="#93a5ba" stroke="#5a6d84" stroke-width="4"/>
+      <g stroke="#5a6d84" stroke-width="2" opacity="0.55">
+        <path d="M20 150h96M20 182h96M68 118v32M44 150v32M92 150v32M68 182v32"/>
+      </g>
+      <path d="M20 118h96v8H20z" fill="#bccadb"/>
+    </g>
+    <!-- 右砖墙掩体 -->
+    <g>
+      <rect x="228" y="140" width="74" height="74" fill="#7d90a8" stroke="#5a6d84" stroke-width="4"/>
+      <g stroke="#5a6d84" stroke-width="2" opacity="0.55">
+        <path d="M228 166h74M228 192h74M265 140v26M246 166v26M284 166v26"/>
+      </g>
+      <path d="M228 140h74v7h-74z" fill="#bccadb"/>
+    </g>
+
+    <!-- 落地阴影 -->
+    <ellipse cx="160" cy="290" rx="52" ry="8" fill="#1b2735" opacity="0.12"/>
+
+    <!-- 特种兵：双腿 + 作战靴 -->
+    <rect x="141" y="244" width="18" height="42" fill="#a9530b" stroke="#8a3f08" stroke-width="2"/>
+    <rect x="161" y="244" width="18" height="42" fill="#a9530b" stroke="#8a3f08" stroke-width="2"/>
+    <path d="M138 280h24v11h-28q-2-6 4-11zM158 280h24q6 5 4 11h-28z" fill="#2a3545"/>
+
+    <!-- 双臂 + 战术手套 -->
+    <rect x="118" y="182" width="16" height="48" fill="#a9530b" stroke="#8a3f08" stroke-width="2"/>
+    <rect x="186" y="182" width="16" height="48" fill="#a9530b" stroke="#8a3f08" stroke-width="2"/>
+    <rect x="118" y="220" width="16" height="13" rx="2" fill="#2a3545"/>
+    <rect x="186" y="220" width="16" height="13" rx="2" fill="#2a3545"/>
+
+    <!-- 躯干：橙色主体 + 顶面亮 / 右侧暗（立方体明暗） + 战术背心 -->
+    <rect x="134" y="178" width="52" height="66" fill="#a9530b" stroke="#8a3f08" stroke-width="2.5"/>
+    <path d="M134 178h52v8h-52z" fill="#c2620c"/>
+    <path d="M176 186h10v58h-10z" fill="#8a3f08"/>
+    <rect x="142" y="186" width="36" height="48" fill="#3a4654" stroke="#2a3545" stroke-width="2"/>
+    <rect x="146" y="198" width="11" height="14" rx="1" fill="#2a3545" stroke="#55677a" stroke-width="1.5"/>
+    <rect x="163" y="198" width="11" height="14" rx="1" fill="#2a3545" stroke="#55677a" stroke-width="1.5"/>
+    <rect x="158" y="190" width="4" height="40" fill="#55677a"/>
+
+    <!-- 头部：肤色底 + 战术头盔 + 护目镜 + 面罩 -->
+    <rect x="139" y="120" width="42" height="58" fill="#f0c78d" stroke="#8a3f08" stroke-width="2.5"/>
+    <path d="M135 116h50v30h-50z" fill="#3a4654"/>
+    <path d="M135 116h50v5h-50z" fill="#55677a"/>
+    <path d="M132 140h56v7h-56z" fill="#2a3545"/>
+    <!-- 护目镜：深色带 + 两片反光镜片 -->
+    <rect x="137" y="145" width="46" height="15" fill="#2a3545"/>
+    <rect x="142" y="147" width="15" height="11" rx="2" fill="#7fd0e8"/>
+    <rect x="163" y="147" width="15" height="11" rx="2" fill="#7fd0e8"/>
+    <path d="M143 148h6v3h-6zM164 148h6v3h-6z" fill="#d8f4ff"/>
+    <!-- 战术面罩：遮住鼻嘴，带呼吸格栅 -->
+    <path d="M139 160h42v18h-42z" fill="#3a4654"/>
+    <rect x="149" y="165" width="22" height="10" rx="2" fill="#2a3545"/>
+    <path d="M153 167v6M159 167v6M165 167v6" stroke="#55677a" stroke-width="1.5"/>
+
+    <!-- 双手持枪（枪口朝左），收敛在身体宽度内 -->
+    <g>
+      <path d="M124 208h74v12h-74z" fill="#2a3545"/>
+      <path d="M110 210h15v8h-15z" fill="#121a26"/>
+      <path d="M196 206h10v16h-10z" fill="#2a3545"/>
+      <path d="M152 220h12v20h-12z" fill="#121a26"/>
+      <path d="M174 220h9v15h-9z" fill="#121a26"/>
+      <path d="M154 202h11v6h-11z" fill="#55677a"/>
+      <path d="M128 210h4v8h-4zM184 210h4v8h-4z" fill="#3a4654"/>
+    </g>
+
+    <!-- 准星：枪口正前方，同水平线点出瞄准 -->
+    <g stroke="#1b2735" stroke-width="3" stroke-linecap="square" opacity="0.8">
+      <path d="M84 202v-8M84 218v8M68 210h-8M100 210h8"/>
+    </g>
+  </g>
+</svg>

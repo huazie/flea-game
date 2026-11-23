@@ -8,8 +8,20 @@
     <meta name="keywords" content="反恐突袭,战术射击,第一人称,第三人称">
     <meta name="description" content="第一/第三人称可切换的轻量战术射击小游戏，3 波清场，靠掩体与精瞄取胜">
     <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <!-- PWA（添加到主屏）：Android 从主屏启动时按 manifest 的 orientation=landscape 自动横屏，
+         无需每次去系统设置关竖屏锁；iOS 无该 API，仅获得全屏隐藏地址栏，横屏仍受系统方向锁约束。 -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#1b2735">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="反恐突袭">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome 仅用于 3 个装饰图标（返回/音效/主题），异步加载避免 CDN 阻塞首屏渲染。
+         media=print 让浏览器不等待，加载完成由 onload 切回 all；按钮尺寸固定，图标晚到不引起布局偏移。 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
 </head>
 <body>
     <!-- 浮动圆形按钮：左上返回，右上音效/主题（沿用站点范式） -->
@@ -128,8 +140,10 @@
             <div id="screen-pause" class="overlay">
                 <div class="panel">
                     <h2>已暂停</h2>
-                    <p class="subtitle">计时已冻结；恢复需重新锁定鼠标</p>
-                    <div class="keys">WASD 移动 · 左键射击 · 右键瞄准 · Shift 疾跑 · Space 跳 · Ctrl/C 蹲 · R 换弹 · V 视角 · P/Esc 暂停</div>
+                    <p class="subtitle pause-pc">计时已冻结；恢复需重新锁定鼠标</p>
+                    <p class="subtitle pause-touch">计时已冻结；点「继续」立刻回到战斗</p>
+                    <div class="keys pause-pc">WASD 移动 · 左键射击 · 右键瞄准 · Shift 疾跑 · Space 跳 · Ctrl/C 蹲 · R 换弹 · V 视角 · P/Esc 暂停</div>
+                    <div class="keys pause-touch">左下摇杆移动 · 右半屏拖拽转视角<br>右下「开火」按住连发（摇杆上方另有开火钮，可三指操作）<br>左上「跳」·「蹲」切换式 · 右下「瞄准镜头」点击切换 · 换弹小钮在旁<br>点左上「FPS / TPS」切视角 · 右上角「暂停」</div>
                     <div class="panel-actions">
                         <button id="btn-resume" class="primary-btn">继续</button>
                         <button id="btn-restart" class="ghost-btn">重新开始</button>

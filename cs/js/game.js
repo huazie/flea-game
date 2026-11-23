@@ -25,6 +25,10 @@
         this.viewMode = 'fps';
         this.last = 0;
         this.lastPaint = 0; this.fpsT = 0; this.fpsN = 0;
+        /* ADR-50 帧诊断：处理帧间隔 ring（呈现抖动证据）+ 帧执行耗时 ring（JS 侧开销），
+         * 供 checkPerf 高刷降档判定与 FPS 块长按诊断读数 */
+        this.deltaRing = new Float32Array(90); this.deltaIdx = 0; this.deltaFill = 0;
+        this.costRing = new Float32Array(90); this.costIdx = 0; this.costFill = 0;
         this.lastLookDX = 0; this.lastLookDY = 0;
         this.boundFrame = this.frame.bind(this);
         this.boundAction = this.onAction.bind(this);
@@ -119,6 +123,7 @@
         CS.HUD.setScreen('hud');
         CS.Input.setEnabled(true);
         CS.Input.reset();
+        Sfx.resume();                           // 切后台会让 AudioContext suspended，恢复须重新 resume，否则音符堆积卡音频线程
         this.last = global.performance.now();   // 恢复须主动点「继续」，禁止累计大 dt 补算
         if (!CS.Input.isTouch) CS.Input.requestLock();
     };
@@ -289,7 +294,7 @@
         if (p.fireT > 0) p.fireT -= dt;
         if (!CS.Input.firing && p.fireT < 0) p.fireT = 0;
         if (p.fireT < -C.FIRE_INTERVAL) p.fireT = -C.FIRE_INTERVAL;
-        if (p.kickT > 0) {                          // 视角上踢 0.15s 线性回落
+        if (p.kickT > 0) {                          // 后坐视觉状态 0.15s 线性回落（不进命中射线）
             p.kickT -= dt;
             if (p.kickT <= 0) { p.kickT = 0; p.kick = 0; }
             else p.kick = C.KICK_RAD * (p.kickT / C.KICK_TIME);
@@ -320,21 +325,23 @@
         p.fireT += C.FIRE_INTERVAL;
         p.ammo--;
         this.shotsFired++;
-        p.kickT = C.KICK_TIME; p.kick = C.KICK_RAD;   // 视角上踢 +1.2°（真实进射线）
+        p.kickT = C.KICK_TIME; p.kick = C.KICK_RAD;   // 后坐状态保留（仅视图模型视觉，不进命中射线）
         this.doHitscan();
         Sfx.shoot();
         CS.HUD.flashMuzzle();
         CS.Renderer.vmFire(this);
     };
 
-    /* hitscan：固定从实际眼位 (x, y+eyeCur, z) + yaw/pitch(+kick) + 散布发出，与相机位解耦 */
+    /* hitscan：沿屏幕中心准星射线发出（相机位 + 相机前向，含 pitch + 散布，不含后坐 kick）。
+     * 此前从「眼位 + yaw/pitch」发出与相机解耦，但 TPS 相机在右后上方看向 FOCUS 聚焦点，
+     * 近距离准星与弹道有 0.16~0.25m 垂直视差——准星瞄头、弹道落脖子甚至打空。
+     * 改用 Renderer.aimRay 使所见即所得：后坐 kick 不进射线，远距离不再上飘打飞头、
+     * 打墙弹孔不再偏高；后坐视觉由 viewmodel 独立承担（ADR-45）。 */
     Game.prototype.doHitscan = function () {
-        var p = this.player;
-        var pitch = p.pitch + p.kick;
-        var cp = Math.cos(pitch), sp = Math.sin(pitch);
-        var fx = Math.sin(p.yaw) * cp, fy = sp, fz = Math.cos(p.yaw) * cp;
-        var rx = Math.cos(p.yaw), ry = 0, rz = -Math.sin(p.yaw);
-        var ux = -sp * Math.sin(p.yaw), uy = cp, uz = -sp * Math.cos(p.yaw);
+        var ray = CS.Renderer.aimRay(this.player, this.viewMode);
+        var fx = ray.dx, fy = ray.dy, fz = ray.dz;
+        var rx = ray.rx, ry = ray.ry, rz = ray.rz;
+        var ux = ray.ux, uy = ray.uy, uz = ray.uz;
         var dx = fx, dy = fy, dz = fz;
         if (this.spreadDeg > 0) {
             var a = (Math.random() * 2 - 1) * this.spreadDeg * Math.PI / 180;
@@ -346,7 +353,7 @@
         }
         var len = Math.sqrt(dx * dx + dy * dy + dz * dz);
         dx /= len; dy /= len; dz /= len;
-        var ox = p.x, oy = p.y + p.eyeCur, oz = p.z;
+        var ox = ray.ox, oy = ray.oy, oz = ray.oz;
         var wallT = W.rayWalls(ox, oy, oz, dx, dy, dz, C.FAR);   // 先判墙
         var idx = E.hitScan(this.bots, ox, oy, oz, dx, dy, dz, wallT); // 再判 Bot 公告板，取最近
         if (idx < 0) {
@@ -364,7 +371,9 @@
         this.shotsHit++;
         this.score += C.SCORE_HIT;
         var b = this.bots[idx];
-        b.hp -= C.DMG; b.hitFlash = 0.12;
+        /* 部位伤害：头部（py ≥ BOT_SPLIT）走 DMG_HEAD，≥ BOT_HP 一枪击杀 */
+        b.hp -= E.hitHead ? C.DMG_HEAD : C.DMG;
+        b.hitFlash = 0.12;
         CS.Renderer.spawnParticles(ox + dx * E.hitT, oy + dy * E.hitT, oz + dz * E.hitT,
             -dx, 0.2, -dz, 10, 1);
         Sfx.hitBot();
@@ -373,6 +382,7 @@
             this.kills++; this.score += C.SCORE_KILL;
             CS.Renderer.addFloat(b.x, C.BOT_SPLIT, b.z);
             Sfx.kill();
+            if (E.hitHead) CS.HUD.toast('爆头击杀');
         }
     };
 
@@ -429,21 +439,47 @@
          * 8ms 让 60/75/90/120Hz 各跑满原生刷新率；极端 144Hz(6.9ms) 跳成 72fps 仍流畅。
          * 负载兜底交 checkPerf：<45fps 自动降分辨率→Flat，无需靠限帧牺牲高刷体验。 */
         if (this.lastPaint && now - this.lastPaint < 8) return;
+        if (this.lastPaint) {
+            this.deltaRing[this.deltaIdx] = now - this.lastPaint;
+            this.deltaIdx = (this.deltaIdx + 1) % this.deltaRing.length;
+            if (this.deltaFill < this.deltaRing.length) this.deltaFill++;
+        }
         this.lastPaint = now;
-        var dt = (now - this.last) / 1000;
+        var rawDt = (now - this.last) / 1000;
+        var dt = rawDt;
         this.last = now;
         if (dt > C.DT_MAX) dt = C.DT_MAX;      // 极端 dt 钳制，高刷设备一致
         if (dt <= 0) return;
-        this.fpsT += dt; this.fpsN++;          /* 实测帧率：0.5s 窗口汇报 HUD，供真机诊断 */
+        /* ADR-53：FPS 统计必须用未钳制的真实间隔——dt 被 DT_MAX(0.05s) 钳制会让 >50ms 的
+         * 卡顿帧只记 50ms，报告 FPS 存在 20fps 硬地板且恒≥真实值，误导「FPS 90=渲染健康」。
+         * rawDt 已自然包含 8ms 跳帧门累积的时间（该门在 this.last 更新前 return）。 */
+        this.fpsT += rawDt; this.fpsN++;       /* 实测帧率：0.5s 窗口汇报 HUD，供真机诊断 */
         if (this.fpsT >= 0.5) {
             CS.HUD.setFps(Math.round(this.fpsN / this.fpsT)); this.fpsT = 0; this.fpsN = 0;
-            if (CS.Input.sanitize) CS.Input.sanitize();   /* 每 0.5s 检测触控 pointerId 泄漏，防卡死 */
         }
+        var t0 = performance.now();
         this.update(dt);
-        CS.Renderer.checkPerf(dt);             // <45fps 自动切 Renderer2DFlat
+        CS.Renderer.checkPerf(dt, this);       // <45fps 或呈现间隔 p90 超刷新预算 1.5× 自动降档（ADR-50）
         CS.Renderer.beginFrame(this.player, this.viewMode);
         CS.Renderer.endFrame(dt, this);
         CS.HUD.update(dt, this);
+        this.costRing[this.costIdx] = performance.now() - t0;
+        this.costIdx = (this.costIdx + 1) % this.costRing.length;
+        if (this.costFill < this.costRing.length) this.costFill++;
+    };
+
+    /* 帧诊断统计：处理帧间隔中位数（≈屏幕刷新率）与 p90（呈现抖动）、帧执行耗时 p90（JS 侧）。
+     * 真机呈现层开销（Canvas 光栅化/合成）不在 JS 耗时里，只能由 rAF 间隔抖动反映——这正是
+     * 桌面探针测不到、真机「FPS 显示 60~80 但体感卡」的关键证据位。 */
+    Game.prototype.diagCost = function () {
+        var i, a = [], b = [];
+        for (i = 0; i < this.deltaFill; i++) a.push(this.deltaRing[i]);
+        for (i = 0; i < this.costFill; i++) b.push(this.costRing[i]);
+        a.sort(function (x, y) { return x - y; });
+        b.sort(function (x, y) { return x - y; });
+        var q = function (arr, p) { return arr.length ? arr[Math.min(arr.length - 1, Math.floor(arr.length * p))] : 0; };
+        var med = q(a, 0.5);
+        return { hz: med > 0 ? Math.round(1000 / med) : 60, deltaP90: q(a, 0.9), costP90: q(b, 0.9) };
     };
 
     Game.prototype.bindGlobal = function () {

@@ -285,6 +285,12 @@ button { font-family: inherit; cursor: pointer; }
     .help-pc { display: none; }
     .help-touch { display: block; }
 }
+/* 暂停面板文案按设备分流：与操作说明同口径（pointer: coarse），PC 不出现「摇杆」等触屏词 */
+.pause-touch { display: none; }
+@media (pointer: coarse) {
+    .pause-pc { display: none; }
+    .pause-touch { display: block; }
+}
 .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 13px; text-align: left; margin: 14px 0; }
 .result-grid b { color: var(--accent); }
 .new-record { display: none; color: var(--accent); font-weight: bold; letter-spacing: 1px; }

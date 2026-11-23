@@ -29,8 +29,17 @@
         if (ac && ac.state === 'suspended' && ac.resume) ac.resume();
     }
 
+    /* 音源播完即断开整条节点链。WebAudio 的 stop() 只停止发声，不会把节点从音频图摘除；
+     * 若不断开，gain/filter 会经 master 常驻引用而累积——这是「越玩越卡」的根因。 */
+    function stopChain(src, nodes) {
+        src.onended = function () {
+            src.disconnect();
+            for (var i = 0; i < nodes.length; i++) nodes[i].disconnect();
+        };
+    }
+
     function tone(freq, dur, type, vol, slideTo, delay) {
-        if (!ac || muted) return;
+        if (!ac || muted || ac.state !== 'running') return;   /* suspended（切后台）时跳过，避免节点在 t=0 堆积 */
         var t = ac.currentTime + (delay || 0);
         var o = ac.createOscillator(), g = ac.createGain();
         o.type = type;
@@ -39,11 +48,12 @@
         g.gain.setValueAtTime(vol, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + dur);
         o.connect(g); g.connect(master);
+        stopChain(o, [g]);
         o.start(t); o.stop(t + dur + 0.02);
     }
 
     function noise(dur, vol, freq, type, delay) {
-        if (!ac || muted) return;
+        if (!ac || muted || ac.state !== 'running') return;
         var t = ac.currentTime + (delay || 0);
         var src = ac.createBufferSource();
         src.buffer = noiseBuf;
@@ -54,6 +64,7 @@
         g.gain.setValueAtTime(vol, t);
         g.gain.exponentialRampToValueAtTime(0.001, t + dur);
         src.connect(f); f.connect(g); g.connect(master);
+        stopChain(src, [f, g]);
         src.start(t); src.stop(t + dur + 0.02);
     }
 

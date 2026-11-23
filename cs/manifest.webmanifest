@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "反恐突袭 - Flea Game",
+  "short_name": "反恐突袭",
+  "description": "第一/第三人称可切换的轻量战术射击小游戏，3 波清场，靠掩体与精瞄取胜",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#eef2f7",
+  "theme_color": "#1b2735",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -20,8 +20,11 @@
     var dragging = false, lastCX = 0, lastCY = 0, wasLocked = false;
     var lookId = -1, lookLX = 0, lookLY = 0;
     var joyId = -1, joyCX = 0, joyCY = 0;
-    var lookBeat = 0, joyBeat = 0;   /* 心跳：最后一次 down/move 时刻，用于 stale 检测 */
+    /* ADR-52：槽位心跳（最后 down/move 时刻，仅事件驱动刷新），静默超时接管用 */
+    var lookBeat = 0, joyBeat = 0;
     var lookZone, joystick, knob, fireBtn, fireLeftBtn, aimBtn;
+
+    function nowMs() { return global.performance && performance.now ? performance.now() : Date.now(); }
 
     function syncFire() { firing = mouseFiring || fireSlot.id !== -1 || fireLeftSlot.id !== -1; }
     function syncAim() { aim = aimToggle || aimHold; }
@@ -137,8 +140,16 @@
     }
 
     /* ── 触控 ── */
+    /* 单一操控区（视角 / 摇杆）只允许一根手指持有。ADR-52 静默门控接管（合成 ADR-27/49/51）：
+     * 旧指存活时新指按下——若旧指静默超 C.INPUT_STALE_MS（判定已死：pointerup 三层兜底
+     * 都没接住，如息屏/切回、X5 内核吞事件）则接管，否则拒绝（防手掌边缘误触抢槽）。
+     * 心跳只在 down/move 事件里刷新，无计时器——按住不动永远不会被误杀（ADR-49 教训）。 */
     function onLookDown(e) {
-        if (e.pointerType === 'mouse' || !enabled || lookId !== -1) return;
+        if (e.pointerType === 'mouse' || !enabled) return;
+        if (lookId !== -1) {
+            if (nowMs() - lookBeat < C.INPUT_STALE_MS) return;   // 活跃中：拒绝误触（ADR-51）
+            lookId = -1;                                          // 静默超时：旧指已死，接管
+        }
         lookId = e.pointerId; lookLX = e.clientX; lookLY = e.clientY; lookBeat = nowMs();
         try { lookZone.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
         e.preventDefault();
@@ -151,7 +162,10 @@
         lookLX = e.clientX; lookLY = e.clientY;
         e.preventDefault();
     }
-    function onLookUp(e) { if (e.pointerId === lookId) lookId = -1; }
+    function onLookUp(e) {
+        if (e.pointerId !== lookId) return;
+        lookId = -1;
+    }
 
     /* ── 全局 pointer 抬指兜底：真机上元素级 pointerup/cancel 偶发丢失（系统手势抢捕获、
      * 指针捕获被转移、多指同时抬起事件合并），会让 lookId/joyId/开火槽永久停在旧 ID，
@@ -180,10 +194,14 @@
     function setKnob(dx, dy) {
         knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
     }
-    function nowMs() { return global.performance && performance.now ? performance.now() : Date.now(); }
-
     function onJoyDown(e) {
-        if (e.pointerType === 'mouse' || !enabled || joyId !== -1) return;
+        /* ADR-52 静默门控：同 onLookDown——活跃中拒绝误触（ADR-51：误触曾把 moveZ
+         * 从 0.83 重置到 -0.21），静默超时接管死指针（ADR-52：三层兜底外的 up 丢失） */
+        if (e.pointerType === 'mouse' || !enabled) return;
+        if (joyId !== -1) {
+            if (nowMs() - joyBeat < C.INPUT_STALE_MS) return;
+            joyId = -1;
+        }
         var r = joystick.getBoundingClientRect();
         joyCX = r.left + r.width * 0.5; joyCY = r.top + r.height * 0.5;
         joyId = e.pointerId; joyBeat = nowMs();
@@ -265,6 +283,11 @@
         document.addEventListener('pointerup', onGlobalPointerEnd);
         document.addEventListener('pointercancel', onGlobalPointerEnd);
         document.addEventListener('lostpointercapture', onLostCapture);
+        /* ADR-52：息屏/切后台回来时按着屏幕的手指往往等不到 pointerup——槽位死锁的
+         * 主要真实来源。隐藏即清空全部触控槽位，回前台从干净状态开始。 */
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) reset();
+        });
 
         bindFire(fireBtn, fireSlot);
         bindFire(fireLeftBtn, fireLeftSlot);
@@ -307,32 +330,15 @@
         if (aimBtn) aimBtn.classList.remove('is-on');
         crouchKey = false; crouchTouch = false;
         if (crouchBtn) crouchBtn.classList.remove('is-on');
-        lookId = -1; joyId = -1; lookBeat = 0; joyBeat = 0;
+        lookId = -1; joyId = -1;
         syncMove();
         if (knob) setKnob(0, 0);
-    }
-
-    /* stale 检测：真机上若 pointerup/cancel 全部丢失（含冒泡被系统吞），心跳停更。
-     * 超过阈值视为该指已离屏，强制释放 ID 与速度，避免永久锁死卡住摇杆/转向。
-     * 阈值取 2s：正常按住不动时浏览器仍会发 pointermove(coalesced) 刷新心跳；
-     * 极端静止超过 2s 被误释放也只损失一次重新按下的代价，远好于卡死。 */
-    var STALE_MS = 2000;
-    function sanitize() {
-        if (!enabled) return;
-        var t = nowMs();
-        if (joyId !== -1 && joyBeat && t - joyBeat > STALE_MS) {
-            joyId = -1; joyX = 0; joyZ = 0; setKnob(0, 0); syncMove();
-        }
-        if (lookId !== -1 && lookBeat && t - lookBeat > STALE_MS) lookId = -1;
-        /* 开镜/开火不走 stale：精瞄或长按连发 >2s 且不发 pointermove 会被误清。
-         * 抬指兜底由 document 级 pointerup/cancel + lostpointercapture 覆盖即可。 */
     }
 
     function setEnabled(on) { enabled = !!on; if (!enabled) reset(); }
 
     CS.Input = {
         init: init, reset: reset, setEnabled: setEnabled, requestLock: requestLock,
-        sanitize: sanitize,
         hasLock: hasLock, isTouch: isTouch,
         get moveX() { return moveX; }, get moveZ() { return moveZ; },
         get lookDX() { return lookDX; }, get lookDY() { return lookDY; },

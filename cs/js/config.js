@@ -5,7 +5,8 @@
     var CS = global.CS || (global.CS = {});
 
     CS.CFG = {
-        PLAYER_HP: 100, DMG: 40, MAG: 8,
+        PLAYER_HP: 100, DMG: 40, DMG_HEAD: 100, MAG: 8,
+        /* DMG_HEAD：爆头伤害（≥ BOT_HP 即一枪击杀）；判定线 = BOT_SPLIT（头部视觉块底缘） */
         FIRE_INTERVAL: 0.20, RELOAD_TIME: 1.4,
         WALK: 4.0, SPRINT: 6.0, AIM_WALK: 1.8,
         SPREAD_DEG: 3.0, MOVE_EPS: 0.2,
@@ -19,13 +20,21 @@
         WAVE_COUNTS: [3, 4, 5], WAVE_ACC: [0.35, 0.45, 0.55],
         WAVE_GAP: 2.0, WAVE_HEAL: 20,
         SCORE_KILL: 100, SCORE_HIT: 10,
-        /* 越肩第三人称：BACK 拉远让角色变小、SHOULDER 右移让出准星、UP 抬高俯视、FOCUS 准星与弹道重合距离 */
-        TPS_BACK: 3.2, TPS_UP: 0.50, TPS_MIN: 0.3, TPS_SHOULDER: 0.38, TPS_FOCUS: 7,
-        /* 相机遮挡淡出（X-ray，仅 TPS）：挡在相机→玩家线段上、或距相机 < PROX 的墙
-         * 平滑淡到 MIN，其余遮挡保持真实近挡远；FPS 不淡出（防透视看墙后作弊）。
+        /* 越肩第三人称（ADR-48）：BACK 拉远+UP 抬高让角色退到左下缩小，SHOULDER 右移到肩后
+         * 让出中央准星（旧 0.38m 相对 BACK 3.2m 偏移过小=贴脸跟拍、角色居中挡准星），
+         * FOCUS 拉远使相机朝向更接近玩家 yaw、构图自然。弹道走 aimRay 与相机前向一致，改相机不动命中。 */
+        TPS_BACK: 4.6, TPS_UP: 0.75, TPS_MIN: 0.3, TPS_SHOULDER: 1.20, TPS_FOCUS: 12,
+        /* 相机遮挡淡出（X-ray，仅 TPS）：挡在相机→玩家线段上、距相机 < PROX 的墙、
+         * 或距玩家 < PROX·PLAYER_K 的墙（玩家卡墙角被夹墙吞）平滑淡到 MIN；
+         * 其余遮挡保持真实近挡远；FPS 不淡出（防透视看墙后作弊）。
          * TAU 快速淡出 / REST_TAU 缓慢恢复。纯视图层，不改 hitscan/LOS 数值。 */
         XRAY_MIN: 0.16, XRAY_TAU: 0.07, XRAY_REST_TAU: 0.22, XRAY_PROX: 1.0,
+        XRAY_PLAYER_K: 0.6,
         LOOK_SENS: 0.0022, TOUCH_SENS: 0.005, JOY_RADIUS: 48,
+        /* ADR-52/53：槽位静默门控——旧指存活时新指按下，仅当旧指静默超此阈值（判定已死，
+         * pointerup 三层兜底都没接住，如息屏/切后台、X5 内核吞事件）才接管；活跃中拒绝（防误触抢槽，ADR-51 语义）。
+         * ADR-53 由 3000ms 下调至 350ms：3s 会让丢 up 后的合法新指最长等 3 秒，350ms 覆盖偶发 up 丢失即可。 */
+        INPUT_STALE_MS: 350,
         BOT_Y0: 0.10, BOT_Y1: 1.85, BOT_SPLIT: 1.50,
         BOT_HALF_W: 0.32, BOT_HEAD_HALF_W: 0.20,
         FLOAT_LIFE: 0.85, HURT_TIME: 0.20, VIEW_HI_TIME: 0.60,

@@ -10,7 +10,7 @@
     var C = CS.CFG, U = CS.Util, W = CS.World;
 
     /* ── 面池与排序索引（模块加载时预分配）── */
-    var MAX_FACES = 80, MAX_VERTS = 8;
+    var MAX_FACES = 96, MAX_VERTS = 8;   /* 96：围墙长面分割后峰值 ~78（3-5 bot + 全墙可见），见 ADR-40 */
     var faces = [], order = [], floats = [], i;
     for (i = 0; i < MAX_FACES; i++) {
         faces.push({ n: 0, sx: new Float64Array(MAX_VERTS), sy: new Float64Array(MAX_VERTS),
@@ -189,6 +189,9 @@
         palette.shell = U.shade(palette.accent, 1.25);
         palette.gunBody = v('--cs-gun-body') || palette.player;
         palette.gunDark = v('--cs-gun-dark') || palette.wallEdge;
+        /* 中层蓝灰（cs.svg 装备 #3a4654）：介于 gunDark(近黑) 与 gunBody(亮灰蓝) 之间，
+         * 供战术装备做三档明暗层次，避免整块压成单一深色。 */
+        palette.gunMid = U.shade(palette.gunBody, 0.78);
         palette.gunHi = v('--cs-gun-hi') || 'rgba(255,255,255,0.15)';
         palette.gunLo = v('--cs-gun-lo') || 'rgba(0,0,0,0.22)';
         palette.gunSight = palette.accent;
@@ -228,9 +231,11 @@
         });
     }
 
-    /* 切镜只改相机位置与模型显隐：yaw/pitch(+kick)、射线、FOV 全部共用 */
+    /* 切镜只改相机位置与模型显隐：纯 yaw/pitch、射线、FOV 全部共用。
+     * kick（后坐上踢）不进相机/射线：所见即所得——每发命中扣扳机瞬间准星所指，
+     * 远距离不再上飘、打墙弹孔不再偏高。后坐视觉由 viewmodel 的 vm.recoil 独立承担。 */
     function setCamera(player, viewMode) {
-        var pitch = player.pitch + (player.kick || 0);   // 视角上踢真实进射线
+        var pitch = player.pitch;   // 后坐力不进射线：准星所指即弹道所中（ADR-45）
         var yaw = player.yaw;
         var cp = Math.cos(pitch), sp = Math.sin(pitch);
         fX = Math.sin(yaw) * cp; fY = sp; fZ = Math.cos(yaw) * cp;
@@ -281,6 +286,21 @@
         faceCount = 0;
     }
 
+    /* 准星射线：供 hitscan 复用，保证「屏幕中心所见 = 弹道所中」。
+     * TPS 相机位于玩家右后上方并看向 FOCUS 聚焦点，若弹道仍从眼位沿 yaw/pitch 发出，
+     * 近距离会有 0.16~0.25m 垂直视差：准星压在头上、弹道却落到脖子甚至打空。
+     * 改用相机位 + 相机前向（含当前 pitch，不含后坐 kick）消除视差并做到所见即所得；
+     * FPS 下相机=眼位、前向=玩家前向。调用会重算相机（幂等，紧随的 beginFrame 同参复算无副作用）。 */
+    function aimRay(player, viewMode) {
+        setCamera(player, viewMode);
+        return {
+            ox: camX, oy: camY, oz: camZ,
+            dx: fX, dy: fY, dz: fZ,
+            rx: rX, ry: rY, rz: rZ,
+            ux: uX, uy: uY, uz: uZ
+        };
+    }
+
     function setQ(k, x, y, z) {
         var o = k * 3; q[o] = x; q[o + 1] = y; q[o + 2] = z;
     }
@@ -305,8 +325,14 @@
         return m;
     }
 
+    /* billboard 深度排序的统一参考高度（ADR-55）：与墙中心 WALL_H/2 同高。
+     * 竖直 billboard（bot/player 各部件）若各用自身面中心 y 算 depth，低头时 dy·fY
+     * 会把头/腿 depth 拉开 0.5m+，墙面 depth 乘隙插入 → 角色被"切碎"（头浮墙前、身埋墙后）。
+     * 统一到同一 y 基准后，角色作为整体排序，墙只能整挡或整不挡。 */
+    var BILLBOARD_SORT_Y = C.WALL_H * 0.5;
+
     /* q 中 4 个世界顶点 → 相机空间 → 裁剪 → 投影，写入一个复用的 face */
-    function addFace(color, alpha, stroke, tex, shade, cx, cy, cz) {
+    function addFace(color, alpha, stroke, tex, shade, cx, cy, cz, sortX, sortY, sortZ) {
         if (faceCount >= MAX_FACES) return;
         var k, o, dx, dy, dz, z, maxZ = -Infinity, minZ = Infinity;
         for (k = 0; k < 4; k++) {
@@ -332,6 +358,17 @@
         f.tex = tex; f.shade = shade; f.mark = 0;
         dx = cx - camX; dy = cy - camY; dz = cz - camZ;
         f.dist = dx * dx + dy * dy + dz * dz;
+        /* 排序键用相机空间投影深度（沿视线），而非欧氏距离（ADR-40）：
+         * 欧氏距离对大面（32m 围墙）失真——斜视时面中心远、边缘近，
+         * 面级排序会整面错序，表现为「外墙错误遮挡/被内部墙穿透」。
+         * ADR-55：billboard 传入统一 sortY（默认真实 cy），使同一角色各部件 depth 一致，
+         * 不被墙从中间切开；sortY 只作用于 depth，dist/fog 仍用真实几何中心。 */
+        /* ADR-55：billboard 可用统一代表点(sortX,sortY,sortZ)算 depth——同一角色所有部件
+         * 传同一个角色中心，depth 完全相同，墙无法从身体中间插入；dist/fog 仍用真实几何中心。 */
+        var sx = (sortX === undefined) ? cx : sortX;
+        var sy = (sortY === undefined) ? cy : sortY;
+        var sz = (sortZ === undefined) ? cz : sortZ;
+        f.depth = (sx - camX) * fX + (sy - camY) * fY + (sz - camZ) * fZ;
         if (mode === 0) {
             var d = Math.sqrt(f.dist);
             var fog = (d - C.FOG_START) / C.FOG_RANGE;
@@ -360,48 +397,60 @@
     }
 
     /* ── Renderer 接口：drawBillboard ── */
-    function drawBillboard(ox, oz, y0, y1, halfW, color, alpha, stroke) {
+    function drawBillboard(ox, oz, y0, y1, halfW, color, alpha, stroke, sortX, sortZ) {
         setQ(0, ox - axX * halfW, y0, oz - axZ * halfW);
         setQ(1, ox + axX * halfW, y0, oz + axZ * halfW);
         setQ(2, ox + axX * halfW, y1, oz + axZ * halfW);
         setQ(3, ox - axX * halfW, y1, oz - axZ * halfW);
-        addFace(color, alpha, stroke, -1, 1, ox, (y0 + y1) * 0.5, oz);
+        /* ADR-55：排序代表点默认 (ox,统一高度,oz)，可传入角色中心覆盖使全身共 depth。 */
+        addFace(color, alpha, stroke, -1, 1, ox, (y0 + y1) * 0.5, oz,
+            sortX, BILLBOARD_SORT_Y, sortZ);
+    }
+
+    /* 东西向墙面（固定 x，长轴 z）：长面沿 z 分段，每段独立参与深度排序（ADR-40）。
+     * a0→a1 保持与旧单面版相同的绕序（Q0 底-a / Q1 顶-a / Q2 顶-b / Q3 底-b），纹理插值方向不变。 */
+    function addXFace(x, a0, a1, col, alpha, tex, shade) {
+        var segs = Math.ceil(Math.abs(a1 - a0) / 6) || 1, j, u0, u1, mid;
+        for (j = 0; j < segs; j++) {
+            u0 = a0 + (a1 - a0) * j / segs; u1 = a0 + (a1 - a0) * (j + 1) / segs;
+            setQ(0, x, 0, u0); setQ(1, x, C.WALL_H, u0);
+            setQ(2, x, C.WALL_H, u1); setQ(3, x, 0, u1);
+            mid = (u0 + u1) * 0.5;
+            addFace(col, alpha, true, tex, shade, x, C.WALL_H * 0.5, mid);
+        }
+    }
+
+    /* 南北向墙面（固定 z，长轴 x） */
+    function addZFace(z, a0, a1, col, alpha, tex, shade) {
+        var segs = Math.ceil(Math.abs(a1 - a0) / 6) || 1, j, u0, u1, mid;
+        for (j = 0; j < segs; j++) {
+            u0 = a0 + (a1 - a0) * j / segs; u1 = a0 + (a1 - a0) * (j + 1) / segs;
+            setQ(0, u0, 0, z); setQ(1, u0, C.WALL_H, z);
+            setQ(2, u1, C.WALL_H, z); setQ(3, u1, 0, z);
+            mid = (u0 + u1) * 0.5;
+            addFace(col, alpha, true, tex, shade, mid, C.WALL_H * 0.5, z);
+        }
     }
 
     function genWalls() {
-        var boxes = W.boxes, k, b, cx, cz, t, colX, colZ, fa;
+        var boxes = W.boxes, k, b, t, colX, colZ, fa;
         while (boxCount < boxes.length) { boxTex[boxCount] = boxCount < 4 ? 0 : (boxCount % 2 ? 2 : 1); boxCount++; }
         for (k = 0; k < boxes.length; k++) {
             b = boxes[k];
             fa = wallFade[k];               /* 相机遮挡淡出：该盒被淡出时整盒半透明 */
-            cx = (b.minX + b.maxX) * 0.5; cz = (b.minZ + b.maxZ) * 0.5;
             t = mode === 0 ? boxTex[k] : -1;
             colX = mode === 0 ? palette.wallA : palette.wallX[k % 3];
             colZ = mode === 0 ? palette.wallB : palette.wallZ[k % 3];
-            if (camX > b.maxX) {
-                setQ(0, b.maxX, 0, b.minZ); setQ(1, b.maxX, C.WALL_H, b.minZ);
-                setQ(2, b.maxX, C.WALL_H, b.maxZ); setQ(3, b.maxX, 0, b.maxZ);
-                addFace(colX, fa, true, t, mode === 0 ? shadeO[0] : 1, b.maxX, C.WALL_H * 0.5, cz);
-            }
-            if (camX < b.minX) {
-                setQ(0, b.minX, 0, b.maxZ); setQ(1, b.minX, C.WALL_H, b.maxZ);
-                setQ(2, b.minX, C.WALL_H, b.minZ); setQ(3, b.minX, 0, b.minZ);
-                addFace(colX, fa, true, t, mode === 0 ? shadeO[1] : 1, b.minX, C.WALL_H * 0.5, cz);
-            }
-            if (camZ > b.maxZ) {
-                setQ(0, b.minX, 0, b.maxZ); setQ(1, b.minX, C.WALL_H, b.maxZ);
-                setQ(2, b.maxX, C.WALL_H, b.maxZ); setQ(3, b.maxX, 0, b.maxZ);
-                addFace(colZ, fa, true, t, mode === 0 ? shadeO[4] : 1, cx, C.WALL_H * 0.5, b.maxZ);
-            }
-            if (camZ < b.minZ) {
-                setQ(0, b.maxX, 0, b.minZ); setQ(1, b.maxX, C.WALL_H, b.minZ);
-                setQ(2, b.minX, C.WALL_H, b.minZ); setQ(3, b.minX, 0, b.minZ);
-                addFace(colZ, fa, true, t, mode === 0 ? shadeO[5] : 1, cx, C.WALL_H * 0.5, b.minZ);
-            }
+            /* 内部墙最长边 4m（segs=1 与旧单面版逐位一致）；围墙 30-32m 分 6 段修正深度跨序 */
+            if (camX > b.maxX) addXFace(b.maxX, b.minZ, b.maxZ, colX, fa, t, mode === 0 ? shadeO[0] : 1);
+            if (camX < b.minX) addXFace(b.minX, b.maxZ, b.minZ, colX, fa, t, mode === 0 ? shadeO[1] : 1);
+            if (camZ > b.maxZ) addZFace(b.maxZ, b.minX, b.maxX, colZ, fa, t, mode === 0 ? shadeO[4] : 1);
+            if (camZ < b.minZ) addZFace(b.minZ, b.maxX, b.minX, colZ, fa, t, mode === 0 ? shadeO[5] : 1);
             if (camY > C.WALL_H) {
                 setQ(0, b.minX, C.WALL_H, b.minZ); setQ(1, b.minX, C.WALL_H, b.maxZ);
                 setQ(2, b.maxX, C.WALL_H, b.maxZ); setQ(3, b.maxX, C.WALL_H, b.minZ);
-                addFace(palette.wallTop, fa, true, t, mode === 0 ? shadeO[2] : 1, cx, C.WALL_H, cz);
+                addFace(palette.wallTop, fa, true, t, mode === 0 ? shadeO[2] : 1,
+                    (b.minX + b.maxX) * 0.5, C.WALL_H, (b.minZ + b.maxZ) * 0.5);
             }
         }
     }
@@ -412,6 +461,22 @@
      * 因此一切"自顶向下 x%"的定位必须从 sy[3] 起、向 y 增大方向加。
      * mark=1 敌人：正脸眼+鼻+嘴（敌人始终面向玩家，看到的是脸）——头面中下部。
      * mark=2 玩家 TPS：越肩从背后跟随，看不到脸——头顶盔带 + 后脑勺横带，强化"背影"读感。 */
+    /* 像素风圆角矩形：用 arcTo 画小半径圆角（cs.svg 镜片 rx=2 / 呼吸器 rx=2）。
+     * 2D 上下文通用，半径超过半宽/半高时自动收敛，保证小尺寸下仍是矩形不塌。 */
+    function fillRoundRect(x, y, w, h, r) {
+        if (w <= 0 || h <= 0) return;
+        r = Math.min(r, w * 0.5, h * 0.5);
+        if (r < 0.5) { ctx.fillRect(x, y, w, h); return; }
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+        ctx.fill();
+    }
+
     function drawFaceMark(f) {
         if (f.n !== 4) return;                       // 被近裁剪切过的面不做插值
         var lx = f.sx[0] + (f.sx[3] - f.sx[0]) * 0.58;
@@ -419,36 +484,133 @@
         var span = rx - lx;
         var hh = f.sy[3] - f.sy[0];                  // 面高（负值：sy3 顶、sy0 底）
         var top = f.sy[3];
-        ctx.fillStyle = palette.gunDark;
+        var ah = Math.abs(hh);
         if (f.mark === 2) {
-            /* 后脑勺：头顶一条头盔带 + 中部一条横向发型/护目带（不是眼睛），均自面顶向下 */
+            /* 后脑勺（ADR-48）：从面顶向下用深色覆盖上半作为短发/头盔，浅色只在下半露出
+             * （像后颈/耳上皮肤）；再用一条顶部头盔沿强调"这是后脑不是脸"。lastMark 几何不变供 QA。 */
+            ctx.fillStyle = palette.gunDark;
             var bandY = top + Math.abs(hh) * 0.22;
-            var bandH = Math.max(2, Math.abs(hh) * 0.13);
-            ctx.fillRect(lx, bandY - bandH * 0.5, span, bandH);
+            /* 头发/头盔：覆盖面顶到 0.55 高，两侧和顶部包住，下方留浅色后颈 */
+            ctx.fillRect(lx, top, span, Math.abs(hh) * 0.55);
             var napeY = top + Math.abs(hh) * 0.62;
-            ctx.fillRect(lx + span * 0.16, napeY, span * 0.68, Math.max(1, Math.abs(hh) * 0.06));
+            ctx.fillRect(lx + span * 0.10, napeY, span * 0.80, Math.max(1, Math.abs(hh) * 0.08));
             lastMark.mark = 2; lastMark.top = top; lastMark.bottom = f.sy[0]; lastMark.y = bandY; lastMark.y2 = napeY; lastMark.y3 = napeY;
+        } else if (f.mark === 3) {
+            /* 敌人战术背心（改造清单 #1 返工，对照 cs.svg 躯干）：橙色主体上收窄背心，
+             * 两侧留橙边；顶部亮条 + 右侧暗条还原立方体明暗；中缝亮条 + 双弹匣袋。
+             * 纯 ctx 不占面池，不写 lastMark（爆头锚点只由头面 mark=1 维护）。 */
+            var vestTop = top + ah * 0.10, vestH = ah * 0.84;
+            /* 躯干顶面亮条（cs.svg #c2620c）与右侧暗条（#8a3f08）——仍是橙色系 */
+            ctx.fillStyle = U.shade(palette.bot, 1.18);
+            ctx.fillRect(lx, top, span, Math.max(2, ah * 0.10));
+            ctx.fillStyle = U.shade(palette.bot, 0.82);
+            ctx.fillRect(rx - span * 0.12, top + ah * 0.10, span * 0.12, vestH);
+            /* 背心主体居中（cs.svg #3a4654 中层），两侧各留 14% 橙边（36/52 宽） */
+            var vx = lx + span * 0.14, vw = span * 0.72;
+            ctx.fillStyle = palette.gunMid;
+            ctx.fillRect(vx, vestTop, vw, vestH);
+            /* 中缝亮竖条（cs.svg #55677a），纵贯背心 */
+            ctx.fillStyle = palette.gunBody;
+            ctx.fillRect(vx + vw * 0.46, vestTop + vestH * 0.06, Math.max(2, vw * 0.08), vestH * 0.82);
+            /* 双弹匣袋（cs.svg #2a3545 近黑底 + #55677a 袋盖） */
+            var pw = vw * 0.28, ph = vestH * 0.24, py = vestTop + vestH * 0.34;
+            ctx.fillStyle = palette.gunDark;
+            ctx.fillRect(vx + vw * 0.08, py, pw, ph);
+            ctx.fillRect(vx + vw * 0.64, py, pw, ph);
+            ctx.fillStyle = palette.gunBody;
+            var capH = Math.max(1, ph * 0.16);
+            ctx.fillRect(vx + vw * 0.08, py, pw, capH);
+            ctx.fillRect(vx + vw * 0.64, py, pw, capH);
+        } else if (f.mark === 4 || f.mark === 5) {
+            /* 作战靴（mark=4，腿）/ 战术手套（mark=5，臂）：对照 cs.svg 深色末端。
+             * 只覆盖 billboard 底部一段，纯 ctx 不占面池，不写 lastMark。 */
+            ctx.fillStyle = palette.gunDark;
+            var endH = f.mark === 4 ? 0.20 : 0.18;
+            ctx.fillRect(lx, top + ah * (1 - endH), span, ah * endH + 1);
+        } else if (f.mark === 6) {
+            /* 横向步枪（改造清单 #1 返工，对照 cs.svg 双手横持、枪口朝左）：
+             * 枪身本体由宽而扁的 billboard 填 gunDark；此处用其屏幕外接框补
+             * 上沿高光、左端枪口、中部握把/弹匣、瞄具、双手战术手套。
+             * 纯 ctx 不占面池，不写 lastMark。 */
+            var gx0 = Math.min(f.sx[0], f.sx[3]), gx1 = Math.max(f.sx[1], f.sx[2]);
+            var gyT = Math.min(f.sy[2], f.sy[3]), gyB = Math.max(f.sy[0], f.sy[1]);
+            var gw = gx1 - gx0, gh = gyB - gyT;
+            if (gw < 3 || gh < 1) return;
+            /* 上沿高光条（cs.svg #3a4654 描边）+ 下沿暗边，给扁平枪身一点体积 */
+            ctx.fillStyle = palette.gunMid;
+            ctx.fillRect(gx0, gyT, gw, Math.max(1, gh * 0.22));
+            /* 左端枪口消焰器：枪口朝左，突出一小段（比枪身亮一档） */
+            ctx.fillStyle = palette.gunBody;
+            ctx.fillRect(gx0 - gw * 0.05, gyT + gh * 0.18, gw * 0.09, gh * 0.50);
+            /* 中部握把 + 弹匣，向下伸出（cs.svg #121a26，用半透明黑压深） */
+            ctx.fillStyle = palette.gunLo;
+            ctx.fillRect(gx0 + gw * 0.40, gyB - gh * 0.1, gw * 0.11, gh * 1.15);
+            ctx.fillRect(gx0 + gw * 0.60, gyB - gh * 0.1, gw * 0.08, gh * 0.95);
+            /* 瞄具：枪身上方中间小突起 */
+            ctx.fillStyle = palette.gunMid;
+            ctx.fillRect(gx0 + gw * 0.45, gyT - gh * 0.30, gw * 0.11, gh * 0.32);
+            /* 双手战术手套：握在握把处（近黑），盖住握把上端形成握持感 */
+            ctx.fillStyle = palette.gunDark;
+            ctx.fillRect(gx0 + gw * 0.37, gyT + gh * 0.30, gw * 0.13, gh * 0.62);
+            ctx.fillRect(gx0 + gw * 0.57, gyT + gh * 0.32, gw * 0.12, gh * 0.58);
         } else {
-            /* 敌人正脸（MC 风格三件套，均自面顶向下）：眼 48% 两只小方眼、
-             * 鼻 60% 居中窄方、嘴 78% 居中横条。远距离以 ≥1px 兜底可见。 */
-            var aw = Math.abs(span), ah = Math.abs(hh);
-            var ew = aw * 0.14, eh = ah * 0.10;
+            /* 敌人正脸：严格按 cs.svg 头部比例重画（改造清单 #1 三次返工）。
+             * 基准：头盔顶 y116 → 头底 y178 = 62px（记 ah）；头面 x139~181 = 42px（记 span）。
+             * 各层位置全部来自图标坐标换算，不再凭感觉估；lastMark 三锚点仍需落在 [top,bottom] 内。 */
+            var nx = lx + span * 0.5;
+
+            /* ① 战术头盔：盔体占 0~0.484（y116~146），顶亮沿仅 0~0.081（y116~121），
+             * 外突帽檐 0.387~0.5（y140~147，左右各外扩 7/42=0.167span）。以前顶沿过厚、盔体偏矮。 */
+            ctx.fillStyle = palette.gunMid;
+            ctx.fillRect(lx, top, span, ah * 0.484);
+            ctx.fillStyle = palette.gunBody;
+            ctx.fillRect(lx, top, span, Math.max(1, ah * 0.081));
+            var brimOver = span * 0.167;
+            ctx.fillStyle = palette.gunDark;
+            ctx.fillRect(lx - brimOver, top + ah * 0.387, span + brimOver * 2, Math.max(2, ah * 0.113));
+
+            /* ② 护目镜：深色镜带 0.468~0.71（y145~160，左右各外扩 2/42=0.048span），
+             * 两片圆角青蓝镜片 0.5~0.677（y147~158，宽 15/42=0.357span）——图标是 rx=2 圆角，
+             * 以前画成直角小方块；高光沿镜片左上（y148~151）。 */
+            var bandOver = span * 0.048;
+            ctx.fillStyle = palette.gunDark;
+            ctx.fillRect(lx - bandOver, top + ah * 0.468, span + bandOver * 2, ah * 0.242);
+            var ew = span * 0.357, eh = ah * 0.177;
             if (ew < 1) ew = 1;
             if (eh < 1) eh = 1;
-            var ey = top + ah * 0.48;
-            ctx.fillRect(lx + span * 0.28 - ew * 0.5, ey - eh * 0.5, ew, eh);
-            ctx.fillRect(lx + span * 0.72 - ew * 0.5, ey - eh * 0.5, ew, eh);
-            var nw = Math.max(1, aw * 0.10), nh = Math.max(1, ah * 0.10);
-            var ny = top + ah * 0.60, nx = lx + span * 0.5;
-            ctx.fillRect(nx - nw * 0.5, ny - nh * 0.5, nw, nh);
-            var mw = Math.max(1, aw * 0.34), mh = Math.max(1, ah * 0.06);
-            var my = top + ah * 0.78;
-            ctx.fillRect(nx - mw * 0.5, my - mh * 0.5, mw, mh);
+            var er = Math.min(ew, eh) * 0.16;
+            var eyeY = top + ah * 0.5;
+            var eyeL = lx + span * 0.071, eyeR = lx + span * 0.571;
+            ctx.fillStyle = palette.playerHead;
+            fillRoundRect(eyeL, eyeY, ew, eh, er);
+            fillRoundRect(eyeR, eyeY, ew, eh, er);
+            ctx.fillStyle = palette.gunHi;
+            ctx.fillRect(eyeL + ew * 0.05, eyeY + eh * 0.09, ew * 0.40, Math.max(1, eh * 0.27));
+            ctx.fillRect(eyeR + ew * 0.05, eyeY + eh * 0.09, ew * 0.40, Math.max(1, eh * 0.27));
+
+            /* ③ 战术面罩：中层底 0.71~1.0（y160~178）占满头面宽（图标 x139~181 齐宽，
+             * 以前只占 0.72 留空导致脸不对）；近黑呼吸器 0.79~0.952（y165~175，宽 22/42=0.524span，rx=2）；
+             * 3 道亮灰蓝格栅 0.823~0.919（y167~173，间距 6/42=0.143span，stroke 1.5/42=0.036span）。 */
+            ctx.fillStyle = palette.gunMid;
+            ctx.fillRect(lx, top + ah * 0.71, span, ah * 0.29);
+            var bw = span * 0.524, bh = ah * 0.162;
+            ctx.fillStyle = palette.gunDark;
+            fillRoundRect(nx - bw * 0.5, top + ah * 0.79, bw, bh, Math.min(bw, bh) * 0.18);
+            ctx.fillStyle = palette.gunBody;
+            var gw = Math.max(1, span * 0.036), gy = top + ah * 0.823, gh = ah * 0.096;
+            for (var gi = -1; gi <= 1; gi++) {
+                ctx.fillRect(nx + gi * span * 0.143 - gw * 0.5, gy, gw, gh);
+            }
+
+            /* lastMark：眼/鼻/嘴锚点（落在头面内即可，爆头所见即所得不变） */
+            var ey = top + ah * 0.588;   // 眼（镜片中心）
+            var ny = top + ah * 0.75;    // 鼻（面罩上部）
+            var my = top + ah * 0.87;    // 嘴（呼吸器区）
             lastMark.mark = 1; lastMark.top = top; lastMark.bottom = f.sy[0]; lastMark.y = ey; lastMark.y2 = ny; lastMark.y3 = my;
         }
     }
 
-    /* MC 分块敌人：6 面（双腿+躯干+双臂+头）+ 1 面枪 stub + 开火时 1 面枪口火光。
+    /* MC 分块敌人：6 面（双腿+躯干+双臂+头）+ 1 面横向步枪 + 开火时 1 面枪口火光。
      * 所有部件落在 hitscan 公告板盒内（|u|≤0.32, y∈[0.10,1.85]）；视觉与判定彻底解耦。 */
     function genBots(bots) {
         var k, b, f0, torsoDist;
@@ -458,44 +620,72 @@
             setAxes(camX, camZ, b.x, b.z);
             var col = b.hitFlash > 0 ? palette.botHit : palette.bot;
             /* 躯干半宽 0.24（小于判定 0.32）让双臂露出轮廓；腿/臂全部仍在判定盒内 */
-            drawBillboard(b.x - axX * 0.12, b.z - axZ * 0.12, C.BOT_Y0, 0.70, 0.11, col, 1, true);
-            drawBillboard(b.x + axX * 0.12, b.z + axZ * 0.12, C.BOT_Y0, 0.70, 0.11, col, 1, true);
             f0 = faceCount;
-            drawBillboard(b.x, b.z, 0.70, C.BOT_SPLIT, 0.24, col, 1, true);
-            torsoDist = faceCount > f0 ? faces[faceCount - 1].dist : 0;
-            drawBillboard(b.x - axX * 0.25, b.z - axZ * 0.25, 0.78, 1.42, 0.07, col, 1, true);
-            drawBillboard(b.x + axX * 0.25, b.z + axZ * 0.25, 0.78, 1.42, 0.07, col, 1, true);
+            drawBillboard(b.x - axX * 0.12, b.z - axZ * 0.12, C.BOT_Y0, 0.70, 0.11, col, 1, true, b.x, b.z);
+            if (faceCount > f0) faces[faceCount - 1].mark = 4;   /* 作战靴（mark=4，腿部末端） */
             f0 = faceCount;
-            drawBillboard(b.x, b.z, C.BOT_SPLIT, C.BOT_Y1, C.BOT_HEAD_HALF_W, palette.botHead, 1, true);
+            drawBillboard(b.x + axX * 0.12, b.z + axZ * 0.12, C.BOT_Y0, 0.70, 0.11, col, 1, true, b.x, b.z);
+            if (faceCount > f0) faces[faceCount - 1].mark = 4;
+            f0 = faceCount;
+            drawBillboard(b.x, b.z, 0.70, C.BOT_SPLIT, 0.24, col, 1, true, b.x, b.z);
+            torsoDist = faceCount > f0 ? faces[faceCount - 1].depth : 0;
+            if (faceCount > f0) faces[faceCount - 1].mark = 3;   /* 战术背心（mark=3 纯 ctx 绘制，不占面池） */
+            f0 = faceCount;
+            drawBillboard(b.x - axX * 0.25, b.z - axZ * 0.25, 0.78, 1.42, 0.07, col, 1, true, b.x, b.z);
+            if (faceCount > f0) faces[faceCount - 1].mark = 5;   /* 战术手套（mark=5，手臂末端） */
+            f0 = faceCount;
+            drawBillboard(b.x + axX * 0.25, b.z + axZ * 0.25, 0.78, 1.42, 0.07, col, 1, true, b.x, b.z);
+            if (faceCount > f0) faces[faceCount - 1].mark = 5;
+            f0 = faceCount;
+            drawBillboard(b.x, b.z, C.BOT_SPLIT, C.BOT_Y1, C.BOT_HEAD_HALF_W, palette.botHead, 1, true, b.x, b.z);
             if (faceCount > f0) faces[faceCount - 1].mark = 1;
-            /* 枪 stub：与躯干共面时会被躯干（更靠近相机眼高）盖住，仅微调排序距离，
-             * 使它压在躯干/手臂之前；这不是游戏数值，只影响画家算法顺序。 */
+            /* 横向步枪（改造清单 #1 返工，对照 cs.svg 双手横持、枪口朝左）：
+             * 宽而扁的 billboard 横贯胸前（宽约躯干 1.4 倍），本体填近黑枪身，
+             * mark=6 补枪口/握把/瞄具/双手。depth 压在躯干/背心之前（仅画家算法顺序）。 */
             f0 = faceCount;
-            drawBillboard(b.x + axX * 0.28, b.z + axZ * 0.28, 0.98, 1.18, 0.04, palette.gunBody, 1, false);
-            if (faceCount > f0 && torsoDist > 0) faces[faceCount - 1].dist = torsoDist - 0.02;
+            drawBillboard(b.x, b.z, 1.06, 1.15, 0.32, palette.gunDark, 1, false, b.x, b.z);
+            if (faceCount > f0) {
+                faces[faceCount - 1].mark = 6;
+                if (torsoDist > 0) faces[faceCount - 1].depth = torsoDist - 0.02;
+            }
             if (b.flash > 0) {
+                /* 火光在左端枪口（-axX 为屏幕左），与枪身齐高 */
                 f0 = faceCount;
-                drawBillboard(b.x + axX * 0.30, b.z + axZ * 0.30,
-                    1.05, 1.25, 0.10, palette.muzzle, 1, false);
-                if (faceCount > f0 && torsoDist > 0) faces[faceCount - 1].dist = torsoDist - 0.04;
+                drawBillboard(b.x - axX * 0.37, b.z - axZ * 0.37,
+                    1.03, 1.16, 0.08, palette.muzzle, 1, false, b.x, b.z);
+                if (faceCount > f0 && torsoDist > 0) faces[faceCount - 1].depth = torsoDist - 0.04;
             }
         }
     }
 
-    /* TPS 玩家模型：6 面 MC 分块 + 1 面竖条枪（面池 +7）；y 跟随跳跃（11.8.3） */
+    /* TPS 玩家背影模型（ADR-48）：MC 分块 + 战术背心/背包 + 肩带 + 竖条枪。
+     * 相机在右肩后上方，看到的是背影：深色背心压在躯干正面之下(y 段略窄)，
+     * 背包外凸于躯干右后，两条肩带纵贯背部——让"从身后看"一眼可辨，而非纯色贴片靶子。
+     * 全部 billboard 贴世界坐标参与深度排序；面池 +11（旧 +7）。y 跟随跳跃。 */
     function genPlayer(player) {
         setAxes(camX, camZ, player.x, player.z);
         var yb = player.y, f0;
-        drawBillboard(player.x - axX * 0.12, player.z - axZ * 0.12, yb + 0.10, yb + 0.70, 0.10, palette.player, playerAlpha, true);
-        drawBillboard(player.x + axX * 0.12, player.z + axZ * 0.12, yb + 0.10, yb + 0.70, 0.10, palette.player, playerAlpha, true);
-        drawBillboard(player.x, player.z, yb + 0.70, yb + 1.50, 0.20, palette.player, playerAlpha, true);
-        drawBillboard(player.x - axX * 0.22, player.z - axZ * 0.22, yb + 0.78, yb + 1.42, 0.07, palette.player, playerAlpha, true);
-        drawBillboard(player.x + axX * 0.22, player.z + axZ * 0.22, yb + 0.78, yb + 1.42, 0.07, palette.player, playerAlpha, true);
+        /* 腿 */
+        drawBillboard(player.x - axX * 0.12, player.z - axZ * 0.12, yb + 0.10, yb + 0.70, 0.10, palette.player, playerAlpha, true, player.x, player.z);
+        drawBillboard(player.x + axX * 0.12, player.z + axZ * 0.12, yb + 0.10, yb + 0.70, 0.10, palette.player, playerAlpha, true, player.x, player.z);
+        /* 躯干（着 player 主色） */
+        drawBillboard(player.x, player.z, yb + 0.70, yb + 1.50, 0.20, palette.player, playerAlpha, true, player.x, player.z);
+        /* 战术背心：深一档，覆盖躯干中上段；背包：外凸右后、再深一档 */
+        drawBillboard(player.x, player.z, yb + 0.92, yb + 1.44, 0.21, palette.gunDark, playerAlpha, true, player.x, player.z);
+        drawBillboard(player.x + axX * 0.13, player.z + axZ * 0.13, yb + 1.02, yb + 1.40, 0.12, palette.gunBody, playerAlpha, true, player.x, player.z);
+        /* 两条肩带（浅色纵条）：从肩到腰，强化"背对"读感 */
+        drawBillboard(player.x - axX * 0.11, player.z - axZ * 0.11, yb + 0.96, yb + 1.40, 0.028, palette.playerHead, playerAlpha, false, player.x, player.z);
+        drawBillboard(player.x + axX * 0.11, player.z + axZ * 0.11, yb + 0.96, yb + 1.40, 0.028, palette.playerHead, playerAlpha, false, player.x, player.z);
+        /* 手臂 */
+        drawBillboard(player.x - axX * 0.22, player.z - axZ * 0.22, yb + 0.78, yb + 1.42, 0.07, palette.player, playerAlpha, true, player.x, player.z);
+        drawBillboard(player.x + axX * 0.22, player.z + axZ * 0.22, yb + 0.78, yb + 1.42, 0.07, palette.player, playerAlpha, true, player.x, player.z);
+        /* 头（后脑勺 mark=2：头盔带 + 发带，暗示后方视角） */
         f0 = faceCount;
-        drawBillboard(player.x, player.z, yb + 1.50, yb + 1.65, 0.16, palette.playerHead, playerAlpha, true);
+        drawBillboard(player.x, player.z, yb + 1.50, yb + 1.65, 0.16, palette.playerHead, playerAlpha, true, player.x, player.z);
         if (faceCount > f0) faces[faceCount - 1].mark = 2;
+        /* 竖条枪：右手持，斜前指 */
         drawBillboard(player.x + axX * 0.34, player.z + axZ * 0.34,
-            yb + 0.55, yb + 1.30, 0.05, palette.gunBody, playerAlpha, false);
+            yb + 0.55, yb + 1.30, 0.05, palette.gunBody, playerAlpha, false, player.x, player.z);
     }
 
     function addLine(x0, z0, x1, z1) {
@@ -700,12 +890,20 @@
     var GUN_MAG_LO = [-14, 4, -10, 4, -22, 50, -27, 52];
     var GUN_GRIP_LO = [38, 4, 44, 40, 52, 56, 46, 54, 38, 40, 33, 4];
     /* 枪托：枪口朝 -x，枪尾 +x；x 最大 108，窄屏按 vs 缩放后不越界（预分配，零分配） */
-    var GUN_STOCK = [28, -22, 54, -40, 88, -34, 102, -10, 100, 12, 70, 14, 40, 4, 22, -12];
-    var GUN_STOCK_HI = [28, -22, 54, -40, 88, -34, 84, -28, 52, -32, 26, -16];
-    var GUN_STOCK_LO = [40, 4, 70, 14, 100, 12, 102, -10, 78, -4, 48, -10];
-    var GUN_CHEEK = [48, -38, 78, -32, 84, -22, 54, -26];
-    var GUN_BUTT = [100, -12, 106, -10, 108, 10, 100, 12];
-    var GUN_STOCK_HOLE = [58, -20, 70, -22, 76, -10, 64, -8];
+    /* 枪尾段（ADR-41/47）：托与机匣等高衔接（上缘从机匣上部斜向后），标准肩托轮廓——
+     * 旧版托根部只有机匣一半高且从中下部斜插，观感是「圆棍勺柄」不像枪托。
+     * ADR-47：托根部上缘原为 y=-50，比机匣顶(y=-82)/导轨(y=-88)低 32~38px，机匣右缘又
+     * 从 (22,-82) 陡降到 (30,-18)，二者之间留下楔形空洞 → 观感「中间缺一块、枪尾上方缺角」。
+     * 现将托根上缘抬到 y=-88 与导轨齐平；托先画、机匣后画盖住根部，露出的托顶从 x≈26
+     * 平滑斜向后接肩垫，枪械中段轮廓连贯。托腮同步抬高保持贴在托顶下方。 */
+    var GUN_STOCK = [16, -88, 62, -56, 100, -48, 108, -42, 108, 10, 72, 10, 40, 4, 16, 6];
+    var GUN_STOCK_HI = [16, -88, 62, -56, 100, -48, 96, -44, 58, -51, 20, -78];
+    var GUN_STOCK_LO = [40, 4, 72, 10, 108, 10, 108, 4, 74, 4];
+    var GUN_CHEEK = [40, -58, 78, -48, 84, -34, 44, -44];
+    var GUN_BUTT = [108, -42, 114, -38, 114, 8, 108, 10];
+    var GUN_STOCK_HOLE = [64, -24, 84, -22, 86, -6, 66, -8];
+    /* 准星座：衔接护木前端（x=-94）与枪管（x=-158 起段），消除管-匣过渡突兀 */
+    var GUN_FRONT_BLOCK = [-106, -72, -94, -72, -94, -46, -106, -46];
     var GUARD_VENTS = [
         [-90, -56, -80, -59, -80, -50, -90, -53],
         [-76, -56, -66, -59, -66, -50, -76, -53],
@@ -806,6 +1004,7 @@
         var n;
         for (n = 0; n < 5; n++) ctx.fillRect(-92 + n * 10, -80, 4, 6);
         for (n = 0; n < GUARD_VENTS.length; n++) fillPoly(GUARD_VENTS[n], palette.gunLo);
+        fillPoly(GUN_FRONT_BLOCK, palette.gunDark);
         /* 枪托：主体 → 受光 → 背光 → 托腮 → 底板 → 镂空；随后画握把/机匣压住前缘 */
         fillPoly(GUN_STOCK, palette.gunBody);
         fillPoly(GUN_STOCK_HI, palette.gunHi);
@@ -882,8 +1081,8 @@
         var j, key, d;
         for (i = 0; i < faceCount; i++) order[i] = i;
         for (i = 1; i < faceCount; i++) {
-            key = order[i]; d = faces[key].dist; j = i - 1;
-            while (j >= 0 && faces[order[j]].dist < d) { order[j + 1] = order[j]; j--; }
+            key = order[i]; d = faces[key].depth; j = i - 1;
+            while (j >= 0 && faces[order[j]].depth < d) { order[j + 1] = order[j]; j--; }
             order[j + 1] = key;
         }
     }
@@ -954,15 +1153,17 @@
         ctx.globalAlpha = 1;
     }
 
-    /* ── 相机遮挡淡出（X-ray）：仅 TPS。挡在「相机→玩家」线段上的墙、或距相机
-     * < XRAY_PROX 的墙（贴围墙时相机被钳到墙前、墙面糊满视野的场景）平滑淡到
-     * XRAY_MIN；FPS 不淡出（防透视看墙后作弊）。其余遮挡保持真实近挡远。
+    /* ── 相机遮挡淡出（X-ray）：仅 TPS。挡在「相机→玩家」线段上的墙、距相机
+     * < XRAY_PROX 的墙（贴围墙时相机被钳到墙前、墙面糊满视野），以及玩家自身
+     * < XRAY_PROX·PLAYER 的墙（玩家卡在墙角/两面墙夹角、身体被夹墙吞没的场景）
+     * 平滑淡到 XRAY_MIN；FPS 不淡出（防透视看墙后作弊）。其余遮挡保持真实近挡远。
      * 纯视图层：不改 hitscan / LOS / 相机位任何数值。 */
     function updateWallFade(dt, game) {
         var mask = 0, k, tgt, tau;
         if (lastView === 'tps') {
             mask = W.occluderMask(camX, camZ, game.player.x, game.player.z) |
-                   W.nearBoxes(camX, camZ, C.XRAY_PROX);
+                   W.nearBoxes(camX, camZ, C.XRAY_PROX) |
+                   W.nearBoxes(game.player.x, game.player.z, C.XRAY_PROX * C.XRAY_PLAYER_K);
         }
         for (k = 0; k < W.boxes.length; k++) {
             tgt = (mask & (1 << k)) ? C.XRAY_MIN : 1;
@@ -995,12 +1196,22 @@
         for (i = 0; i < floats.length; i++) floats[i].life = 0;
     }
 
-    /* ── 慢帧自适应：<45fps 先降内部分辨率一档（0.8→0.65），仍不达标再降 Renderer2DFlat ── */
+    /* ── 慢帧自适应：<45fps 或呈现间隔 p90 超刷新预算 1.5× 时，先降内部分辨率一档
+     * （0.8→0.65），仍不达标再降 Renderer2DFlat ──
+     * ADR-50：旧判定 avgFps<FPS_MIN(45) 只覆盖 60Hz——90/120Hz 屏呈现间隔在 11.1/22.2ms
+     * 混跳时平均帧率恰落 60~80（HUD 显示"正常"但体感卡，真机顽疾、桌面 60Hz 复现不了）。
+     * 补抖动判定：处理帧间隔 p90 > 预算×1.5（90Hz≈16.7ms 即已有 >1/3 帧掉到 22.2ms）同样
+     * 触发；60Hz 下 ≈25ms 与旧 <45fps 口径基本重合，行为不变。 */
     var perfT = 0, perfN = 0;
-    function checkPerf(dt) {
+    function checkPerf(dt, game) {
         perfT += dt; perfN++;
         if (perfT >= 1.0) {
-            if (perfN / perfT < C.FPS_MIN && mode === 0) {
+            var slow = perfN / perfT < C.FPS_MIN;
+            if (!slow && game && game.diagCost) {
+                var dg = game.diagCost();
+                if (dg.hz > 0 && dg.deltaP90 > (1000 / dg.hz) * 1.5) slow = true;
+            }
+            if (slow && mode === 0) {
                 if (!scaleOverride) {
                     scaleOverride = 0.65;
                     resize();              // 内部分辨率 300×534 → 244×433（375×667 手机）
@@ -1022,7 +1233,7 @@
         return {
             id: id,
             init: init, resize: resize,
-            beginFrame: beginFrame, submitFace: submitFace,
+            beginFrame: beginFrame, aimRay: aimRay, submitFace: submitFace,
             drawBillboard: drawBillboard, drawViewmodel: drawViewmodel,
             endFrame: endFrame,
             addFloat: addFloat, clearFloats: clearFloats,
@@ -1063,6 +1274,7 @@
                 return out;
             },
             get mode() { return mode; },
+            get faceCount() { return faceCount; },   // ADR-50 诊断读数：当帧提交面数
             get poolStats() {
                 var np = 0, ns = 0, nh = 0, j;
                 for (j = 0; j < C.PARTICLE_MAX; j++) if (parts[j].life > 0) np++;

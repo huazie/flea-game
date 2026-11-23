@@ -111,9 +111,10 @@
 
     /* hitscan 第二段：先取墙距 wallT，再逐 Bot 求「公告板矩形」交点，取最近者。
      * 公告板为面向射手的竖直矩形（法线 n = 射手 - Bot 的水平单位向量）。 */
-    var hitT = 0;
+    var hitT = 0, hitHead = false;
     function hitScan(bots, ox, oy, oz, dx, dy, dz, wallT) {
         var best = wallT, idx = -1, i, b;
+        hitHead = false;
         for (i = 0; i < bots.length; i++) {
             b = bots[i];
             if (!b.alive) continue;
@@ -131,6 +132,8 @@
             var u = (px - b.x) * ux + (pz - b.z) * uz;
             if (u < -C.BOT_HALF_W || u > C.BOT_HALF_W) continue;
             best = t; idx = i;
+            /* 部位判定：命中高度 ≥ BOT_SPLIT（1.50，MC 头块底缘）即爆头 */
+            hitHead = py >= C.BOT_SPLIT;
         }
         hitT = best;
         return idx;
@@ -139,6 +142,7 @@
     CS.Entities = {
         createBots: createBots, spawnWave: spawnWave, aliveCount: aliveCount,
         updateBots: updateBots, hitScan: hitScan,
-        get hitT() { return hitT; }
+        get hitT() { return hitT; },
+        get hitHead() { return hitHead; }
     };
 })(window);

@@ -332,6 +332,18 @@ cs/ 变更未波及并行产物：`sg/`、`docs/`、`assets/images/sg*.svg` 全�
 
 ---
 
+## 深度排序修外墙伪影 + 枪托重绘（v3.21）
+
+**背景**：用户截图（flat 降级模式）反馈两处——①「外围墙体遮挡了内部的墙」（大墙面左缘悬空切断、台阶状凹口）②「枪的尾部不对，看着不像一个完整的枪」。
+
+**改动 1（ADR-40，`js/renderer.js`）**：画家算法排序键从面中心**欧氏距离**升级为**相机空间投影深度**（`f.depth = dx·fX+dy·fY+dz·fZ`）——欧氏距离对大面失真（斜视时面中心远、边缘近），32m 围墙单面跨深度排序必然错序；同时把围墙长面沿长轴按 6m 分段（`addXFace`/`addZFace`，绕序与旧单面版逐位一致、纹理方向不变；内部墙最长 4m 自动 segs=1 行为不变）；`MAX_FACES` 80→96（分割后峰值 ~78）；bot 枪 stub/火光的排序 hack 从 dist 换到 depth 同轴。`f.dist` 保留仅供雾效。
+
+**改动 2（ADR-41，`js/renderer.js`）**：FP 枪托重绘——旧托根部仅机匣一半高、从中下部斜插（观感「圆棍勺柄」）；新托与机匣等高衔接（上缘自机匣上部斜向后 → 垂直肩垫 → 水平托底板），`GUN_STOCK/HI/LO/CHEEK/BUTT/HOLE` 八点轮廓全换；新增 `GUN_FRONT_BLOCK` 准星座衔接护木与枪管。
+
+**验证**：`fix-flat-gun.png` 目检新枪形完整（肩托+准星座+机匣+弹匣+握把连贯）；`fix-flat-n/s3/ne20/nw20` 多机位目检墙面无悬空、无错误遮挡、分段缝自然；回归 qa-headshot 12 + tps-ots 9 + fire-left 22 + xray 15 + aim 28 + land-diag 30 + touchcfg 9 = **125 断言全绿**，pageerror=0，faceCount 峰值 ~20（3 bot 机位）。未 commit。
+
+---
+
 ## MC 脸部补鼻/嘴（v3.20.3）
 
 **改动**：仅 `js/renderer.js` `drawFaceMark` mark=1 分支。用户反馈「没有画嘴巴和鼻子」：在 v3.20.2 修复符号后的敌人正脸上补 MC 三件套——眼 48%（原有，两只方眼）+ **鼻 60%**（居中窄方 `0.10×0.10`）+ **嘴 78%**（居中横条 `0.34×0.06`），远距离以 ≥1px 兜底可见；`lastMark` 扩展 `y2/y3`（鼻/嘴）供断言。玩家 mark=2 后脑勺不带五官（背影读感）。仍纯 `ctx.fillRect` 叠加、不占面池。
@@ -434,3 +446,209 @@ cs/ 变更未波及并行产物：`sg/`、`docs/`、`assets/images/sg*.svg` 全�
 - 截图目检：`shot-aim-back-right.png`（开镜在右下换弹上方、蹲左侧，右上仅暂停）、`shot-tps-by-hud.png`（点击后左上角 TPS 橙色高亮、第三人称蓝色模型出图）。
 
 **坑**：开镜移位占用旧 QA 探针取样点——`qa-land-diag.mjs` look-zone 中心取样、`qa-fire-left.mjs` 三指转向触点（x500,y200）均落在新开镜钮上致假 FAIL；已把取样点改到空白区（look-zone 取右半屏 y28%，转向取 x400,y180）。属探针口径问题，非产品回归。未 commit。
+
+---
+
+## TPS 准星-弹道视差修复复测（ADR-42，2026-11-17）
+
+**问题**：用户实测「爆头击杀在脖子处，瞄准头打空了」。根因不在爆头数值（旧 QA 全绿），而在 TPS 相机与眼位弹道的垂直视差——旧 QA 走逻辑瞄准（直接设 pitch），未覆盖玩家真实用的屏幕准星。探针 `probe-head-aim3.mjs` 实测：准星瞄头中心(1.675)时 TPS 2/3/5m 弹道落点 1.505/1.515/1.579（比准星低 0.10~0.17m），FPS 偏差 0。
+
+**改动**：`renderer.js` 新增 `Renderer.aimRay(player,viewMode)`（相机位+前/右/上基，含 pitch/kick），`game.js doHitscan` 射线起点/方向/散布基全部改用它，使屏幕所见=弹道所中；FPS 逐位等价零变化。
+
+**验证**：
+- `qa-head-tps.mjs` **10/10**：TPS 2/3/5/7m 准星压头中心均爆头一枪击杀（botHp=0、toast「爆头击杀」）、准星压身体(1.0)非爆头(40HP)、FPS 相机位=眼位且射线指向头中心、pageerror=0。
+- 回归：`qa-headshot` 12/12、`qa-aim` 28/28、`qa-aim-sprint` 8/8、`qa-xray` 15/15 全绿。
+- 诊断探针：`probe-head-aim.mjs`（真实渲染 lastMark，FPS 3m/5m 准星压头即爆头）、`probe-head-aim3.mjs`（网格扫描量化视差曲线）。
+
+**坑**：① `qa-vm-aimdir.mjs` A1 失败与本改动无关——它断言 3D 常量 `VM_AIM_ROLL_3D`，而 3D 部分已被 stash 收起（当前工作区仅 2D）；② TPS 下 `lastMark` 被玩家模型覆盖，探针改复刻相机数学求投影，判定仍走真实 `doHitscan`（已用 aimRay）；③ 7m 正前方有墙会挡测试射线，探针将 bot 拉近到 2/3/5m 或绕过墙判定。未 commit。
+
+---
+
+## 手机端「越玩越卡」WebAudio 节点泄漏修复复测（ADR-43，2026-11-18）
+
+**问题**：用户实测「phone 端玩着玩着就卡」。soak 定位在 WebAudio 而非渲染：`qa-soak-realtime.mjs` 实测音频活跃节点 20s 内 256→1993（≈57/s），而渲染池零分配、heap 稳定、DOM 恒定。双重根因：① `sfx.js` 每次音效新建的 gain/filter 经 master 常驻引用、`stop()` 不摘除节点而永久累积；② `game.js resume()`（暂停→继续/切后台回来）漏调 `Sfx.resume()`，AudioContext suspended 期间音符堆积在 t=0 不结束。
+
+**改动**：`sfx.js` 新增 `stopChain()`（source `onended` 里断开整条下游链），tone/noise 守卫 `ac.state !== 'running'` 跳过 suspended 期创建；`game.js resume()` 补 `Sfx.resume()`。
+
+**验证**：
+- `qa-audio-leak.mjs` **9/9**：suspended shoot 零节点；running 单次 shoot 建 5 节点、2 source ended、整条链 5 个全 disconnect；持续射击 151 次 `disc=755 == expectDisc=755` 无残留；pageerror=0。
+- 真实时间 soak 回归：`ended` 追平 `osc+buf`（259 vs 262）、heap 2.1~2.8MB 无单调增长、fps 稳定 60、DOM nodes 恒定 566。
+- 核心回归：headshot 12/12、head-tps 10/10、aim 28/28、xray 15/15 全绿。
+- 诊断探针：`qa-soak-leak.mjs`（合成帧，定位音频节点仅建不释放）、`qa-soak-realtime.mjs`（真实时间 + AudioContext 状态，确认 suspended/running 两态行为）。
+
+**坑**：① `active=created-ended` 计数器无法反映真实驻留（gain/filter 无 ended 事件），以专项 `disconnect` 实测为准；② 探针须先 `CS.Sfx.resume()` 初始化 AudioContext，否则 ac=null 静默返回；③ `qa-perf2d.mjs` 仍因 `CS.RendererGL.lastFallbackReason` 未定义失败——3D 部分已 stash 收起，与本次无关。未 commit。
+
+---
+
+## 手机端「初始化就卡 + FPS 正常」首屏阻塞修复复测（ADR-44，2026-11-18）
+
+**问题**：用户实测「phone 端初始化就很卡，FPS 60~80」。诊断探针 `qa-init-perf.mjs` A/B 对比证明卡在首屏加载而非渲染：A 组（真实加载）TTFB 5802ms / FCP 7316ms / DCL 7418ms / 游戏就绪 1592ms / 首帧 1237ms；B 组（拦截 CDN）TTFB 32ms / FCP 324ms / DCL 426ms / 就绪 356ms。`Resource Timing`：`all.min.css`（Font Awesome CDN）1219ms，`<head>` 渲染阻塞样式表。
+
+**改动**：`index.html` 把 Font Awesome `<link>` 改为 `media="print" onload="this.media='all'"` 非阻塞加载 + `<noscript>` 兜底。仅 3 行 HTML，不碰 JS。
+
+**验证**：
+- 修复后真实加载：TTFB 72ms / FCP 576ms / DCL 747ms / 就绪 638ms / 首帧 170ms，首屏提速 ~6.7s，`all.min.css` 移出阻塞列表。
+- 图标验证 `qa-icon-check.mjs`：3 个图标类齐全（fa-arrow-left/volume-high/sun），点击音效按钮 volume-high→volume-xmark 切换正常，异步 link 初始 media=print。
+- 核心回归：headshot 12/12、head-tps 10/10、aim 28/28、xray 15/15、audio-leak 9/9 全绿。
+- 坑：① headless SwiftShader 帧时间 p95/p99 偶发 66/150ms 尖峰为软渲染固有抖动（B 组拦截时 max 也 100ms），与加载修复无关；② 图标检查需在脚本启用下用真实 `.click()` 触发 paint()，直接调 `Sfx.toggle()` 不更新图标类；③ `<noscript>` 内容在脚本启用时不进 DOM，`document.querySelector` 取不到属正常。未 commit。
+
+---
+
+## 后坐力解耦 + 墙角遮挡修复复测（ADR-45/46，2026-11-18）
+
+**问题**：用户重新评估截图反馈三处——① 爆头「远了就不在准心里」；② 准星打墙、子弹痕迹落在准心上方；③ 图中人物隐藏在墙里。前两处同一根因，第三处独立。
+
+**根因定位**：
+- ADR-45：`probe-real-fire.mjs` 实测 `tryShoot()` 先把 `kick=+1.2°` 注入射线再 hitscan，落点抬高 `d·tan1.2°`（16m≈33.5cm）；打墙弹孔偏移 +31.4cm。旧 QA 全绿因 `p.kick=0` 直接调 `doHitscan()` 绕过真实开火链路。用户选择「所见即所得」而非保留上飘玩法。
+- ADR-46：X-ray 掩码只检测相机附近墙 + cam→玩家中心线墙，玩家卡墙角时夹墙（距相机>1m、不在中心线上）不淡出，吞没角色。
+
+**改动**：`renderer.js setCamera` 用纯 `player.pitch`（kick 不进相机/射线，视觉后坐仍由 vm.recoil 承担）；`updateWallFade` TPS 掩码并入 `nearBoxes(player.x,player.z, XRAY_PROX·XRAY_PLAYER_K)`；`config.js` 新增 `XRAY_PLAYER_K=0.6`。game.js 注释同步。均为最小改动。
+
+**验证**：
+- `qa-norecoil.mjs` **10/10**：开阔走廊 3/5/8/12/16m 准星压头（kick 激活态）一枪爆头、压身体非爆头、弹孔 offset≈0、kick 视觉仍在、TPS 不受 kick 影响、pageerror=0。
+- `qa-wallcorner.mjs` **6/6**：玩家贴内部墙/围墙时该墙淡出<0.4、远墙=1、开阔地恢复、FPS 不淡出、pageerror=0。
+- 诊断 `probe-real-fire.mjs`：弹孔偏移 0.314m→0；`probe-wall-occlusion.mjs` 五场景 wallFade/camDist 量化。
+- 回归全绿：headshot 12/12、head-tps 10/10、aim 28/28、aim-sprint 8/8、xray 15/15、audio-leak 9/9、tps-ots 9/9。历史 `qa-v2-t8-kick` 数据印证（12m 不补偿命中、下压反而打空）。
+
+**坑**：① QA 之前全绿是因为直接调 `doHitscan()` 且 `p.kick=0`，未走真实 `tryShoot()` 的 kick 注入——测「命中手感」必须复刻完整开火链路；② `CS.Input.firing` 是 getter，探针赋值无效，须直接调 `tryShoot()` 或复刻其 kick 顺序；③ 用户截图场景（墙角夹角）与我构造的「贴单面墙朝墙」不同，后者 X-ray 本就正常，须按「玩家中心点未触线但身体伸进墙」建场景；④ `qa-vm-aimdir` A1 失败为 3D 常量 `VM_AIM_ROLL_3D` 缺失（3D 已 stash），与本轮无关。未 commit。
+
+---
+
+## FPS 枪械枪尾顶部空洞修复复测（ADR-47，2026-11-18）
+
+**问题**：用户反馈「FPS 下枪械中间部分缺少，枪尾看起来上面缺一块」。诊断 `shot-gun.mjs`（FPS 静止态整屏 + 枪械区域 4× 放大截图）定位：机匣顶 y=-82/导轨 y=-88，枪托 `GUN_STOCK` 左上起点 (26,-50) 低 32~38px，机匣右缘 (22,-82)→(30,-18) 陡降，二者间在瞄具右下留楔形背景空洞。
+
+**改动**：`renderer.js` 将 `GUN_STOCK` 托根上缘 (26,-50)→(16,-88) 与导轨齐平，同步 `GUN_STOCK_HI` 受光条、`GUN_CHEEK` 托腮上移；绘制顺序不变（机匣后画盖托根）。仅屏幕空间多边形坐标，纯视觉。
+
+**验证**：
+- `shot-gun.mjs` 放大图目检：楔形空洞消失，枪械上缘从红点瞄具到枪尾连贯、无缺角；整屏枪械右下观感完整、准星居中正常。
+- 核心回归全绿：headshot 12/12、head-tps 10/10、norecoil 10/10、aim 28/28、xray 15/15、wallcorner 6/6。语法 `node --check` 通过。
+- 坑：纯 viewmodel 视觉改动须用放大截图目检定位空洞，坐标推理易漏（托根 y 值注释与实现长期不符）；枪托先画机匣后画的层级必须保留，否则托根会盖住机匣。
+
+---
+
+## TPS 越肩视角重设复测（ADR-48，2026-11-18）
+
+**问题**：用户反馈「TPS 人物还是不像第三人称，重新设计」。实测截图确认旧相机（肩偏移 0.38m/后退 3.2m）角色居中占半屏、准星被头顶挡，是贴脸跟拍不是越肩。
+
+**改动**：`config.js` 相机常量 → BACK 4.6 / UP 0.75 / SHOULDER 1.2 / FOCUS 12；`renderer.js genPlayer` 7 面→11 面背影模型（背心+背包+双肩带）、`drawFaceMark` mark=2 后脑深色覆盖上半（去「像脸」横带），`lastMark` 几何不变。弹道仍走 aimRay 不动数值。
+
+**验证**：
+- `shot-tps.mjs` 截图目检：角色退左下、准星让出中央、背影装备清晰、后脑像头盔。
+- `qa-ots-aim.mjs` **4/4**：越肩下求 yaw+pitch 使 bot 头投影屏幕正中 (500,280)，开火即爆头击杀——所见即所得。
+- `probe-tps-params.mjs` A/B/C/D 四组参数对比截图，C 组最优；`probe-facecount.mjs` 面数峰值 70 < 96。
+- 全套回归：head-tps 10/10、xray 15/15、ots-aim 4/4、headshot 12/12、norecoil 10/10、tps-ots 9/9、aim 28/28、wallcorner 6/6、audio-leak 9/9。
+
+**坑**：① 越肩相机右偏后屏幕中心射线水平也斜，`qa-head-tps` 旧「只调 pitch + bot 放 x=0 正前方」假设失效（projErr 只测垂直），必须像 ots-aim 那样用真实 aimRay 迭代求 yaw+pitch——这是测试过时非代码 bug（norecoil 开阔走廊全过为证）；② `qa-xray` E3 硬编码旧相机参数需同步新值；③ 改相机后必须做「准星压屏幕正中→爆头」决定性验证，避免所见即所得被悄悄破坏；④ 后脑 mark=2 视觉可改但 `lastMark.y/y2/y3` 语义不能动（QA 依赖）。未 commit。
+
+---
+
+## 触控「按住不动」误释放复测（ADR-49，2026-11-18）
+
+**问题**：用户再反馈「phone 端 滑动视野很卡，移动方向键也是」。前几轮只测 FPS/帧时间（均正常）就归因为「真机 GPU / 手势管线、桌面无法复现」，方向错误。本轮换测输入→相机端到端链路，成功复现。
+
+**诊断**：`qa-input-latency.mjs` 证明事件链无丢失（90 move→90 consume、守恒±1、交接 p95<1ms），排除帧率/事件链。`qa-stale-verify.mjs` / `qa-stale-look.mjs` 复现根因：ADR-27 的 2s stale 计时器假设「按住不动浏览器仍发 coalesced pointermove 刷新心跳」，但真机手指静止时不发 move——静止 2.4s 后摇杆 `moveZ 1→0`、旋钮归中、视角增量归零，且此后再滑全无响应，须抬指重按。
+
+**改动**：`input.js` 删除 `STALE_MS`/`sanitize()`/`lookBeat`/`joyBeat`，`game.js` 删每 0.5s 的 `sanitize()` 调用；`onLookDown`/`onJoyDown` 去 `id !== -1` 拒绝判定，改「新指按下即接管槽位」（事件驱动，保留 document 级 up/cancel/lostcapture 兜底）。开火/开镜不动。
+
+**验证**：
+- `qa-touch-stale.mjs` 改写为 **5/5**：J1 摇杆前推、J2 静止 2.6s 仍保持、J3 静止后再滑生效、L1 视角静止 2.6s 后再转、O1 新指接管。
+- `qa-stale-verify.mjs`：after.moveZ 1（旧值 0）、resumed 立即响应；`qa-stale-look.mjs`：afterStillDelta 0.3（旧值 0）、staleKilled false。
+- 回归：`qa-touch-lock` 7/7、`qa-fire-left` 22/22、`qa-aim` 28/28、`qa-land-diag` 30/30、`qa-touchcfg` 9/9；`qa-touch-fallback` S1/S3/S4 PASS（S2 合成 pointerId 口径问题，ADR-27 已载）。
+- `qa-perf2d` 失败因引用已 stash 的 `CS.RendererGL.lastFallbackReason`，与本轮无关。
+
+**坑**：① 「FPS 正常」不等于「输入链路正常」——手机端卡顿必须先测输入→相机是否逐事件生效，不能停在帧率；② 移动浏览器手指静止不发 pointermove，任何「以 move 心跳推断手指存在」的计时器都会误杀合法静止持握，防卡死要靠事件级兜底 + 新指接管，而非超时；③ 合成 `PointerEvent` 的 pointerId 与 CDP 真实 touch 不匹配，涉及 pointerId 的兜底测试必须用真实 `Input.dispatchTouchEvent`；④ 改 `onLookDown`/`onJoyDown` 守卫时误删过 `function syncFire()` 声明，`node --check` + git diff 逐行复核后恢复——改相邻行务必看 diff。未 commit。
+
+---
+
+## 暂停面板文案设备分流复测（2026-11-18）
+
+**问题**：phone 端暂停面板仍显示 PC 文案「恢复需重新锁定鼠标」及整行 WASD/Shift/Esc 键位。
+
+**改动**：沿用操作说明已有的 `@media (pointer: coarse)` 分流口径（与 `CS.Input.isTouch` 一致），暂停面板副标题与键位说明各拆 `.pause-pc` / `.pause-touch` 两区块，CSS 互斥显示；零 JS 分支。触屏文案改为「点「继续」立刻回到战斗」+ 摇杆/三指开火/跳蹲/瞄准镜头/视角切换的手机操作说明。`index.html` + `style.css` 各一处。
+
+**验证**：`qa-pause-text.mjs` **14/14**：P1 667×375、P2 1100×800、P3 640×344 三视口下两区块严格互斥，phone 无 `WASD|锁定鼠标|Shift 疾跑`、PC 无「摇杆」，面板均未溢出（262px 高，344 高屏 top 41/bottom 303），无页面异常。截图 `pause-phone.png` / `pause-pc.png` 目检排版正常。
+
+**坑**：暂停面板这类「通用 UI + PC 文案」最容易被漏掉，因为操作说明做了分流就以为全局都分了流；凡含「鼠标/键盘/WASD」字样的固定文案都要逐个过一遍触屏口径。未 commit。
+
+---
+
+## 高刷屏呈现抖动降档 + 帧诊断读数复测（ADR-50，2026-11-18）
+
+**问题**：ADR-49 修复 stale 误释放后用户仍反馈「phone 端还是卡，你没有分析到位」。换测量对象重查：CDP CPU throttle 3x/4x/6x + `qa-frame-jitter` 系列实测——JS 逻辑/渲染调用均便宜（p90 <5ms），真瓶颈在**呈现层**（Canvas 光栅化/合成）：同环境 flat 满帧、tex 纹理路径掉到 10fps 级而 rAF 内 wrap 测不到；结合用户「FPS 60~80」读数与 90Hz 屏记录，判定为**高刷屏呈现间隔 11.1/22.2ms 混跳**（均值恰 60~80、体感卡），而 `checkPerf` 旧判定 `<45fps` 对此区间结构性无感，桌面 60Hz 永远复现不了。
+
+**改动**：① `game.js` 帧环形采样（间隔/耗时各 90）+ `diagCost()`（hz=间隔中位数、p90 抖动）；② `renderer.js` `checkPerf(dt, game)` 补抖动分支 `deltaP90 > 预算×1.5` 触发降档链（90Hz≈16.7ms / 60Hz≈25ms≈旧口径 / 120Hz≈12.5ms）；③ 暴露 `faceCount`；④ `hud.js` FPS 块长按 0.6s 切诊断读数 `p90·Hz·渲染器·分辨率·面数`（点击切视角不变，长按吞 click）。
+
+**验证**：`qa-frame-diag.mjs` **11/11**——A1-A3 长按切诊断/恢复/不抢视角；S1-S3 `diagCost` 数学（混合 ring → hz90/p90 22.2）；C1-C4 判据方向（FPS_MIN=0+假 game 隔离：90Hz 抖动触发、满帧不触发、60Hz 正常不触发、60Hz 抖动触发）。回归 `qa-aim` 28/28、`qa-touch-lock` 7/7、`qa-fire-left` 22/22、`qa-touch-stale` 5/5、`qa-ots-aim` 4/4。
+
+**坑**：① headless 自身有 12.5%~40% >17ms 抖动且真实帧会污染注入实验——判据验证必须 FPS_MIN=0 + 假 game 隔离；② 手动调 `checkPerf(1.0)` 会把窗口均值算成 1fps 误触发旧分支；③ 全填 22.2ms 的 ring 连中位数都变 22.2 → hz 估成 45Hz 预算失真——真实抖动是混合占比；④ 探针 wrap `Game.prototype.frame` 无效（`boundFrame` 构造时已 bind 原函数），`CS.Renderer` 会在降档时被整体替换——wrap 要用 `Object.defineProperty` 拦截 setter。**遗留**：真机呈现层真实耗时待用户长按 FPS 块报诊断读数后精确选型。未 commit。
+
+---
+
+## 多指误触抢槽复测（ADR-51，2026-11-20）
+
+**问题**：用户真机反馈「降低画质了，还 FPS 90，滑动和控制方向都很卡」。FPS 90 满帧+降档已生效 → 渲染健康；「滑动+方向都卡」指向输入槽位。根因：ADR-49 为修 stale 误杀把 `onLookDown`/`onJoyDown` 改为「新指即接管」，真机手掌边缘误触（高频）会抢走 lookId/joyId——原指滑动失效、摇杆锚点被重算方向瞬变。
+
+**实测复现**（`qa-multi-touch.mjs`，修复前 **0/2**）：M1 滑视角中误触 → 原指滑动增量归零（`deltaAfterB: 0`）；M2 推摇杆（moveZ 0.83）中误触 → **重置为 -0.21（反向）**。
+
+**改动**：恢复 `lookId !== -1` / `joyId !== -1` 拒绝判定（旧指存活时新指不接管）；ADR-49 删除 stale 计时器保持不变。权衡：误触抢槽（高频、滑动中失控）远重于 up 丢失锁死（罕见、抬指重按可解），且丢失兜底有 document 冒泡 + lostpointercapture 两层。
+
+**验证**：`qa-multi-touch.mjs` 修复后 **2/2**；回归 `qa-touch-stale` 5/5（O1=空槽按下，语义兼容）、`qa-touch-lock` 7/7（D2/E1 cancel 后新指生效）、`qa-fire-left` 22/22、`qa-aim` 28/28、`qa-ots-aim` 4/4；`qa-touch-fallback` S2 为 ADR-27 已载探针口径问题。
+
+**坑**：多指测试只测「先抬后按」测不出抢槽——必须覆盖「滑动中+误触」组合；改槽位守卫语义前先枚举真机上「第二指按下」的全部形态（误触是常态不是异常）。未 commit。
+
+---
+
+## 槽位死锁（滑不动）复测（ADR-52，2026-11-20）
+
+**问题**：ADR-51 修复误触抢槽后，用户真机仍反馈「还是滑不动」。FPS 90 满帧 → 渲染健康；「滑不动」（完全无法转视角）而非「卡」→ `lookId` 被**死指针永久占用**：ADR-51 的拒绝判定把后续所有滑动全挡掉。三层兜底覆盖不了真机的丢失形态——息屏/切后台时手指按着屏幕（回前台等不到 pointerup）、X5/WebView 内核吞事件等。这正是 ADR-51 权衡时明知的残余风险，真机踩中。
+
+**改动**：① `input.js` 槽位被占时改**静默门控接管**——旧指静默超 `C.INPUT_STALE_MS`(3000ms) 判定已死、新指接管；活跃中仍拒绝（防误触）。心跳只在 down/move 刷新、无计时器，按住不动不误杀。② `visibilitychange` hidden → `reset()` 清空全部触控槽位。③ `CS.Input.diag()` 暴露槽位持有/静默时长/事件计数，HUD 长按诊断读数附带 `L1/340ms d12`——真机报数可区分「事件没到」「槽位死锁」「逻辑侧」。
+
+**验证**：`qa-stuck-slot.mjs` **4/4**（S1 死指针静默 400ms 后新指接管滑动恢复、S2 活跃误触仍拒绝、S3 hidden 置位后摇杆 moveZ 归零槽位清空、S4 正常循环 5/5）；回归 `qa-multi-touch` 2/2、`qa-touch-stale` 5/5、`qa-touch-lock` 7/7、`qa-fire-left` 22/22、`qa-aim` 28/28、`qa-ots-aim` 4/4、`qa-frame-diag` 11/11 全绿。
+
+**坑**：① 探针模拟 `document.hidden=true` 会连带触发 game.js 的自动暂停——S4 的 yaw 冻结是游戏暂停而非输入失灵，恢复可见性后须 `CS.game.resume()` 再测；② 「滑不动」（完全无响应）与「卡」（延迟/抖动）是不同症状，前者查槽位死锁、后者查呈现层，别混；③ 槽位守卫最终形态是「活跃拒绝 + 静默接管 + 隐藏清零」三件套，任何单一机制都不完备。未 commit。
+
+---
+
+## 覆盖度边界声明（QA-AUDIT-01，2026-11-21）
+
+**性质**：本文此前所有 `qa-*.mjs` 全绿（回归 / 布局 / 输入守恒 / 槽位 / 呈现抖动判据）均为 **headless 逻辑回归信号**，不是手感验收。原因：headless 合成事件不经过真实触摸数字化仪，没有 `getCoalescedEvents` 的真实中间采样、没有 X5/WebView 的 `pointerType` 识别、没有 GPU present/合成链路——「探针全绿但真机卡」正是这条构念效度缺口，不是探针写错。
+
+**结论边界**：headless 全绿 ⇒ 状态机 / rAF 节拍 / 输入总量守恒未回归；**推不出**「真机手感 OK」。真机手感签收必须以用户实测证据为准，脚本只提供口径一致的采集器。
+
+### 真机证据要求（至少覆盖以下 4 类，缺一不可签收）
+
+1. **长按 FPS 块诊断读数**（0.6s 长按 `#hud-view`，hud.js:66-77）：记录 `p90·Hz·渲染器·分辨率·面数` + `L/d/m/jm`。示例 `22.2ms 90Hz tex·0.8 f1200 L1/340ms d12 m40 jm0`。其中 p90/Hz 判呈现抖动、L/d/m/jm 判输入链路。
+2. **gfxinfo present**（若设备可用）：`adb shell dumpsys gfxinfo <pkg> framestats`，取 Present 时间戳分布，确认 rAF 回调与实际上屏是否同步（rAF 准时 ≠ 呈现准时）。
+3. **触摸采样率 / 节奏**：用 `qa-cadence.mjs --snippet` 导出的纯 JS 在手机 DevTools 控制台跑 10s，回报 `console.table`：实际 events/s、事件间隔 p50/p90/max、coalesced 样本数、零帧占比、最大 lump 倍数、pointerType 分布。
+4. **录屏抽帧**：60/90fps 录屏抽帧对比手指轨迹与准星/视角响应，作主观-to-客观的最后对照；读数与体感冲突时以录屏为准复核。
+
+### 节奏取证探针（新版）
+
+- 脚本 `E:/fleaworkspace/qa-cdp/qa-cadence.mjs`；headless 命令 `node qa-cadence.mjs`，真机 snippet 命令 `node qa-cadence.mjs --snippet`（输出纯 JS，整段复制粘贴到手机 DevTools 控制台，改首行 `SECONDS` 调采集时长）。
+- 只读 hook：包装 `CS.game.applyLook` 先调原函数再记 `lastLookDX/DY`（不改游戏逻辑，stop 时还原）；pointer 事件 passive 监听；独立 rAF 只记时间戳。`--snippet` 段零 CDP/Node 依赖。
+- headless 基线（本轮实跑，`qa-cadence-baseline.json`）：派发 **210** 个 touchmove → 浏览器合并为 **73** 个 pointermove、`getCoalescedEvents()` 揭示 **210** 个中间采样、coalesced/move **2.88**、零帧占比 **75.5%**、最大 lump **3.5×**、pointerType 全 `touch`(isTrusted=true)。这组数就是「三时钟不同步」的形态证据：即便总量守恒（yaw 有变化），中间采样仍被丢弃、逐帧增量呈阶跃。
+- **局限**：headless 无真实数字化仪与 GPU present，其零帧/lump 数值由 CDP 并发派发节奏主导，**仅供口径基线与判据敏感性验证**，不得作为真机结论。真机结论 = 上述 snippet 输出 + 长按读数 + gfxinfo present 三方对照。
+
+### R1~R8 判读规则 · 关键 4 条
+
+> 判读顺序：先分「事件到没到」，再分「到了被拒还是被阶跃」，最后分「rAF 与实际呈现是否脱钩」。同一症状不同根因，勿凭单一读数下结论。
+
+1. **事件没到**（pointerType 误报 / 遮挡 / 元素错位）：长按读数 `m`/`jm`（lookMove/joyMove 计数）**不随滑动增长**，或 snippet `pointerType` 出现非 `touch`（如 `mouse`/空），events/s≈0。→ 查 look-zone 是否被按钮/虚拟按键遮挡、`pointerType` 是否被内核误报、`elementFromPoint` 是否命中目标区。对应 ADR-51/52「d 不涨」分支。
+2. **门控误拒**（ADR-52 静默接管 / ADR-51 活跃拒绝误伤）：`d`（lookDown 数）**增长但 `L=0`**（视角槽未被持有）且视角不转，`m` 也不涨。→ 根因是 down 到了但槽位守卫把它拒了（旧指未静默超时 / 误判活跃误触）；对照 `INPUT_STALE_MS=3000` 与 `CS.Input.diag()` 静默时长。
+3. **三时钟不同步**（触摸 ~60Hz 突发 vs rAF ~90Hz vs 合成器）：`d/m` 都在涨、`L=1`、视角在转，但 snippet 报零帧占比 >15% 或最大 lump >2×、coalesced/move 明显 >1。→ 逐帧增量阶跃（一帧 0、下一帧吃 2~3 采样），游戏每帧读 `lookDX` 后清零丢掉中间采样。根治方向：`getCoalescedEvents`/`pointerrawupdate` 累加中间位移，而非只用 `pointermove` 末位置。
+4. **rAF 与 present 脱钩**（逻辑帧准时但上屏抖动）：长按读数 `Hz` 满帧（如 `90Hz`）但 `p90` 远高于预算（如 `22.2ms` vs `11.1ms`），或 rAF 计数稳定而 gfxinfo Present 间隔 11.1/22.2ms 混跳、录屏抽帧见画面顿挫。→ 瓶颈在合成/呈现层（纹理路径光栅化、高刷混跳），不在 JS 逻辑；此时输入侧 L/d/m/jm 均正常，别往输入链路查。`checkPerf` 的 `deltaP90>预算×1.5` 抖动分支即为此设计（qa-frame-diag C1-C4 已验判据方向）。
+
+### PWA 添加到主屏 / 强制横屏验证（ADR-54）
+
+- **静态校验**：`manifest.webmanifest` JSON 合法；声明的 192×192 / 512×512 与实际 PNG 像素尺寸逐一相符；`index.html` 的 manifest link / theme-color / apple-capable / apple-touch-icon 引用齐全，图标文件均存在。
+- **headless Chromium CDP 实测**（本地静态服务 + Playwright Chromium）：页面解析出 `link[rel=manifest]` 与 `theme-color=#1b2735`；manifest 以 `application/manifest+json` 正确加载并解析出 `orientation=landscape / display=fullscreen / icons=3 / start_url=./index.html`；`index.html`、CSS、manifest、`icon-192.png` 网络请求全 200、无 404。
+- **覆盖边界**：headless 未真正「安装」PWA，故 `display-mode` 匹配为空属预期（从主屏启动才进入 standalone/fullscreen）。**Android 从主屏启动是否自动横屏、iOS 添加到主屏是否全屏**属真机行为，脚本推不出，须以用户真机实测签收。可安装性三要素（HTTPS + 有效 manifest + 192/512 图标）已齐，GitHub Pages 满足 HTTPS。未 commit。
+
+### 竖直 billboard 深度错序 / 角色被墙切碎验收（ADR-55）
+
+- **复现探针**（仓库外 `probe-occlusion.mjs`）：FPS 俯视 pitch=-0.45，单个 bot 7 部件 depth 跨度 **0.555m**（头 7.171 / 腿 7.726），墙中心 y=1.5 落在其间——证实"头浮墙前、身埋墙后"是面中心 y 差 × `dy·fY` 导致，非碰撞或淡出。
+- **`qa-occlusion.mjs` 5/5**：A FPS 单 bot 部件 depth 跨度 0.555→**0.02**（仅枪 stub 微调）、B 头面≈躯干 depth、C TPS 玩家部件跨度<0.05、D 两 bot 仍按距离区分先后、E pageerror=0。
+- **核心回归全绿**：X-ray 15/15、墙角 6/6、爆头 12/12、瞄准 28/28、TPS 越肩 9/9、无后坐 10/10、左手开火 22/22。截图 `enemygun-fps.png` 近距离敌人头/身/五官/枪完整无切开。
+- **覆盖边界**：headless 无真实 GPU present；真机华为浏览器截图的两类穿帮由统一 depth 从几何排序层根除，仍建议用户真机复看贴墙巡逻场景。新只读接口 `CS.Renderer.debugFaces` 供深度断言。未 commit。

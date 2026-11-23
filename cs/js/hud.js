@@ -51,7 +51,7 @@
         setScreen('menu');
     }
 
-    /* 实测帧率读数：0.5s 窗口汇报，change-guard 防逐帧 DOM 写 */
+    /* 实测帧率读数：0.5s 窗口汇报，change-guard 防逐帧 DOM 写。 */
     var lastFps = '';
     function setFps(v) {
         var s = String(v);
@@ -188,7 +188,7 @@
         $('btn-again').addEventListener('click', function () { cb.restart(); });
         $('btn-result-menu').addEventListener('click', function () { cb.menu(); });
         el.menuViewBtn.addEventListener('click', function () { cb.view(); });
-        /* 左上角视角·帧率块点击切换 FPS/TPS（playing 态直接点击，菜单态另有起始视角钮） */
+        /* 左上角视角·帧率块：点击切 FPS/TPS（playing 态直接点击，菜单态另有起始视角钮） */
         if (el.view) el.view.addEventListener('click', function () { cb.view(); });
         /* 按钮布局入口：仅触屏绑定（入口行本身已由 CSS (pointer: coarse) 分流，双保险） */
         if (el.menuTouchBtn) {
