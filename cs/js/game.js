@@ -76,10 +76,12 @@
         this.score = 0; this.kills = 0; this.shotsFired = 0; this.shotsHit = 0;
         this.elapsed = 0; this.moveSpeed = 0; this.spreadDeg = 0;
         this.landT = 0; this.stepAccum = 0;
-        this.pendingDamage = 0; this.shooterSlots = 0; this.botFired = false;
+        this.pendingDamage = 0; this.shooterSlots = 0; this.botFired = false; this.botFirePan = 0;
         this.best = getBest();
+        W.randomize();                     // #13：每局重新随机布局（位置 + 4 矮 4 高），原地复用 box 对象
         E.spawnWave(this.bots, 0);
-        CS.Renderer.clearFx();
+        CS.Renderer.clearFx();             // 清掉上一局布局的弹孔/弹壳/特效，避免贴花悬浮在新墙上
+        CS.Renderer.resetPerf();           // #16：新局重置档位试探/锁定，重新试探当前设备可用档位
         CS.HUD.reset();
     };
 
@@ -374,6 +376,7 @@
         /* 部位伤害：头部（py ≥ BOT_SPLIT）走 DMG_HEAD，≥ BOT_HP 一枪击杀 */
         b.hp -= E.hitHead ? C.DMG_HEAD : C.DMG;
         b.hitFlash = 0.12;
+        if (b.hp > 0) E.notifyHit(b, this.player);   /* #8 未击杀才侧移，避免静止靶；击杀后 bot 直接消失 */
         CS.Renderer.spawnParticles(ox + dx * E.hitT, oy + dy * E.hitT, oz + dz * E.hitT,
             -dx, 0.2, -dz, 10, 1);
         Sfx.hitBot();
@@ -381,6 +384,7 @@
             b.hp = 0; b.alive = false;
             this.kills++; this.score += C.SCORE_KILL;
             CS.Renderer.addFloat(b.x, C.BOT_SPLIT, b.z);
+            CS.Renderer.addDeath(b.x, b.z);   /* #9 倒地消散，纯 ctx 不占面池 */
             Sfx.kill();
             if (E.hitHead) CS.HUD.toast('爆头击杀');
         }
@@ -421,9 +425,9 @@
         this.applyLook();
         this.applyMove(dt);
         this.tickTimers(dt);
-        this.shooterSlots = 0; this.pendingDamage = 0; this.botFired = false;
+        this.shooterSlots = 0; this.pendingDamage = 0; this.botFired = false; this.botFirePan = 0;
         E.updateBots(this.bots, this.player, this, dt);
-        if (this.botFired) Sfx.botFire();
+        if (this.botFired) Sfx.botFire(this.botFirePan);
         if (this.pendingDamage > 0) this.applyDamage(this.pendingDamage); // 同帧伤害统一判定
         if (this.state !== 'playing') return;   // 死亡立即冻结输入与波次生成
         this.tryShoot();
@@ -456,6 +460,8 @@
         this.fpsT += rawDt; this.fpsN++;       /* 实测帧率：0.5s 窗口汇报 HUD，供真机诊断 */
         if (this.fpsT >= 0.5) {
             CS.HUD.setFps(Math.round(this.fpsN / this.fpsT)); this.fpsT = 0; this.fpsN = 0;
+            /* #15 只读探针：复用 0.5s 汇报节奏读渲染快照，不改任何游戏状态 */
+            if (CS.Renderer.perfProbe) CS.HUD.setPerfProbe(CS.Renderer.perfProbe);
         }
         var t0 = performance.now();
         this.update(dt);

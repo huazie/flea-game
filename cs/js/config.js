@@ -13,9 +13,23 @@
         FOV_DEG: 75, PITCH_LIMIT: 60 * Math.PI / 180,
         NEAR: 0.1, FAR: 60, DT_MAX: 0.05,
         EYE_Y: 1.6, WALL_H: 3.0, RADIUS: 0.4,
+        /* #12 内部矮掩体高度：介于蹲眼 EYE_CROUCH(1.05) 与站眼 EYE_STAND(1.60) 之间。
+         * 蹲下眼位低于掩体顶 → rayWalls 挡住 LOS/射线；站起眼位高于顶 → 越顶射击反击。 */
+        COVER_H: 1.30,
+        /* #13 随机布局：内部盒每局随机撒点，4 矮掩体(COVER_H) + 4 全高墙(WALL_H)。
+         * 约束：盒间留 GAP、避开出生/巡逻点 clearance、玩家出生点周围留空、整体连通可达。 */
+        LAYOUT_INNER: 8, LAYOUT_COVERS: 4,
+        LAYOUT_W_MIN: 2.0, LAYOUT_W_MAX: 5.0,      /* 内部盒 x 向长度 */
+        LAYOUT_D_MIN: 1.5, LAYOUT_D_MAX: 4.0,      /* 内部盒 z 向长度 */
+        LAYOUT_GAP: 1.2,                            /* 盒间最小空隙（含 RADIUS 余量） */
+        LAYOUT_POINT_CLEAR: 1.0,                    /* 盒到出生/巡逻点中心最小距离 */
+        LAYOUT_SPAWN_CLEAR: 2.6,                    /* 玩家出生点(0,0)周围禁放半径 */
+        LAYOUT_MARGIN: 0.6,                         /* 内部盒到围墙内沿的最小边距 */
         BOT_HP: 80, BOT_DMG: 8, BOT_FIRE_INTERVAL: 1.2,
         BOT_MAX_SHOOTERS: 2, BOT_RANGE: 18,
         BOT_HALF_FOV: 60 * Math.PI / 180, BOT_SPEED: 1.6,
+        /* #8：受击后短距侧移（视线垂直方向），避免取得视线后成静止靶。时长/速度独立于巡逻速度。 */
+        BOT_EVADE_T: 0.35, BOT_EVADE_SPEED: 1.2,
         LOSE_SIGHT: 2.0,
         WAVE_COUNTS: [3, 4, 5], WAVE_ACC: [0.35, 0.45, 0.55],
         WAVE_GAP: 2.0, WAVE_HEAL: 20,
@@ -24,12 +38,6 @@
          * 让出中央准星（旧 0.38m 相对 BACK 3.2m 偏移过小=贴脸跟拍、角色居中挡准星），
          * FOCUS 拉远使相机朝向更接近玩家 yaw、构图自然。弹道走 aimRay 与相机前向一致，改相机不动命中。 */
         TPS_BACK: 4.6, TPS_UP: 0.75, TPS_MIN: 0.3, TPS_SHOULDER: 1.20, TPS_FOCUS: 12,
-        /* 相机遮挡淡出（X-ray，仅 TPS）：挡在相机→玩家线段上、距相机 < PROX 的墙、
-         * 或距玩家 < PROX·PLAYER_K 的墙（玩家卡墙角被夹墙吞）平滑淡到 MIN；
-         * 其余遮挡保持真实近挡远；FPS 不淡出（防透视看墙后作弊）。
-         * TAU 快速淡出 / REST_TAU 缓慢恢复。纯视图层，不改 hitscan/LOS 数值。 */
-        XRAY_MIN: 0.16, XRAY_TAU: 0.07, XRAY_REST_TAU: 0.22, XRAY_PROX: 1.0,
-        XRAY_PLAYER_K: 0.6,
         LOOK_SENS: 0.0022, TOUCH_SENS: 0.005, JOY_RADIUS: 48,
         /* ADR-52/53：槽位静默门控——旧指存活时新指按下，仅当旧指静默超此阈值（判定已死，
          * pointerup 三层兜底都没接住，如息屏/切后台、X5 内核吞事件）才接管；活跃中拒绝（防误触抢槽，ADR-51 语义）。
@@ -38,6 +46,7 @@
         BOT_Y0: 0.10, BOT_Y1: 1.85, BOT_SPLIT: 1.50,
         BOT_HALF_W: 0.32, BOT_HEAD_HALF_W: 0.20,
         FLOAT_LIFE: 0.85, HURT_TIME: 0.20, VIEW_HI_TIME: 0.60,
+        DEATH_FX_TIME: 0.20,   /* #9：击杀倒地消散时长，纯 ctx 绘制不占面池 */
         /* ── v2（design-brief 第 11 节，数值不得擅改）── */
         JUMP_V: 4.5, CROUCH_JUMP_MUL: 0.85, GRAVITY: 12, AIR_ACCEL: 3.6,
         AIR_SPREAD: 12, LAND_SPREAD: 10, LAND_DECAY: 0.30,
@@ -55,7 +64,17 @@
         MUZZLE_TIME: 0.04, SHELL_LIFE: 0.5,
         PARTICLE_MAX: 64, SHELL_MAX: 8, HOLE_MAX: 32,
         HOLE_SIZE: 0.06, HOLE_OFF: 0.01,
-        FOG_START: 10, FOG_RANGE: 40, FPS_MIN: 45
+        FOG_START: 10, FOG_RANGE: 40, FPS_MIN: 45,
+        /* 性能档位回升（ADR-61）：连续 healthy 帧率 >= FPS_RECOVER（比降级线 FPS_MIN 高 10fps
+         * 形成迟滞带）持续 PERF_RECOVER_SEC 秒才回升一级，防止阈值附近来回抖动降级/回升。
+         * #14 抖动迟滞（ADR-64）：p90/预算比越过 PERF_JITTER_DROP 才判抖降级，回落到 PERF_JITTER_HOLD
+         * 以下才解除——两阈值形成迟滞带，避免同一比例在升降两向反复越线。升档后 PERF_UP_COOL 秒
+         * 禁止任何档位动作，吸收 resize 重建 backing store 的慢帧（防升档动作自激再降级）。 */
+        FPS_RECOVER: 55, PERF_RECOVER_SEC: 6,
+        PERF_JITTER_DROP: 1.8, PERF_JITTER_HOLD: 1.3, PERF_UP_COOL: 12,
+        /* #16 升档试探失败锁定（ADR-66）：升档后冷却期内若该档位仍抖/慢，判其在本机不可用，
+         * 本局不再升回该档（0=关闭锁定、退回 #14 会反复试探）。重开游戏重置后可再试探一次。 */
+        PERF_PROMO_LOCK: 1
     };
 
     function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }

@@ -12,6 +12,11 @@
     };
     var hurtTimer = 0, viewHiTimer = 0, muzzleTimer = 0;
 
+    /* #15 只读性能探针：仅 URL 带 ?perf=1（或 &perf=1）时开启，默认零开销。
+     * 数据来自 Renderer 快照，HUD 只做格式化显示，绝不回写任何判定状态。 */
+    var perfProbeOn = /[?&]perf=1(?:&|$)/.test(global.location ? global.location.search : '');
+    var lastProbe = '';
+
     function $(id) { return document.getElementById(id); }
     function text(node, v) { if (node && node.textContent !== v) node.textContent = v; }
 
@@ -60,6 +65,21 @@
         text(el.fpsValue, s);
     }
 
+    /* 只读快照 → 单行文本：hz / p90ms / 抖动比 / 抖动态 / 档位 / 冷却剩余 / 锁定档位。
+     * lock >=0 表示该档位在本机抖到降级、本局不再升回（#16 试探锁定生效的直接证据）。
+     * change-guard 沿用 text()：数值不变不碰 DOM；未开启时直接返回，零开销。 */
+    function setPerfProbe(snap) {
+        if (!perfProbeOn || !el.probe) return;
+        var s = 'hz ' + snap.hz + '  p90 ' + snap.p90.toFixed(1)
+            + '  ratio ' + snap.ratio.toFixed(2)
+            + '  hot ' + (snap.hot ? 1 : 0)
+            + '  lv ' + snap.lv + '  cool ' + snap.cool.toFixed(1) + 's'
+            + '  lock ' + (snap.lock >= 0 ? snap.lock : '-');
+        if (s === lastProbe) return;
+        lastProbe = s;
+        text(el.probe, s);
+    }
+
     function showResult(game, win, isNew) {
         text(el.rTitle, win ? '任务完成' : '任务失败');
         text(el.rWave, (game.waveIdx + 1) + '/3');
@@ -97,7 +117,7 @@
         el.reloadWrap.classList.remove('is-on');
         last.hp = last.ammo = last.wave = last.left = last.score = -1;
         last.gap = last.prog = -1; last.gapText = ''; last.reloading = false;
-        lastFps = '';
+        lastFps = ''; lastProbe = '';
     }
 
     function update(dt, game) {
@@ -173,6 +193,8 @@
         el.reloadFill = $('reload-fill');
         el.waveLabel = $('wave-label'); el.waveLeft = $('wave-left'); el.gap = $('wave-gap');
         el.score = $('score-value'); el.view = $('hud-view'); el.viewMode = $('view-mode'); el.fpsValue = $('fps-value');
+        el.probe = $('perf-probe');
+        if (perfProbeOn && el.probe) el.probe.classList.add('is-on');
         el.menuBest = $('menu-best'); el.menuViewBtn = $('menu-view-btn');
         el.menuTouchLine = $('menu-touch-line'); el.menuTouchBtn = $('menu-touch-btn');
         el.rTitle = $('result-title'); el.rNew = $('result-new');
@@ -211,7 +233,7 @@
 
     CS.HUD = {
         init: init, reset: reset, update: update,
-        setScreen: setScreen, setView: setView, setFps: setFps,
+        setScreen: setScreen, setView: setView, setFps: setFps, setPerfProbe: setPerfProbe,
         syncFab: syncFab,
         showMenu: showMenu, showResult: showResult,
         flashHurt: flashHurt, flashAmmo: flashAmmo, flashMuzzle: flashMuzzle,
