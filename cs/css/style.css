@@ -158,6 +158,13 @@ button { font-family: inherit; cursor: pointer; }
 .hud-view { top: 20px; left: 84px; font-weight: bold; letter-spacing: 1px; transition: background-color 0.2s ease; pointer-events: auto; cursor: pointer; }
 .hud-view.is-hi { background-color: var(--accent); color: var(--btn-text); }
 .hud-view .hud-tiny { font-weight: normal; letter-spacing: 0; }
+/* #15 只读性能探针：默认隐藏，URL 带 ?perf=1 时由 JS 加 is-on 显示；真机排查档位横跳用 */
+.perf-probe { display: none; position: absolute; top: 100%; left: 0; margin-top: 6px;
+    pointer-events: none;  /* 父 .hud-view 可点击切视角，探针只读不抢事件 */
+    padding: 5px 8px; border-radius: 6px; white-space: pre; font-size: 10px; line-height: 1.5;
+    font-weight: normal; letter-spacing: 0; font-family: ui-monospace, Menlo, Consolas, monospace;
+    background-color: var(--hud-bg); border: 1px solid var(--hud-border); color: var(--hud-text); }
+.perf-probe.is-on { display: block; }
 .hud-row { white-space: nowrap; }
 .hud-gap { display: none; color: var(--accent); font-weight: bold; font-size: 12px; }
 .hud-gap.is-on { display: block; }

@@ -1297,16 +1297,26 @@
         for (i = 0; i < floats.length; i++) floats[i].life = 0;
     }
 
-    /* ── 慢帧自适应（可逆三级档，ADR-61 修正 ADR-50 的单向降级）──
+    /* ── 慢帧自适应（可逆三级档，ADR-61 修正 ADR-50 的单向降级；ADR-64 加抖动迟滞+升档冷却）──
      * 档位从实际渲染状态推导（不引入独立变量，避免与外部 useRenderer 漂移）：
      *   level 0 = tex 设备默认分辨率（scaleOverride=0, mode=0）
      *   level 1 = tex 内部降分辨率 0.65（scaleOverride=0.65, mode=0）
      *   level 2 = Flat 轻量渲染（mode=1）
-     * 降级沿用 ADR-50 判据（<FPS_MIN 或呈现 p90 > 预算×1.5），慢窗口立即降一级（快）；
+     * 降级沿用 ADR-50 判据（<FPS_MIN 或呈现抖动），慢窗口立即降一级（快）；
      * 回升需连续 PERF_RECOVER_SEC 秒 fps>=FPS_RECOVER（高 FPS_MIN 10 的迟滞带）且无抖动，
      * 才升一级（慢）。任何 slow 或中间态清零回升计时——阈值附近不会抖动式来回跳档。
+     * #14：抖动判据从单布尔改双阈值状态机——ratio=p90/(1000/hz) 越过 DROP 才进入抖动态，
+     * 回落到 HOLD 以下才解除，中间带保持原状态；升档后设 upCoolT 冷却，期间只观察不动作，
+     * 避免升档 resize 制造慢帧 → 下一窗口又判抖 → 再降级的自激横跳。
+     * #16：升档看目标档位而非当前档位——升档时记 probeLevel，冷却期内该档仍抖/慢即判失败，
+     * 冷却结束时锁定该档（lockedLevel），本局不再升回；避免「降级档很健康就升回失败档」死循环。
      * 注意 perfT/perfN 用 dt（playing 才调 checkPerf，暂停冻结），恢复分辨率走 resize 重算。 */
-    var perfT = 0, perfN = 0, healthyT = 0;
+    var perfT = 0, perfN = 0, healthyT = 0, jitterHot = false, upCoolT = 0;
+    /* #16 升档试探：probeLevel=正在试探的目标档位(-1 无)；probeFailed=冷却期内该档是否失败；
+     * lockedLevel=本机已证明扛不住、本局不再升回的档位(-1 无)。resetPerf() 重开时全清。 */
+    var probeLevel = -1, probeFailed = false, lockedLevel = -1;
+    /* #15 只读探针快照：复用 checkPerf 已取的诊断量，不额外调 diagCost、不参与判定。 */
+    var probeSnap = { hz: 0, p90: 0, ratio: 0, hot: false, lv: 0, cool: 0, lock: -1 };
     function perfLevel() {
         if (mode !== 0) return 2;
         return scaleOverride ? 1 : 0;
@@ -1316,26 +1326,75 @@
         if (perfT < 1.0) return;
         var fps = perfN / perfT;
         var slow = fps < C.FPS_MIN;
-        var jitter = false;
+
+        /* #14 抖动迟滞：ratio = deltaP90 / 帧预算。用双阈值状态机替代原单布尔判据——
+         * 未抖时越过 DROP(1.8) 才进入抖动态，已抖时回落 HOLD(1.3) 以下才解除，
+         * 中间 1.3~1.8 保持原状态，避免同一 ratio 在降级/升档两向反复越线。 */
+        var ratio = 0, dg = null;
         if (game && game.diagCost) {
-            var dg = game.diagCost();
-            jitter = dg.hz > 0 && dg.deltaP90 > (1000 / dg.hz) * 1.5;
-            if (jitter) slow = true;
+            dg = game.diagCost();
+            if (dg.hz > 0) ratio = dg.deltaP90 / (1000 / dg.hz);
         }
+        if (!jitterHot && ratio > (C.PERF_JITTER_DROP || 1.8)) jitterHot = true;
+        else if (jitterHot && ratio < (C.PERF_JITTER_HOLD || 1.3)) jitterHot = false;
+
         var lv = perfLevel();
-        if (slow) {
-            healthyT = 0;                          // 慢窗口：清回升计时 + 立即降一级
+        var wasCooling = upCoolT > 0;
+        if (upCoolT > 0) upCoolT -= perfT;         // 升档冷却倒计时
+        var cooling = upCoolT > 0;
+
+        /* #16 试探收口必须早于下面的降级分支：冷却结束那一帧若正在抖，降级分支会先清掉
+         * 试探状态。故在动作前先结算——试行期抖过就锁定目标档，之后降级也不影响锁定。 */
+        if (wasCooling && !cooling && probeLevel >= 0) {
+            if (probeFailed && C.PERF_PROMO_LOCK !== 0) lockedLevel = probeLevel;
+            probeLevel = -1; probeFailed = false;
+        }
+
+        if (cooling) {
+            healthyT = 0;                          // 冷却期：不做档位动作（吸收 resize 慢帧）
+            /* #16 试探判定：升档后这段冷却期就是「目标档位试用窗」。若该档仍慢或抖，
+             * 记失败——它在这台设备上真扛不住，不是 resize 的瞬时副作用。 */
+            if (probeLevel >= 0 && (slow || jitterHot)) probeFailed = true;
+        } else if (slow || jitterHot) {
+            healthyT = 0;                          // 慢窗口/抖动：清回升计时 + 立即降一级
             if (lv < 2) setPerfLevel(lv + 1);
-        } else if (fps >= C.FPS_RECOVER && !jitter) {
-            healthyT += perfT;                     // 健康窗口累计（用真实窗口时长，非固定 1s）
-            if (healthyT >= C.PERF_RECOVER_SEC && lv > 0) {
-                setPerfLevel(lv - 1);
-                healthyT = 0;                      // 升一级后重新累计，防连续跳级
+            probeLevel = -1; probeFailed = false;  // 降级即放弃本次试探（目标档已证伪）
+        } else if (fps >= C.FPS_RECOVER) {
+            /* #16 升档看目标档位：只有「目标档未被锁定」才允许试探升回。
+             * 曾在本机抖到降级的档位被 lockedLevel 记住，本局不再重试——
+             * 这断开了「降级档很健康 → 升回失败档 → 又降级」的死循环。 */
+            if (lv > 0 && !(C.PERF_PROMO_LOCK !== 0 && lv - 1 === lockedLevel)) {
+                healthyT += perfT;                 // 健康窗口累计（用真实窗口时长，非固定 1s）
+                if (healthyT >= C.PERF_RECOVER_SEC) {
+                    setPerfLevel(lv - 1);
+                    healthyT = 0;                  // 升一级后重新累计，防连续跳级
+                    upCoolT = C.PERF_UP_COOL || 12;// #14 冷却 = #16 试行窗口
+                    probeLevel = lv - 1;           // 记住试探的是哪个目标档
+                    probeFailed = false;           // 本轮试行先假设成功
+                }
+            } else {
+                healthyT = 0;                      // 目标档被锁定：不再累计回升
             }
         } else {
             healthyT = 0;                          // 中间态（45~55fps）：不降也不计回升
         }
+
+        /* #15 只读探针：写入本窗口已有的诊断量，供 HUD 按需显示。纯观测，不反馈进任何分支。 */
+        probeSnap.hz = dg && dg.hz > 0 ? dg.hz : 0;
+        probeSnap.p90 = dg ? dg.deltaP90 : 0;
+        probeSnap.ratio = ratio;
+        probeSnap.hot = jitterHot;
+        probeSnap.lv = lv;
+        probeSnap.cool = upCoolT > 0 ? upCoolT : 0;
+        probeSnap.lock = lockedLevel;
         perfT = 0; perfN = 0;
+    }
+
+    /* #16 重开一局时重置性能自适应状态：清锁定/试探，让新局重新试探可用档位。
+     * 只动自适应状态，不动当前档位——重开沿用上局已稳定档位，避免开局瞬间抖动。 */
+    function resetPerf() {
+        perfT = 0; perfN = 0; healthyT = 0; jitterHot = false; upCoolT = 0;
+        probeLevel = -1; probeFailed = false; lockedLevel = -1;
     }
 
     /* 统一档位切换：mode / scaleOverride 是档位的唯一真实来源，这里手动同步二者。
@@ -1362,7 +1421,10 @@
         mode = name === 'flat' ? 1 : 0;
         CS.Renderer = mode ? RFlat : R2D;
         // 外部手动切换（QA/调试）后同步 perfT/N 与回升计时，避免把外部指令误判为抖动窗口
-        if (prev !== mode) { perfT = 0; perfN = 0; healthyT = 0; }
+        if (prev !== mode) {
+            perfT = 0; perfN = 0; healthyT = 0; jitterHot = false; upCoolT = 0;
+            probeLevel = -1; probeFailed = false;  // #16：手动切档作废在途试探，但保留本局锁定记忆
+        }
     }
 
     function makeApi(id) {
@@ -1379,13 +1441,19 @@
                 return n;
             },
             addBulletHole: addBulletHole, spawnParticles: spawnParticles,
-            vmFire: vmFire, clearFx: clearFx, checkPerf: checkPerf,
+            vmFire: vmFire, clearFx: clearFx, checkPerf: checkPerf, resetPerf: resetPerf,
             get playerAlpha() { return playerAlpha; },
             get camDist() { return camDist; },
             get lastMark() { return lastMark; },   /* QA：脸部标记屏幕几何（top≤y≤bottom 应恒成立） */
             get faceCount() { return faceCount; },
             get renderScale() { return renderScale; },
             get perfLevel() { return perfLevel(); },   /* ADR-61：0 满 / 1 降分辨率 / 2 flat，QA 可读 */
+            /* #15 只读探针：返回快照副本（外部改不到内部状态），真机 ?perf=1 时 HUD 显示 */
+            get perfProbe() {
+                return { hz: probeSnap.hz, p90: probeSnap.p90, ratio: probeSnap.ratio,
+                    hot: probeSnap.hot, lv: probeSnap.lv, cool: probeSnap.cool,
+                    lock: probeSnap.lock };
+            },
             get vmAim() { return { cur: vm.aim, geom: vm.aimGeom, target: vm.aimGeom * C.VM_AIM_GAIN }; },  /* QA：枪口朝向射击方向的抬枪角 */
             get debugPatterns() { return [!!activePats[0], !!activePats[1], !!activePats[2], !!activePats[3]]; },
             get debugPatternTest() {

@@ -78,8 +78,10 @@
         this.landT = 0; this.stepAccum = 0;
         this.pendingDamage = 0; this.shooterSlots = 0; this.botFired = false; this.botFirePan = 0;
         this.best = getBest();
+        W.randomize();                     // #13：每局重新随机布局（位置 + 4 矮 4 高），原地复用 box 对象
         E.spawnWave(this.bots, 0);
-        CS.Renderer.clearFx();
+        CS.Renderer.clearFx();             // 清掉上一局布局的弹孔/弹壳/特效，避免贴花悬浮在新墙上
+        CS.Renderer.resetPerf();           // #16：新局重置档位试探/锁定，重新试探当前设备可用档位
         CS.HUD.reset();
     };
 
@@ -458,6 +460,8 @@
         this.fpsT += rawDt; this.fpsN++;       /* 实测帧率：0.5s 窗口汇报 HUD，供真机诊断 */
         if (this.fpsT >= 0.5) {
             CS.HUD.setFps(Math.round(this.fpsN / this.fpsT)); this.fpsT = 0; this.fpsN = 0;
+            /* #15 只读探针：复用 0.5s 汇报节奏读渲染快照，不改任何游戏状态 */
+            if (CS.Renderer.perfProbe) CS.HUD.setPerfProbe(CS.Renderer.perfProbe);
         }
         var t0 = performance.now();
         this.update(dt);
