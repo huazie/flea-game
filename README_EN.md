@@ -18,6 +18,7 @@ Flea Game is a collection of small web-based games, aiming to provide a series o
 | [Match 3](./match3/) | Classic match-3 game — connect identical elements for high scores | 🛠️🛠️ | 🎮🎮 | ✅ Completed |
 | [Sokoban](./sokoban/) | Classic box-pushing puzzle game — push all boxes to the targets, with level creation, sharing, and batch export | 🛠️🛠️🛠️ | 🎮🎮🎮 | ✅ Completed |
 | [Dino Run](./dino/) | Pixel dino runner — jump over cacti, duck under pterodactyls, faithful to the Chromium original, with split touch controls on mobile | 🛠️🛠️🛠️ | 🎮🎮 | ✅ Completed |
+| [Counter Assault](./cs/) | Zero-dependency Canvas 2D tactical shooter with jump/crouch, a weapon viewmodel and procedural textures, one-key FPS/TPS switching, 3 waves of bots, and cover-based play; auto landscape and customizable touch button layout on mobile | 🛠️🛠️🛠️🛠️ | 🎮🎮🎮 | ✅ Completed |
 
 ### Dev Difficulty (🛠️)
 - 🛠️ Beginner: basic DOM operations, simple logic
@@ -73,6 +74,7 @@ flea-game/
 ├── match3/          # Match 3 game
 ├── sokoban/         # Sokoban game
 ├── dino/            # Dino Run game
+├── cs/              # Counter Assault game
 └── index.html       # Entry page
 ```
 

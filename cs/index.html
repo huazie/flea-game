@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>反恐突袭</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="author" content="Huazie">
+    <meta name="keywords" content="反恐突袭,战术射击,第一人称,第三人称">
+    <meta name="description" content="第一/第三人称可切换的轻量战术射击小游戏，3 波清场，靠掩体与精瞄取胜">
+    <link rel="shortcut icon" href="../assets/images/flea-game.ico">
+    <!-- PWA（添加到主屏）：Android 从主屏启动时按 manifest 的 orientation=landscape 自动横屏，
+         无需每次去系统设置关竖屏锁；iOS 无该 API，仅获得全屏隐藏地址栏，横屏仍受系统方向锁约束。 -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#1b2735">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="反恐突袭">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Font Awesome 仅用于 3 个装饰图标（返回/音效/主题），异步加载避免 CDN 阻塞首屏渲染。
+         media=print 让浏览器不等待，加载完成由 onload 切回 all；按钮尺寸固定，图标晚到不引起布局偏移。 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+</head>
+<body>
+    <!-- 浮动圆形按钮：左上返回，右上音效/主题（沿用站点范式） -->
+    <button id="back-button" class="control-button" title="返回">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+    <div class="floating-buttons">
+        <button id="sound-button" class="control-button" title="音效开关">
+            <i class="fas fa-volume-high"></i>
+        </button>
+        <button id="theme-button" class="control-button" title="切换主题">
+            <i class="fas fa-sun"></i>
+        </button>
+    </div>
+
+    <div class="game-container">
+        <div id="cs-stage">
+            <canvas id="cs-canvas"></canvas>
+
+            <!-- 核心 HUD：仅 6 个信息块 -->
+            <div id="cs-hud" class="hud">
+                <div id="hud-wave" class="hud-block hud-wave">
+                    <div class="hud-row"><span id="wave-label">WAVE 1/3</span><span class="hud-dot">·</span><span id="wave-left">剩余 3</span></div>
+                    <div id="wave-gap" class="hud-gap">整备 2.0s</div>
+                </div>
+                <div id="hud-score" class="hud-block hud-score">
+                    <div class="hud-label">SCORE</div>
+                    <div id="score-value" class="hud-big">0</div>
+                </div>
+                <div id="hud-hp" class="hud-block hud-hp">
+                    <div class="hud-label">HP</div>
+                    <div class="hud-bar"><div id="hp-fill" class="hud-bar-fill hp-fill"></div></div>
+                    <div id="hp-value" class="hud-big">100</div>
+                </div>
+                <div id="hud-ammo" class="hud-block hud-ammo">
+                    <div class="hud-label">弹匣</div>
+                    <div id="ammo-value" class="hud-big">8 / ∞</div>
+                    <div id="reload-progress" class="reload-progress"><div id="reload-fill"></div></div>
+                    <div id="reload-text" class="hud-tiny">换弹中</div>
+                </div>
+                <div id="hud-view" class="hud-block hud-view"><span id="view-mode">FPS</span><span class="hud-dot">·</span><span id="fps-value" class="hud-tiny">--</span></div>
+                <div id="cs-crosshair" class="crosshair">
+                    <i class="ch ch-t"></i><i class="ch ch-b"></i><i class="ch ch-l"></i><i class="ch ch-r"></i>
+                </div>
+            </div>
+
+            <div id="damage-flash"></div>
+
+            <!-- 触控层：仅触屏/窄屏显示 -->
+            <div id="look-zone" class="touch-only"></div>
+            <div id="joystick" class="touch-only"><div id="joy-knob"></div></div>
+            <div id="touch-buttons" class="touch-only">
+                <button id="btn-jump" class="tbtn tbtn-jump" aria-label="跳" title="跳">
+                    <svg class="tbtn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8ZM12 8.2c-1.1 0-1.9.6-2.2 1.6L8.6 13 6 14.2c-.8.4-1 1.3-.6 2 .4.7 1.3.9 2 .5l3.1-1.5.6 2.2-1.3 3.1c-.3.8.1 1.6.9 1.9.8.3 1.6-.1 1.9-.9l1.6-3.9c.2-.5.1-1-.2-1.4l-1.1-1.5 1.3-2.1 1 1.8c.3.5.9.8 1.5.6l2.6-.8c.8-.3 1.2-1.1.9-1.9-.3-.8-1.1-1.2-1.9-.9l-1.7.5-1.5-2.7c-.4-.8-1.2-1.3-2.1-1.3L12 8.2Z"/></svg>
+                </button>
+                <button id="btn-crouch" class="tbtn tbtn-crouch" aria-label="蹲" title="蹲">
+                    <svg class="tbtn-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.7" cy="4.6" r="1.9"/><path d="M8.7 7.6c-1 0-1.8.5-2.2 1.4L5 12.9c-.3.7-.1 1.5.5 1.9.6.4 1.4.3 1.9-.3l1.3-1.6 1.1 2.8-1.2 2.6c-.4.8 0 1.7.8 2 .8.4 1.7 0 2-.8l1.3-2.9c.2-.4.2-.9 0-1.3L11.3 14l2.3-1.4 2.8 1.6c.7.4 1.6.2 2-.5.4-.7.2-1.6-.5-2l-3.4-2c-.5-.3-1.1-.4-1.6-.2L8.7 7.6Z"/><path d="M17.5 20.4H4.2c-.9 0-1.6-.7-1.6-1.6s.7-1.6 1.6-1.6h13.3c.9 0 1.6.7 1.6 1.6s-.7 1.6-1.6 1.6Z"/></svg>
+                </button>
+                <button id="btn-fire" class="tbtn tbtn-fire">开火</button>
+                <button id="btn-fire-left" class="tbtn tbtn-fire tbtn-fire-left">开火</button>
+                <button id="btn-reload" class="tbtn tbtn-sm" aria-label="换弹" title="换弹">
+                    <svg class="tbtn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.5 4.4 1.5 1.5 0 1 1 2.8-1A4 4 0 1 0 12 8V6.8c0-.8-.9-1.2-1.5-.7L7.6 9c-.5.5-.5 1.3 0 1.8l2.9 2.9c.6.6 1.5.1 1.5-.7V12Z"/></svg>
+                </button>
+                <button id="btn-aim" class="tbtn tbtn-sm" aria-label="瞄准镜头" title="瞄准镜头">
+                    <svg class="tbtn-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="2" /><path d="M12 1.8v4M12 18.2v4M1.8 12h4M18.2 12h4" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>
+                </button>
+                <button id="btn-pause" class="tbtn tbtn-sm">暂停</button>
+            </div>
+
+            <!-- 主菜单 -->
+            <div id="screen-menu" class="overlay is-active">
+                <div class="panel">
+                    <h1>反恐突袭</h1>
+                    <p class="subtitle">3 波清场 · 掩体即战术 · 点击瞄准镜头，精准点射</p>
+                    <div class="menu-line">最高分 <b id="menu-best">0</b></div>
+                    <div class="menu-line">起始视角 <button id="menu-view-btn" class="mini-btn">FPS</button></div>
+                    <div class="menu-line" id="menu-touch-line">按钮布局 <button id="menu-touch-btn" class="mini-btn">设置</button></div>
+                    <div class="panel-actions">
+                        <button id="btn-start" class="primary-btn">开始任务</button>
+                        <button id="btn-help" class="ghost-btn">操作说明</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作说明 -->
+            <div id="screen-help" class="overlay">
+                <div class="panel">
+                    <h2>操作说明</h2>
+                    <div class="help-grid">
+                        <div class="help-pc">
+                            <h3>PC 键鼠</h3>
+                            <p>W A S D 移动 · 鼠标转视角 · 左键按住射击</p>
+                            <p>Space 跳（空中散布 ±12°）· Ctrl/C 按住蹲</p>
+                            <p>R 换弹 · V 切 FPS/TPS · 右键按住瞄准（散布 0）</p>
+                            <p>Shift 加速跑（6 m/s，跑动散布 ±3°）</p>
+                            <p>P / Esc 暂停 · 窗口失焦自动暂停</p>
+                            <p>点击画面锁定鼠标；恢复须点「继续」</p>
+                            <p>蹲推荐用 C 键（Ctrl+W 关标签无法拦截）</p>
+                        </div>
+                        <div class="help-touch">
+                            <h3>移动端</h3>
+                            <p>左下摇杆移动 · 右半屏拖拽转视角</p>
+                            <p>右下「开火」按住连发，左上「跳」钮</p>
+                            <p>摇杆右上方另有「开火」钮，支持三指操作（左拇指移动 + 左食指开火 + 右手转向/瞄准）</p>
+                            <p>「蹲」钮为切换式，再点一次站起</p>
+                            <p>右下「瞄准镜头」点击后持续瞄准，再点一次取消（PC 右键仍为按住）；「换弹」小钮在旁</p>
+                            <p>点击左上角「FPS / TPS」块可切换视角（PC 按 V）</p>
+                            <p>摇杆归中 / 静止时零散布</p>
+                        </div>
+                    </div>
+                    <div class="panel-actions"><button id="btn-help-close" class="primary-btn">返回</button></div>
+                </div>
+            </div>
+
+            <!-- 暂停 -->
+            <div id="screen-pause" class="overlay">
+                <div class="panel">
+                    <h2>已暂停</h2>
+                    <p class="subtitle pause-pc">计时已冻结；恢复需重新锁定鼠标</p>
+                    <p class="subtitle pause-touch">计时已冻结；点「继续」立刻回到战斗</p>
+                    <div class="keys pause-pc">WASD 移动 · 左键射击 · 右键瞄准 · Shift 疾跑 · Space 跳 · Ctrl/C 蹲 · R 换弹 · V 视角 · P/Esc 暂停</div>
+                    <div class="keys pause-touch">左下摇杆移动 · 右半屏拖拽转视角<br>右下「开火」按住连发（摇杆上方另有开火钮，可三指操作）<br>左上「跳」·「蹲」切换式 · 右下「瞄准镜头」点击切换 · 换弹小钮在旁<br>点左上「FPS / TPS」切视角 · 右上角「暂停」</div>
+                    <div class="panel-actions">
+                        <button id="btn-resume" class="primary-btn">继续</button>
+                        <button id="btn-restart" class="ghost-btn">重新开始</button>
+                        <button id="btn-tomenu" class="ghost-btn">返回主菜单</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结算 -->
+            <div id="screen-result" class="overlay">
+                <div class="panel">
+                    <h2 id="result-title">任务完成</h2>
+                    <div id="result-new" class="new-record">新纪录</div>
+                    <div class="result-grid">
+                        <div>到达波次 <b id="r-wave">3/3</b></div>
+                        <div>击杀 <b id="r-kills">0</b></div>
+                        <div>命中率 <b id="r-acc">0%</b></div>
+                        <div>剩余 HP <b id="r-hp">0</b></div>
+                        <div>用时 <b id="r-time">0s</b></div>
+                        <div>比分 <b id="r-score">0</b></div>
+                        <div>最高分 <b id="r-best">0</b></div>
+                    </div>
+                    <div class="panel-actions">
+                        <button id="btn-again" class="primary-btn">再来一局</button>
+                        <button id="btn-result-menu" class="ghost-btn">返回主菜单</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 降级等系统级提示条：CS.HUD.toast 控制显隐 -->
+    <div id="perf-toast" role="status" aria-live="polite"></div>
+
+    <!-- 手机竖屏旋转引导：仅触屏小屏由 CS.Orientation 控制显隐 -->
+    <div id="screen-rotate" class="rotate-gate" aria-hidden="true">
+        <div class="rotate-icon"></div>
+        <h2>请横屏游玩</h2>
+        <p>旋转设备至横屏后自动继续</p>
+        <button id="btn-rotate-skip" class="ghost-btn">跳过</button>
+        <p class="rotate-note">设备无法旋转？点「跳过」以竖屏继续</p>
+    </div>
+
+    <!-- 触控按钮布局编辑工具条：仅触屏编辑态显示（CS.TouchCfg 控制） -->
+    <div id="touch-cfg-bar">
+        <div class="tcfg-hint">拖动按钮调整位置 · 点选按钮后可调大小</div>
+        <div class="tcfg-row">
+            <span id="tcfg-sel-name">未选中</span>
+            <button id="tcfg-smaller" class="mini-btn" type="button">−</button>
+            <b id="tcfg-size-val">--</b>
+            <button id="tcfg-bigger" class="mini-btn" type="button">＋</button>
+            <button id="tcfg-reset" class="mini-btn" type="button">恢复默认</button>
+            <button id="tcfg-cancel" class="mini-btn" type="button">取消</button>
+            <button id="tcfg-save" class="mini-btn tcfg-save" type="button">保存</button>
+        </div>
+    </div>
+
+    <script src="../assets/js/common.js"></script>
+    <script src="../assets/js/sound.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/world.js"></script>
+    <script src="js/entities.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/sfx.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/hud.js"></script>
+    <script src="js/orientation.js"></script>
+    <script src="js/touchcfg.js"></script>
+    <script src="js/game.js"></script>
+
+    <script src="../assets/js/comments.js"></script>
+    <script>
+        /* 评论懒加载：giscus iframe / github 资源在弱机上会抢主线程造成游玩卡顿，
+         * 改为首次结算 / 回主菜单时才初始化（game.js 调 __csCommentsLazy） */
+        window.__csCommentsLazy = function () {
+            if (window.__csCommentsDone) return;
+            window.__csCommentsDone = 1;
+            if (window.FleaComments) FleaComments.init('cs');
+        };
+    </script>
+    <script src="../assets/js/share.js"></script>
+    <script>FleaShare.init();</script>
+</body>
+</html>

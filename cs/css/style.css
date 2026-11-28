@@ -1,0 +1,482 @@
+/* 反恐突袭 - 全部颜色定义在 :root / [data-theme="dark"]，规则内一律 var() 引用。
+ * --cs-* 为画布调色板，由 renderer.js 经 getComputedStyle(documentElement) 读取并缓存。 */
+:root {
+    --bg-color: #eef2f7;
+    --text-color: #22303f;
+    --primary-color: #c2620c;
+    --icon-button-bg: #ffffff;
+    --icon-button-hover: #dce5ef;
+    --board-bg: #ffffff;
+    --board-border: #c6d2e0;
+    --theme-toggle-color: #e58a00;
+    --panel-bg: rgba(255, 255, 255, 0.95);
+    --panel-border: #c6d2e0;
+    --panel-shadow: rgba(24, 40, 60, 0.22);
+    --overlay-bg: rgba(210, 222, 235, 0.72);
+    --accent: #c2620c;
+    --danger: #c62828;
+    --dim: #63748a;
+    --btn-bg: #c2620c;
+    --btn-text: #ffffff;
+    --btn-hover: #9c4e08;
+    --ghost-bg: rgba(120, 140, 165, 0.16);
+    --ghost-hover: rgba(120, 140, 165, 0.30);
+    --hud-bg: rgba(255, 255, 255, 0.74);
+    --hud-border: rgba(90, 110, 135, 0.38);
+    --hud-text: #22303f;
+    --hp-fill: #2e9e5b;
+    --reload-fill: #c2620c;
+    --crosshair: #1b2735;
+    --flash-bg: rgba(198, 40, 40, 0.38);
+    --touch-bg: rgba(255, 255, 255, 0.72);
+    --touch-border: rgba(90, 110, 135, 0.55);
+    --touch-text: #22303f;
+    /* 画布调色板（保持 hex，供 U.shade 派生明暗面） */
+    --cs-sky: #cfe0f3;
+    --cs-floor: #e4ebf3;
+    --cs-grid: #9db2c8;
+    --cs-wall-a: #93a5ba;
+    --cs-wall-b: #7d90a8;
+    --cs-wall-top: #bccadb;
+    --cs-wall-edge: #5a6d84;
+    --cs-bot: #a9530b;
+    --cs-bot-head: #f0c78d;
+    --cs-bot-hit: #e86363;
+    --cs-muzzle: #f6d365;
+    --cs-player: #1063a0;
+    --cs-player-head: #86cef2;
+    --cs-gun-body: #4a5a6e;
+    --cs-gun-dark: #2c3a4a;
+    --cs-gun-hi: rgba(255, 255, 255, 0.18);
+    --cs-gun-lo: rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="dark"] {
+    --bg-color: #111a26;
+    --text-color: #e6edf5;
+    --primary-color: #e08a2c;
+    --icon-button-bg: #26344a;
+    --icon-button-hover: #354863;
+    --board-bg: #1a2637;
+    --board-border: #3a4b61;
+    --theme-toggle-color: #f2b53c;
+    --panel-bg: rgba(22, 32, 46, 0.95);
+    --panel-border: #3a4b61;
+    --panel-shadow: rgba(0, 0, 0, 0.55);
+    --overlay-bg: rgba(10, 16, 26, 0.76);
+    --accent: #e08a2c;
+    --danger: #ef6a6a;
+    --dim: #91a4bb;
+    --btn-bg: #c9701b;
+    --btn-text: #ffffff;
+    --btn-hover: #a75a12;
+    --ghost-bg: rgba(140, 160, 185, 0.18);
+    --ghost-hover: rgba(140, 160, 185, 0.32);
+    --hud-bg: rgba(20, 30, 44, 0.76);
+    --hud-border: rgba(140, 160, 185, 0.38);
+    --hud-text: #e6edf5;
+    --hp-fill: #3fbf74;
+    --reload-fill: #e08a2c;
+    --crosshair: #f2f7fc;
+    --flash-bg: rgba(220, 60, 60, 0.40);
+    --touch-bg: rgba(30, 42, 60, 0.72);
+    --touch-border: rgba(150, 170, 195, 0.55);
+    --touch-text: #e6edf5;
+    --cs-sky: #1d2c40;
+    --cs-floor: #26364b;
+    --cs-grid: #4a607a;
+    --cs-wall-a: #43618a;
+    --cs-wall-b: #38557b;
+    --cs-wall-top: #5b78a0;
+    --cs-wall-edge: #263b57;
+    --cs-bot: #d07a1e;
+    --cs-bot-head: #e8c38a;
+    --cs-bot-hit: #f08a8a;
+    --cs-muzzle: #ffe08a;
+    --cs-player: #3d9bd6;
+    --cs-player-head: #a5ddfb;
+    --cs-gun-body: #56718f;
+    --cs-gun-dark: #1f2e40;
+    --cs-gun-hi: rgba(255, 255, 255, 0.10);
+    --cs-gun-lo: rgba(0, 0, 0, 0.30);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+/* html/body 满屏 + overscroll-behavior 禁掉手机橡皮筋滚动/下拉刷新；
+ * body 禁长按选择/放大镜，避免与滑动视角手势争抢 */
+html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body {
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+}
+button { font-family: inherit; cursor: pointer; }
+
+/* 浮动圆形按钮（与站点其它游戏一致） */
+.control-button {
+    position: fixed; top: 20px; width: 50px; height: 50px;
+    border: none; border-radius: 50%; padding: 0;
+    background-color: var(--icon-button-bg); color: var(--text-color);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.25em; z-index: 1000; outline: none;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+.control-button:hover { background-color: var(--icon-button-hover); transform: scale(1.05); }
+.control-button:active { transform: scale(0.95); }
+#back-button { left: 20px; color: var(--primary-color); }
+.floating-buttons { position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 1000; }
+.floating-buttons .control-button { position: static; }
+#sound-button { color: var(--primary-color); }
+#theme-button { color: var(--theme-toggle-color); }
+
+/* 满屏舞台：WebGL 场景在底层 canvas，2D overlay（屏幕空间特效）叠在其上，
+ * HUD / 触控层继续由 z-index 2+ 覆盖。两层 canvas 颜色全部来自 var() 调色板。 */
+.game-container { position: fixed; inset: 0; }
+#cs-stage { position: absolute; inset: 0; overflow: hidden; }
+#cs-canvas { display: block; width: 100%; height: 100%; touch-action: none; position: relative; z-index: 1; }
+
+/* ── HUD：6 个信息块 ── */
+.hud { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; }
+.is-playing .hud { opacity: 1; }
+.hud-block {
+    position: absolute; padding: 8px 12px; border-radius: 8px;
+    background-color: var(--hud-bg); border: 1px solid var(--hud-border);
+    color: var(--hud-text); font-size: 13px; line-height: 1.35;
+}
+.hud-label { font-size: 11px; letter-spacing: 1px; color: var(--dim); }
+.hud-big { font-size: 20px; font-weight: bold; }
+.hud-tiny { font-size: 10px; color: var(--dim); }
+.hud-dot { padding: 0 6px; color: var(--dim); }
+.hud-wave { top: 20px; left: 50%; transform: translateX(-50%); text-align: center; white-space: nowrap; }
+.hud-score { top: 20px; right: 150px; text-align: right; }
+.hud-hp { bottom: 20px; left: 20px; min-width: 156px; }
+.hud-ammo { bottom: 20px; right: 20px; min-width: 128px; text-align: right; }
+/* 左上角视角·帧率块可点击切换 FPS/TPS（.hud 整体 pointer-events:none，此处单独放开） */
+.hud-view { top: 20px; left: 84px; font-weight: bold; letter-spacing: 1px; transition: background-color 0.2s ease; pointer-events: auto; cursor: pointer; }
+.hud-view.is-hi { background-color: var(--accent); color: var(--btn-text); }
+.hud-view .hud-tiny { font-weight: normal; letter-spacing: 0; }
+.hud-row { white-space: nowrap; }
+.hud-gap { display: none; color: var(--accent); font-weight: bold; font-size: 12px; }
+.hud-gap.is-on { display: block; }
+.hud-bar { height: 7px; margin: 5px 0; border-radius: 4px; background-color: var(--ghost-bg); overflow: hidden; }
+.hud-bar-fill { height: 100%; width: 100%; border-radius: 4px; background-color: var(--hp-fill); transition: width 0.12s linear; }
+.reload-progress, #reload-text { display: none; }
+.reload-progress { height: 6px; margin-top: 5px; border-radius: 3px; background-color: var(--ghost-bg); overflow: hidden; }
+.reload-progress.is-on, .reload-progress.is-on ~ #reload-text { display: block; }
+#reload-fill { height: 100%; width: 0; background-color: var(--reload-fill); }
+@keyframes ammoBlink {
+    0%, 100% { color: var(--hud-text); }
+    25%, 75% { color: var(--danger); }
+}
+#ammo-value.is-empty { animation: ammoBlink 0.4s ease 2; }
+
+/* 准星：4 段间隙随散布实时变化 */
+.crosshair { --ch-gap: 4px; position: absolute; left: 50%; top: 50%; z-index: 3; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+.is-playing .crosshair { opacity: 0.95; }
+.ch { position: absolute; display: block; background-color: var(--crosshair); }
+.ch-t { width: 2px; height: 9px; left: -1px; top: calc(-9px - var(--ch-gap)); }
+.ch-b { width: 2px; height: 9px; left: -1px; top: var(--ch-gap); }
+.ch-l { height: 2px; width: 9px; top: -1px; left: calc(-9px - var(--ch-gap)); }
+.ch-r { height: 2px; width: 9px; top: -1px; left: var(--ch-gap); }
+.crosshair.is-fire .ch { background-color: var(--accent); }
+
+#damage-flash {
+    position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
+    box-shadow: inset 0 0 90px 24px var(--flash-bg);
+    transition: opacity 0.18s ease;
+}
+#damage-flash.is-on { opacity: 1; }
+
+/* ── 触控 ── */
+.touch-only { display: none; }
+#look-zone { position: absolute; left: 50%; right: 0; top: 0; bottom: 0; z-index: 5; touch-action: none; }
+#joystick {
+    position: absolute; left: 14px; bottom: 20px; width: 132px; height: 132px;
+    border-radius: 50%; z-index: 8; touch-action: none;
+    background-color: var(--touch-bg); border: 2px solid var(--touch-border);
+    align-items: center; justify-content: center;
+}
+#joy-knob { width: 52px; height: 52px; border-radius: 50%; background-color: var(--touch-border); }
+#touch-buttons { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+.tbtn {
+    position: absolute; pointer-events: auto; font-weight: bold; touch-action: none;
+    background-color: var(--touch-bg); color: var(--touch-text);
+    border: 2px solid var(--touch-border); border-radius: 12px;
+    -webkit-tap-highlight-color: transparent; outline: none;
+}
+.tbtn:active { transform: scale(0.94); }
+/* 按钮内联 SVG 图标：继承按钮 currentColor，随主题/高亮态变色，零外部依赖。
+ * 居中；准星等描边图标用 stroke=currentColor，实心图标用默认 fill=currentColor。 */
+.tbtn-icon { width: 22px; height: 22px; display: block; margin: 0 auto; fill: currentColor; pointer-events: none; }
+/* 圆形图标钮（跳/蹲/换弹/瞄准镜头）：图标 24px 居中，参考大逃杀布局截图的圆钮风格 */
+.tbtn-jump .tbtn-icon, .tbtn-crouch .tbtn-icon,
+#btn-reload .tbtn-icon, #btn-aim .tbtn-icon { width: 24px; height: 24px; }
+.tbtn-fire {
+    right: 16px; bottom: 150px; width: 76px; height: 76px; border-radius: 50%;
+    background-color: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg);
+}
+/* v2：跳钮（开火钮正上方 44px）与切换式蹲钮（跳钮左侧） */
+.tbtn-jump, .tbtn-crouch {
+    width: 44px; height: 44px; border-radius: 50%; font-size: 14px;
+}
+.tbtn-jump { right: 24px; bottom: 236px; }
+.tbtn-crouch { right: 76px; bottom: 236px; }
+.tbtn-crouch.is-on {
+    background-color: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg);
+}
+.tbtn-sm { right: 120px; width: 54px; height: 38px; font-size: 12px; }
+/* 换弹/瞄准镜头圆钮化（参考大逃杀布局截图）：与跳/蹲同规格 44×44 圆形。
+ * .tbtn-sm 仍被暂停（文字胶囊）复用，故只按 ID 覆盖。
+ * 列中心保持 147 不变：右 125 = 147−22（原换弹 54@120、开镜 68@113 同心）。 */
+#btn-reload, #btn-aim { right: 125px; width: 44px; height: 44px; border-radius: 50%; }
+#btn-reload { bottom: 210px; }
+/* 瞄准镜头钮回右下常规操作区：换弹（44 高，y[210,254]）正上方，bottom 285→262 收紧列间距。
+ * 竖屏与「蹲」(right76, y[236,280]) 仅 x 向间隔：蹲 x[76,120]、圆钮 x[125,169]，5px 零重叠。
+ * PC 细指针下 touch-only 不显示，仅作兜底定位。 */
+#btn-aim { bottom: 262px; }
+/* 瞄准镜头锁存高亮：点击后持续瞄准，用主色填充 + 细描边明确区分「瞄准中/普通」态 */
+#btn-aim.is-on {
+    background-color: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-text);
+    box-shadow: 0 0 0 2px var(--btn-bg);
+}
+#btn-pause { bottom: 114px; }
+
+/* ── 覆盖层 ── */
+.overlay {
+    position: absolute; inset: 0; z-index: 20; display: none;
+    align-items: center; justify-content: center; padding: 16px;
+    background-color: var(--overlay-bg); overflow: auto;
+}
+.overlay.is-active { display: flex; }
+.panel {
+    width: min(92vw, 520px); max-height: 92vh; overflow: auto; padding: 24px;
+    border-radius: 14px; text-align: center;
+    background-color: var(--panel-bg); border: 1px solid var(--panel-border);
+    box-shadow: 0 10px 40px var(--panel-shadow);
+}
+.panel h1 { font-size: clamp(1.9em, 6vw, 2.8em); letter-spacing: 2px; }
+.panel h2 { font-size: 1.6em; margin-bottom: 8px; }
+.panel h3 { font-size: 1em; color: var(--accent); margin-bottom: 6px; }
+.subtitle { font-size: 13px; color: var(--dim); margin: 8px 0 16px; line-height: 1.6; }
+.menu-line { margin: 10px 0; font-size: 14px; color: var(--dim); }
+.menu-line b { color: var(--text-color); }
+.mini-btn {
+    padding: 3px 12px; margin-left: 6px; border-radius: 6px; font-weight: bold;
+    background-color: var(--ghost-bg); color: var(--text-color); border: 1px solid var(--panel-border);
+}
+.panel-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 18px; }
+.primary-btn, .ghost-btn {
+    padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: bold; border: 1px solid var(--panel-border);
+}
+.primary-btn { background-color: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg); }
+.primary-btn:hover { background-color: var(--btn-hover); }
+.ghost-btn { background-color: var(--ghost-bg); color: var(--text-color); }
+.ghost-btn:hover { background-color: var(--ghost-hover); }
+.keys { font-size: 12px; color: var(--dim); line-height: 1.8; margin-top: 10px; }
+/* PC/触屏两区块互斥分流（见下 help-touch），网格恒单列 */
+.help-grid { display: grid; grid-template-columns: 1fr; gap: 16px; text-align: left; margin-top: 12px; }
+.help-grid p { font-size: 12px; line-height: 1.9; color: var(--text-color); }
+/* 操作说明按设备分流：与 CS.Input.isTouch 同口径（pointer: coarse），PC 只看键鼠、触屏只看触控 */
+.help-touch { display: none; }
+@media (pointer: coarse) {
+    .help-pc { display: none; }
+    .help-touch { display: block; }
+}
+/* 暂停面板文案按设备分流：与操作说明同口径（pointer: coarse），PC 不出现「摇杆」等触屏词 */
+.pause-touch { display: none; }
+@media (pointer: coarse) {
+    .pause-pc { display: none; }
+    .pause-touch { display: block; }
+}
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; font-size: 13px; text-align: left; margin: 14px 0; }
+.result-grid b { color: var(--accent); }
+.new-record { display: none; color: var(--accent); font-weight: bold; letter-spacing: 1px; }
+.new-record.is-on { display: block; }
+
+/* ── 响应式：PC 1100×800 用上方默认值；375×667 及触屏用下列覆盖 ── */
+@media (max-width: 820px), (pointer: coarse) {
+    .control-button { top: 10px; width: 42px; height: 42px; font-size: 1.1em; }
+    #back-button { left: 10px; }
+    .floating-buttons { top: 10px; right: 10px; gap: 8px; }
+    .hud-wave { top: 62px; font-size: 12px; }
+    .hud-score { top: 62px; right: 10px; }
+    .hud-view { top: 62px; left: 10px; }
+    .hud-hp { bottom: 165px; left: 10px; min-width: 124px; }
+    .hud-ammo { bottom: 290px; right: 10px; min-width: 104px; }
+    .hud-big { font-size: 17px; }
+    .touch-only { display: block; }
+    #joystick { display: flex; }
+    .panel { padding: 18px; }
+}
+@media (max-height: 520px) {
+    .hud-hp { bottom: 10px; }
+    .hud-ammo { bottom: 88px; }
+    .tbtn-fire { bottom: 96px; width: 62px; height: 62px; }
+    .tbtn-jump { bottom: 168px; right: 20px; }
+    .tbtn-crouch { bottom: 168px; right: 72px; }
+    #btn-reload { bottom: 150px; }
+    #btn-pause { bottom: 66px; }
+    #joystick { bottom: 10px; width: 96px; height: 96px; }
+}
+/* 手机横屏矮屏：摇杆/开火默认调大并内移离开屏幕角落（拇指更好够、不贴边）；
+ * 开火变大后其左缘逼近换弹列，右列错位见文件末尾 coarse 组（源序在其后） */
+@media (max-height: 520px) and (pointer: coarse) {
+    #joystick { width: 128px; height: 128px; left: 26px; bottom: 24px; }
+    .tbtn-fire { right: 44px; }
+}
+
+/* ── 手机竖屏旋转引导：由 CS.Orientation 加 is-active，PC / 平板不触发 ── */
+.rotate-gate {
+    /* 4000 高于站点 share/comments 浮动按钮与面板（3100/3250/2100），低于通知 9999 */
+    position: fixed; inset: 0; z-index: 4000; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    padding: 24px; text-align: center;
+    background-color: var(--bg-color); color: var(--text-color);
+}
+.rotate-gate.is-active { display: flex; }
+.rotate-icon {
+    position: relative; width: 48px; height: 80px; margin-bottom: 6px;
+    border: 3px solid var(--text-color); border-radius: 10px;
+    animation: rotate-hint 1.8s ease-in-out infinite;
+}
+.rotate-icon::after {
+    content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    width: 16px; height: 3px; border-radius: 2px; background-color: var(--text-color);
+}
+@keyframes rotate-hint {
+    0%, 35% { transform: rotate(0deg); }
+    65%, 100% { transform: rotate(-90deg); }
+}
+.rotate-gate h2 { font-size: 1.4em; letter-spacing: 1px; }
+.rotate-gate p { font-size: 13px; color: var(--dim); line-height: 1.7; }
+.rotate-gate .ghost-btn { margin-top: 4px; }
+.rotate-note { font-size: 11px; }
+
+/* ── 触控按钮布局设置（仅触屏，CS.TouchCfg）── */
+/* 菜单入口按端分流：与 CS.Input.isTouch 同口径（pointer: coarse） */
+#menu-touch-line { display: none; }
+@media (pointer: coarse) {
+    #menu-touch-line { display: block; }
+}
+/* 配置过位置/大小的控件：中心点百分比定位 + --ts 缩放（旋转安全） */
+.tbtn.is-cfg, #joystick.is-cfg {
+    right: auto; bottom: auto;
+    transform: translate(-50%, -50%) scale(var(--ts, 1));
+}
+.tbtn.is-cfg:active { transform: translate(-50%, -50%) scale(calc(var(--ts, 1) * 0.94)); }
+/* 编辑态：控件浮到菜单 overlay 之上，全量高亮，选中的加 accent 描边 */
+body.is-tcfg-edit #touch-buttons { z-index: 60; }
+body.is-tcfg-edit #joystick { z-index: 60; }
+body.is-tcfg-edit .tbtn, body.is-tcfg-edit #joystick { box-shadow: 0 0 0 2px var(--accent); }
+body.is-tcfg-edit .is-sel { box-shadow: 0 0 0 3px var(--accent); border-color: var(--accent); }
+/* 暂停钮固定不可调：编辑态弱化示意，防止误拖 */
+body.is-tcfg-edit #btn-pause { opacity: 0.45; box-shadow: none; }
+#screen-menu.is-cfg-edit .panel { display: none; }
+#touch-cfg-bar {
+    /* top 60px：避开站点音效/主题浮动按钮（top 10 + 高 42），375 宽与横屏矮屏均不重叠 */
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%); z-index: 65;
+    display: none; padding: 8px 14px; border-radius: 10px; text-align: center;
+    background-color: var(--panel-bg); border: 1px solid var(--panel-border);
+    box-shadow: 0 6px 24px var(--panel-shadow);
+}
+#touch-cfg-bar.is-on { display: block; }
+.tcfg-hint { font-size: 11px; color: var(--dim); }
+.tcfg-row { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; }
+.tcfg-row .mini-btn { white-space: nowrap; flex-shrink: 0; margin-left: 0; padding: 3px 8px; }
+#tcfg-sel-name { font-size: 12px; color: var(--text-color); min-width: 44px; }
+#tcfg-size-val { font-size: 12px; color: var(--text-color); min-width: 40px; }
+.tcfg-save { background-color: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-bg); }
+
+/* ── 手机端 HUD 全顶置（仅触屏，源序在末尾覆盖窄屏组的 bottom 布局）──
+ * 竖屏两排：第一排(60) HP 左 / 弹匣 右；第二排(140) 视角·帧率 左 / WAVE 中 / SCORE 右。
+ * 60 = 站点返回/音效/主题钮行（top 10 高 42）之下；全部退出摇杆/开火拇指热区 */
+@media (pointer: coarse) {
+    /* HP / SCORE / 弹匣 三块统一紧凑尺寸：血条内联到 HP 数字同行（grid）；
+     * padding 8x12→5x8、big 17→15、label 11→10、line-height 1.35→1.2、min-width 104→88
+     * → 三块约 88x42（原 104x56） */
+    .hud-hp, .hud-score, .hud-ammo { padding: 5px 8px; min-width: 88px; line-height: 1.2; }
+    .hud-hp .hud-label, .hud-score .hud-label, .hud-ammo .hud-label { font-size: 10px; }
+    .hud-hp .hud-big, .hud-score .hud-big, .hud-ammo .hud-big { font-size: 15px; }
+    .hud-hp { top: 60px; bottom: auto; left: 10px; display: grid; grid-template-columns: 1fr auto; column-gap: 6px; align-items: center; }
+    .hud-hp .hud-label { grid-column: 1 / -1; }
+    .hud-hp .hud-bar { height: 5px; margin: 1px 0; }
+    .hud-ammo { top: 60px; bottom: auto; right: 10px; }
+    /* FPS 块贴返回键右侧（返回键 10..52，块左缘 62 留 10px 间隙；top13 使 36 高块与 42 高键垂直居中） */
+    .hud-view { top: 13px; left: 62px; }
+    .hud-score { top: 140px; right: 10px; }
+    .hud-wave { top: 140px; }
+    /* 暂停钮右上角：与站点音效/主题 FAB（right 10~102）同排留 10px 间隙 */
+    #btn-pause { top: 10px; right: 112px; bottom: auto; }
+}
+/* 站点分享/评论 FAB 只在「纯主菜单」显示：游戏/暂停/结算/操作说明/布局编辑/旋转引导
+ * 等任何子页面一律隐藏（不挡触控不抢视觉）。cs-fab-off 由 HUD.syncFab 统一维护；
+ * 保留 cs-in-game 作状态切换时序上的兜底。 */
+body.cs-fab-off #flea-share-fab,
+body.cs-fab-off #flea-comments-fab,
+body.cs-in-game #flea-share-fab,
+body.cs-in-game #flea-comments-fab { display: none !important; }
+
+/* 横屏矮屏特调：宽度充足，四块并一排(60)——HP 左 / 视角·帧率 / SCORE / 弹匣 右；
+ * WAVE 回顶行(20)居中，与返回/暂停/音效/主题钮同排；右列触控钮布局不变 */
+@media (max-height: 520px) and (pointer: coarse) {
+    .hud-wave { top: 20px; }
+    .hud-view { top: 13px; left: 62px; }   /* 横屏同样贴返回键右侧 */
+    .hud-score { top: 60px; right: 124px; }
+    #btn-pause { right: 120px; }
+    /* 瞄准镜头回右下：换弹（bottom108）正上方，间隔 16px。圆钮 44×44，
+     * 列中心保持 159 不变：右 137 = 159−22（原开镜 68@125、换弹 54@132 同心）。 */
+    #btn-aim { right: 137px; bottom: 162px; }
+    /* 开火 76@bottom84（原 62@68）：上移后占 [84,160]，跳/蹲原位 136 会撞 → 上移至 164；
+     * 开火左缘 W-120 与换弹列（圆钮 44@right137 → x[137,181]）间隔 17px 零重叠 */
+    .tbtn-jump { bottom: 164px; }
+    .tbtn-crouch { bottom: 164px; }
+    #btn-reload { bottom: 108px; right: 137px; }
+    .tbtn-fire { bottom: 84px; width: 76px; height: 76px; }
+}
+
+/* ── 左手副开火键：位于摇杆右斜上方，供三指操作 ──
+ * 左拇指摇杆 + 左食指开火 + 右手转视角/开镜；与右下主开火同尺寸同配色，
+ * 但在 input.js 中各自持有独立 pointerId 槽，双指同时按下不互相误清。
+ * 源序放在横屏 coarse 组之后：覆盖 max-height:520 对 .tbtn-fire 的 62px 缩小。 */
+/* 竖屏 bottom130：下缘与换弹(bottom210/高44)错开 4px，且 x 不与 132px 摇杆相交 */
+.tbtn-fire-left { right: auto; left: 150px; bottom: 130px; }
+@media (max-height: 520px) and (pointer: coarse) {
+    /* 横屏左手开火：再往左上微调 left108→100（左移 8 贴近 HP）、bottom193→195（上移 2）。
+     * H=320 硬约束实测：HUD view x[62,140] y[13,48.5]、HP x[10,98] y[60,102]、摇杆顶缘 y168。
+     * 开火 x[100,176] y[49,125]：左缘距 HP 右缘 2px、顶缘距 view 底缘 0.5px、底缘距摇杆顶缘 43px → 零重叠。
+     * 中心 x=138>摇杆 90、中心 y=87<摇杆 232 → 仍是右斜上方。上移极限由 H=320 时 view 底缘所限。 */
+    .tbtn-fire-left { left: 100px; bottom: 195px; width: 76px; height: 76px; }
+}
+
+/* ── PC（fine pointer）HUD 与手机横屏对齐：三块紧凑顶排 + FPS 贴返回键 ──
+ * 手机横屏三块 88x42 顶排；PC 沿用同一套紧凑规则，仅坐标按 PC 坐标系换算：
+ * 返回键 50x50(top20) 底缘 70 → 顶排下移 top80 留 10px；left/right 20 对齐 PC 边距体系；
+ * SCORE right124 与手机横屏同值（避开右上 FAB）。FPS 大小两端已一致(83x36)，仅 top27 使
+ * 36 高块在 50 高返回键内垂直居中（20+(50-36)/2=27，对应手机 top13）。 */
+@media (pointer: fine) and (min-width: 821px) {
+    .hud-hp, .hud-score, .hud-ammo { padding: 5px 8px; min-width: 88px; line-height: 1.2; }
+    .hud-hp .hud-label, .hud-score .hud-label, .hud-ammo .hud-label { font-size: 10px; }
+    .hud-hp .hud-big, .hud-score .hud-big, .hud-ammo .hud-big { font-size: 15px; }
+    .hud-hp { top: 80px; bottom: auto; left: 20px; display: grid; grid-template-columns: 1fr auto; column-gap: 6px; align-items: center; }
+    .hud-hp .hud-label { grid-column: 1 / -1; }
+    .hud-hp .hud-bar { height: 5px; margin: 1px 0; }
+    .hud-ammo { top: 80px; bottom: auto; right: 20px; }
+    .hud-score { top: 80px; right: 124px; }
+    .hud-view { top: 27px; }
+}
+
+/* ── 系统级提示条（画质降级等）：CS.HUD.toast 加 is-show，2.6s 自动消失 ── */
+#perf-toast {
+    position: fixed; top: 14px; left: 50%; z-index: 3600;
+    transform: translateX(-50%) translateY(-8px);
+    padding: 8px 16px; border-radius: 6px;
+    background-color: var(--panel-bg); color: var(--text-color);
+    border: 1px solid var(--panel-border); box-shadow: 0 2px 10px var(--panel-shadow);
+    font-size: 13px; white-space: nowrap;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+#perf-toast.is-show { opacity: 1; transform: translateX(-50%) translateY(0); }

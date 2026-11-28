@@ -141,6 +141,18 @@
         "light": "assets/images/dino.svg",
         "dark": "assets/images/dino-dark.svg"
       }
+    },
+    {
+      "id": "cs",
+      "name": "反恐突袭",
+      "description": "第一/第三人称可切换的战术射击，3 波清场，靠掩体与精瞄取胜",
+      "link": "cs/",
+      "status": "active",
+      "categories": ["classic", "strategy"],
+      "images": {
+        "light": "assets/images/cs.svg",
+        "dark": "assets/images/cs-dark.svg"
+      }
     }
   ]
 }
