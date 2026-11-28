@@ -76,7 +76,7 @@
         this.score = 0; this.kills = 0; this.shotsFired = 0; this.shotsHit = 0;
         this.elapsed = 0; this.moveSpeed = 0; this.spreadDeg = 0;
         this.landT = 0; this.stepAccum = 0;
-        this.pendingDamage = 0; this.shooterSlots = 0; this.botFired = false;
+        this.pendingDamage = 0; this.shooterSlots = 0; this.botFired = false; this.botFirePan = 0;
         this.best = getBest();
         E.spawnWave(this.bots, 0);
         CS.Renderer.clearFx();
@@ -374,6 +374,7 @@
         /* 部位伤害：头部（py ≥ BOT_SPLIT）走 DMG_HEAD，≥ BOT_HP 一枪击杀 */
         b.hp -= E.hitHead ? C.DMG_HEAD : C.DMG;
         b.hitFlash = 0.12;
+        if (b.hp > 0) E.notifyHit(b, this.player);   /* #8 未击杀才侧移，避免静止靶；击杀后 bot 直接消失 */
         CS.Renderer.spawnParticles(ox + dx * E.hitT, oy + dy * E.hitT, oz + dz * E.hitT,
             -dx, 0.2, -dz, 10, 1);
         Sfx.hitBot();
@@ -381,6 +382,7 @@
             b.hp = 0; b.alive = false;
             this.kills++; this.score += C.SCORE_KILL;
             CS.Renderer.addFloat(b.x, C.BOT_SPLIT, b.z);
+            CS.Renderer.addDeath(b.x, b.z);   /* #9 倒地消散，纯 ctx 不占面池 */
             Sfx.kill();
             if (E.hitHead) CS.HUD.toast('爆头击杀');
         }
@@ -421,9 +423,9 @@
         this.applyLook();
         this.applyMove(dt);
         this.tickTimers(dt);
-        this.shooterSlots = 0; this.pendingDamage = 0; this.botFired = false;
+        this.shooterSlots = 0; this.pendingDamage = 0; this.botFired = false; this.botFirePan = 0;
         E.updateBots(this.bots, this.player, this, dt);
-        if (this.botFired) Sfx.botFire();
+        if (this.botFired) Sfx.botFire(this.botFirePan);
         if (this.pendingDamage > 0) this.applyDamage(this.pendingDamage); // 同帧伤害统一判定
         if (this.state !== 'playing') return;   // 死亡立即冻结输入与波次生成
         this.tryShoot();

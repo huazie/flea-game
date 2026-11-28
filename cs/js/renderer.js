@@ -18,6 +18,10 @@
         order.push(0);
     }
     for (i = 0; i < 4; i++) floats.push({ x: 0, y: 0, z: 0, life: 0 });
+    /* #9 击杀倒地消散池：预分配 MAX_BOTS(5) 槽，走 ctx 绘制不占面池。
+     * 每槽记录击杀点 x/z 与剩余 life；life 从 DEATH_FX_TIME 递减，画一个下沉+淡出的方块。 */
+    var deaths = [], deathIdx = 0;
+    for (i = 0; i < 5; i++) deaths.push({ x: 0, z: 0, life: 0, max: C.DEATH_FX_TIME || 0.2 });
     var floatIdx = 0, faceCount = 0;
 
     /* 复用的相机/裁剪/投影缓冲 */
@@ -33,6 +37,7 @@
         sky: '', floor: '', grid: '', wallEdge: '', wallTop: '',
         bot: '', botHead: '', botHit: '', muzzle: '',
         player: '', playerHead: '', accent: '',
+        playerTop: '', playerSide: '', headTop: '', headSide: '',   /* ADR-59：盒体三档明暗，主题刷新时派生 */
         wallA: '', wallB: '', hole: '', shell: '',
         gunBody: '', gunDark: '', gunSight: '',
         gunHi: 'rgba(255,255,255,0.15)', gunLo: 'rgba(0,0,0,0.22)',
@@ -46,9 +51,9 @@
     var px = 0, py = C.EYE_Y, pz = 0;
     var lastPitch = 0, lastView = 'fps';
     var playerAlpha = 1, camDist = 0;
-    /* 相机遮挡淡出（X-ray）：每墙盒的当前透明度，1=不透明（见 updateWallFade） */
-    var wallFade = new Float64Array(32).fill(1);
+    var gaitPhase = 0;   /* TPS 步态相位（ADR-58）：按移动距离推进，纯视觉，静止/暂停冻结 */
     var axX = 1, axZ = 0;   // 公告板水平轴（由相机方向算出）
+    var bodyFx = 0, bodyFz = 1;   /* ADR-59：玩家盒体深度方向（本体前向），setCamera 时算一次 */
     var lastMark = { mark: 0, top: 0, bottom: 0, y: 0, y2: 0, y3: 0 };   // QA：最近一次脸部标记的屏幕几何（y=眼/盔带，y2=鼻/后脑带，y3=嘴）
 
     /* ── 伪光照：L = normalize(0.4, 0.7, 0.6)，6 个面朝向档位预计算 ── */
@@ -182,6 +187,11 @@
         palette.muzzle = v('--cs-muzzle') || palette.botHead;
         palette.player = v('--cs-player') || v('--primary-color');
         palette.playerHead = v('--cs-player-head') || palette.player;
+        /* ADR-59：盒体三档明暗（顶亮/正面原色/侧暗），主题刷新时派生一次，flat 模式同样可见 */
+        palette.playerTop = U.shade(palette.player, 1.22);
+        palette.playerSide = U.shade(palette.player, 0.70);
+        palette.headTop = U.shade(palette.playerHead, 1.18);
+        palette.headSide = U.shade(palette.playerHead, 0.72);
         palette.accent = v('--accent') || v('--text-color');
         palette.wallA = U.shade(wa || base, 1);
         palette.wallB = U.shade(wb || wa || base, 1);
@@ -250,6 +260,8 @@
          * 关键：hitscan 固定从眼位沿 yaw/pitch 发出（game.js），与本相机完全解耦——
          * 相机朝向只用于投影，故准星在 FOCUS 距离处与真实射线重合，零数值收益改变(ADR-2)。 */
         var sy = Math.sin(yaw), cy = Math.cos(yaw);
+        /* ADR-59：盒体深度方向取玩家本体前向（非被聚焦向量覆盖的相机前向） */
+        bodyFx = sy; bodyFz = cy;
         var SHOULDER = C.TPS_SHOULDER, BACK = C.TPS_BACK, UP = C.TPS_UP, FOCUS = C.TPS_FOCUS;
         /* 目标相机位 = 眼位 - 前向水平*BACK + 右向*SHOULDER + 上抬*UP */
         var ox = px - sy * BACK + cy * SHOULDER;
@@ -407,50 +419,96 @@
             sortX, BILLBOARD_SORT_Y, sortZ);
     }
 
+    /* ADR-59：立体盒体 = 正对相机的主面（几何与 drawBillboard 完全一致，细节贴片零错位）
+     * + 顶面 + 右侧面。深度沿玩家本体前向 bodyF 延伸——TPS 相机恒在玩家后右上方，
+     * 所以顶/右侧面恒可见、无需逐帧背面剔除（相机跟随 yaw，相对方位不变）。
+     * 三面用派生明暗色（顶亮/主原色/侧暗），shade 恒 1，故 flat 降级模式同样有立体感。
+     * 三面共用同一 sort 点（角色中心），depth 相同 → 墙不会从身体中间插入（ADR-55）。 */
+    function drawBox(ox, oz, y0, y1, halfW, depth, colMain, colTop, colSide,
+                     alpha, stroke, sortX, sortZ, mark, shift) {
+        var xl = ox - axX * halfW, zl = oz - axZ * halfW;
+        var xr = ox + axX * halfW, zr = oz + axZ * halfW;
+        var dx = bodyFx * depth, dz = bodyFz * depth;
+        /* ADR-60 屈膝：顶边沿玩家前向偏移 shift（底边不动），主面成倾斜平行四边形，
+         * 蹲姿下膝盖前顶的意象；shift=0 时与旧实现逐位一致。sort 点仍取角色中心(ADR-55)。 */
+        var sx = shift ? bodyFx * shift : 0, sz = shift ? bodyFz * shift : 0;
+        /* 顶面：主面顶边(含 shift)向玩家前向延伸 depth（相机在上方，可见） */
+        setQ(0, xl + sx, y1, zl + sz); setQ(1, xr + sx, y1, zr + sz);
+        setQ(2, xr + dx + sx, y1, zr + dz + sz); setQ(3, xl + dx + sx, y1, zl + dz + sz);
+        addFace(colTop, alpha, false, -1, 1, ox, y1, oz, sortX, BILLBOARD_SORT_Y, sortZ);
+        /* 右侧面：底边不动，顶边含 shift */
+        setQ(0, xr, y0, zr); setQ(1, xr + dx, y0, zr + dz);
+        setQ(2, xr + dx + sx, y1, zr + dz + sz); setQ(3, xr + sx, y1, zr + sz);
+        addFace(colSide, alpha, false, -1, 1, ox, (y0 + y1) * 0.5, oz, sortX, BILLBOARD_SORT_Y, sortZ);
+        /* 主面：底边不动，顶边含 shift，最后提交（画家算法后画覆盖） */
+        setQ(0, xl, y0, zl); setQ(1, xr, y0, zr);
+        setQ(2, xr + sx, y1, zr + sz); setQ(3, xl + sx, y1, zl + sz);
+        var f0 = faceCount;
+        addFace(colMain, alpha, stroke, -1, 1, ox, (y0 + y1) * 0.5, oz, sortX, BILLBOARD_SORT_Y, sortZ);
+        if (mark && faceCount > f0) faces[faceCount - 1].mark = mark;
+    }
+
+    /* ADR-60 蹲姿几何映射（v2 返工：修正"整体压扁"观感）：把站立坐标 y 按 ct∈[0,1] 分段映射。
+     * 关键：真人蹲下是「重心降低 + 腿折叠」，头/躯干本身不该被等比例压扁。
+     * 锚点（站立→蹲下）：脚底 0.10→0.10（踩地不动）、髋 0.70→0.35（重心大降、腿折叠到 42%）、
+     * 肩 1.50→0.95（躯干保留 0.60，仅压缩 25% 而非旧版 59%）、头顶 1.65→1.10。
+     * 头部高度恒 0.15 不变（drawFaceMark 零变形）；ct=0 原样返回（站立逐位兼容 #11）。
+     * ct 取自插值中的 eyeCur，与相机 py 同源，腿与视角同步平滑过渡，零新增状态/面。 */
+    function bodyY(y, ct) {
+        if (ct <= 0) return y;
+        var hy = 0.70 - 0.35 * ct, sy = 1.50 - 0.55 * ct, ty = 1.65 - 0.55 * ct;
+        if (y <= 0.70) return 0.10 + (y - 0.10) / 0.60 * (hy - 0.10);
+        if (y <= 1.50) return hy + (y - 0.70) / 0.80 * (sy - hy);
+        return sy + (y - 1.50) / 0.15 * (ty - sy);
+    }
+
     /* 东西向墙面（固定 x，长轴 z）：长面沿 z 分段，每段独立参与深度排序（ADR-40）。
      * a0→a1 保持与旧单面版相同的绕序（Q0 底-a / Q1 顶-a / Q2 顶-b / Q3 底-b），纹理插值方向不变。 */
-    function addXFace(x, a0, a1, col, alpha, tex, shade) {
+    /* #12：h 为该盒高度（外围墙 WALL_H / 内部矮掩体 COVER_H）；默认 WALL_H 兼容其它调用。 */
+    function addXFace(x, a0, a1, col, alpha, tex, shade, h) {
+        h = h || C.WALL_H;
         var segs = Math.ceil(Math.abs(a1 - a0) / 6) || 1, j, u0, u1, mid;
         for (j = 0; j < segs; j++) {
             u0 = a0 + (a1 - a0) * j / segs; u1 = a0 + (a1 - a0) * (j + 1) / segs;
-            setQ(0, x, 0, u0); setQ(1, x, C.WALL_H, u0);
-            setQ(2, x, C.WALL_H, u1); setQ(3, x, 0, u1);
+            setQ(0, x, 0, u0); setQ(1, x, h, u0);
+            setQ(2, x, h, u1); setQ(3, x, 0, u1);
             mid = (u0 + u1) * 0.5;
-            addFace(col, alpha, true, tex, shade, x, C.WALL_H * 0.5, mid);
+            addFace(col, alpha, true, tex, shade, x, h * 0.5, mid);
         }
     }
 
     /* 南北向墙面（固定 z，长轴 x） */
-    function addZFace(z, a0, a1, col, alpha, tex, shade) {
+    function addZFace(z, a0, a1, col, alpha, tex, shade, h) {
+        h = h || C.WALL_H;
         var segs = Math.ceil(Math.abs(a1 - a0) / 6) || 1, j, u0, u1, mid;
         for (j = 0; j < segs; j++) {
             u0 = a0 + (a1 - a0) * j / segs; u1 = a0 + (a1 - a0) * (j + 1) / segs;
-            setQ(0, u0, 0, z); setQ(1, u0, C.WALL_H, z);
-            setQ(2, u1, C.WALL_H, z); setQ(3, u1, 0, z);
+            setQ(0, u0, 0, z); setQ(1, u0, h, z);
+            setQ(2, u1, h, z); setQ(3, u1, 0, z);
             mid = (u0 + u1) * 0.5;
-            addFace(col, alpha, true, tex, shade, mid, C.WALL_H * 0.5, z);
+            addFace(col, alpha, true, tex, shade, mid, h * 0.5, z);
         }
     }
 
     function genWalls() {
-        var boxes = W.boxes, k, b, t, colX, colZ, fa;
+        var boxes = W.boxes, k, b, t, colX, colZ;
         while (boxCount < boxes.length) { boxTex[boxCount] = boxCount < 4 ? 0 : (boxCount % 2 ? 2 : 1); boxCount++; }
         for (k = 0; k < boxes.length; k++) {
             b = boxes[k];
-            fa = wallFade[k];               /* 相机遮挡淡出：该盒被淡出时整盒半透明 */
             t = mode === 0 ? boxTex[k] : -1;
             colX = mode === 0 ? palette.wallA : palette.wallX[k % 3];
             colZ = mode === 0 ? palette.wallB : palette.wallZ[k % 3];
-            /* 内部墙最长边 4m（segs=1 与旧单面版逐位一致）；围墙 30-32m 分 6 段修正深度跨序 */
-            if (camX > b.maxX) addXFace(b.maxX, b.minZ, b.maxZ, colX, fa, t, mode === 0 ? shadeO[0] : 1);
-            if (camX < b.minX) addXFace(b.minX, b.maxZ, b.minZ, colX, fa, t, mode === 0 ? shadeO[1] : 1);
-            if (camZ > b.maxZ) addZFace(b.maxZ, b.minX, b.maxX, colZ, fa, t, mode === 0 ? shadeO[4] : 1);
-            if (camZ < b.minZ) addZFace(b.minZ, b.maxX, b.minX, colZ, fa, t, mode === 0 ? shadeO[5] : 1);
-            if (camY > C.WALL_H) {
-                setQ(0, b.minX, C.WALL_H, b.minZ); setQ(1, b.minX, C.WALL_H, b.maxZ);
-                setQ(2, b.maxX, C.WALL_H, b.maxZ); setQ(3, b.maxX, C.WALL_H, b.minZ);
-                addFace(palette.wallTop, fa, true, t, mode === 0 ? shadeO[2] : 1,
-                    (b.minX + b.maxX) * 0.5, C.WALL_H, (b.minZ + b.maxZ) * 0.5);
+            /* 内部墙最长边 4m（segs=1 与旧单面版逐位一致）；围墙 30-32m 分 6 段修正深度跨序。
+             * #12：每盒用自身高度 b.h——矮掩体(1.30)画矮，顶面在其高度可见。 */
+            if (camX > b.maxX) addXFace(b.maxX, b.minZ, b.maxZ, colX, 1, t, mode === 0 ? shadeO[0] : 1, b.h);
+            if (camX < b.minX) addXFace(b.minX, b.maxZ, b.minZ, colX, 1, t, mode === 0 ? shadeO[1] : 1, b.h);
+            if (camZ > b.maxZ) addZFace(b.maxZ, b.minX, b.maxX, colZ, 1, t, mode === 0 ? shadeO[4] : 1, b.h);
+            if (camZ < b.minZ) addZFace(b.minZ, b.maxX, b.minX, colZ, 1, t, mode === 0 ? shadeO[5] : 1, b.h);
+            if (camY > b.h) {
+                setQ(0, b.minX, b.h, b.minZ); setQ(1, b.minX, b.h, b.maxZ);
+                setQ(2, b.maxX, b.h, b.maxZ); setQ(3, b.maxX, b.h, b.minZ);
+                addFace(palette.wallTop, 1, true, t, mode === 0 ? shadeO[2] : 1,
+                    (b.minX + b.maxX) * 0.5, b.h, (b.minZ + b.maxZ) * 0.5);
             }
         }
     }
@@ -661,31 +719,57 @@
     /* TPS 玩家背影模型（ADR-48）：MC 分块 + 战术背心/背包 + 肩带 + 竖条枪。
      * 相机在右肩后上方，看到的是背影：深色背心压在躯干正面之下(y 段略窄)，
      * 背包外凸于躯干右后，两条肩带纵贯背部——让"从身后看"一眼可辨，而非纯色贴片靶子。
-     * 全部 billboard 贴世界坐标参与深度排序；面池 +11（旧 +7）。y 跟随跳跃。 */
-    function genPlayer(player) {
+     * 全部 billboard 贴世界坐标参与深度排序；面池 +11（旧 +7）。y 跟随跳跃。
+     * 腿部步态（ADR-58）：相位由 endFrame 按移动距离推进，两腿沿玩家前向反相摆动、
+     * 前摆腿抬脚，髋部不动；空中收腿。纯 billboard 位移，零新增面、不改任何判定。 */
+    function genPlayer(game) {
+        var player = game.player;
         setAxes(camX, camZ, player.x, player.z);
         var yb = player.y, f0;
-        /* 腿 */
-        drawBillboard(player.x - axX * 0.12, player.z - axZ * 0.12, yb + 0.10, yb + 0.70, 0.10, palette.player, playerAlpha, true, player.x, player.z);
-        drawBillboard(player.x + axX * 0.12, player.z + axZ * 0.12, yb + 0.10, yb + 0.70, 0.10, palette.player, playerAlpha, true, player.x, player.z);
-        /* 躯干（着 player 主色） */
-        drawBillboard(player.x, player.z, yb + 0.70, yb + 1.50, 0.20, palette.player, playerAlpha, true, player.x, player.z);
+        /* ADR-60 蹲伏系数：直接取插值中的 eyeCur（1.60↔1.05），与相机 py 同源，
+         * 故腿与视角同步平滑过渡、过渡期反向输入排队的既有逻辑完全不动。 */
+        var ct = (C.EYE_STAND - player.eyeCur) / (C.EYE_STAND - C.EYE_CROUCH);
+        if (ct < 0) ct = 0; else if (ct > 1) ct = 1;
+        /* 步态：摆幅随速度（走=满档、蹲/瞄=小档、疾跑稍大），与脚步声节奏同源 */
+        var fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);   // 玩家真实前向（与 applyMove 一致）
+        var amp = Math.min(game.moveSpeed / C.WALK, 1.15), legL = 0, legR = 0, liftL = 0, liftR = 0, tuck = 0, hip = 0.70;
+        if (!player.onGround) {
+            tuck = 0.22; hip = 0.62;                       // 空中收腿：脚底抬起、膝部略收
+        } else if (amp > 0.03) {
+            var s = Math.sin(gaitPhase);
+            legL = 0.24 * amp * s; legR = -legL;            // 前后反相摆动（世界前向偏移）
+            liftL = Math.max(0, s) * 0.14 * amp;            // 前摆腿抬脚，髋部 y1 保持
+            liftR = Math.max(0, -s) * 0.14 * amp;
+        }
+        /* ADR-60 v2 蹲姿：站距加宽（±0.12→±0.16）+ 膝盖前顶加大（0.16→0.24），
+         * 配合更低的髋（0.35）形成"重心下沉、双腿撑开"的蹲姿，而非整体压扁。
+         * 顶边沿前向偏移使主面成斜平行四边形（屈膝意象）；仅腿用 shift，躯干不弯。 */
+        var kneeShift = ct * 0.24, spread = 0.12 + ct * 0.04;
+        /* 腿（ADR-59 盒体 + ADR-60 蹲姿：y 经 bodyY 折叠映射，顶边前移模拟屈膝） */
+        drawBox(player.x - axX * spread + fx * legL, player.z - axZ * spread + fz * legL,
+            yb + bodyY(0.10 + liftL + tuck, ct), yb + bodyY(hip, ct), 0.10, 0.11,
+            palette.player, palette.playerTop, palette.playerSide, playerAlpha, true, player.x, player.z, 0, kneeShift);
+        drawBox(player.x + axX * spread + fx * legR, player.z + axZ * spread + fz * legR,
+            yb + bodyY(0.10 + liftR + tuck, ct), yb + bodyY(hip, ct), 0.10, 0.11,
+            palette.player, palette.playerTop, palette.playerSide, playerAlpha, true, player.x, player.z, 0, kneeShift);
+        /* 躯干（盒体，着 player 主色） */
+        drawBox(player.x, player.z, yb + bodyY(0.70, ct), yb + bodyY(1.50, ct), 0.20, 0.15,
+            palette.player, palette.playerTop, palette.playerSide, playerAlpha, true, player.x, player.z, 0);
         /* 战术背心：深一档，覆盖躯干中上段；背包：外凸右后、再深一档 */
-        drawBillboard(player.x, player.z, yb + 0.92, yb + 1.44, 0.21, palette.gunDark, playerAlpha, true, player.x, player.z);
-        drawBillboard(player.x + axX * 0.13, player.z + axZ * 0.13, yb + 1.02, yb + 1.40, 0.12, palette.gunBody, playerAlpha, true, player.x, player.z);
+        drawBillboard(player.x, player.z, yb + bodyY(0.92, ct), yb + bodyY(1.44, ct), 0.21, palette.gunDark, playerAlpha, true, player.x, player.z);
+        drawBillboard(player.x + axX * 0.13, player.z + axZ * 0.13, yb + bodyY(1.02, ct), yb + bodyY(1.40, ct), 0.12, palette.gunBody, playerAlpha, true, player.x, player.z);
         /* 两条肩带（浅色纵条）：从肩到腰，强化"背对"读感 */
-        drawBillboard(player.x - axX * 0.11, player.z - axZ * 0.11, yb + 0.96, yb + 1.40, 0.028, palette.playerHead, playerAlpha, false, player.x, player.z);
-        drawBillboard(player.x + axX * 0.11, player.z + axZ * 0.11, yb + 0.96, yb + 1.40, 0.028, palette.playerHead, playerAlpha, false, player.x, player.z);
+        drawBillboard(player.x - axX * 0.11, player.z - axZ * 0.11, yb + bodyY(0.96, ct), yb + bodyY(1.40, ct), 0.028, palette.playerHead, playerAlpha, false, player.x, player.z);
+        drawBillboard(player.x + axX * 0.11, player.z + axZ * 0.11, yb + bodyY(0.96, ct), yb + bodyY(1.40, ct), 0.028, palette.playerHead, playerAlpha, false, player.x, player.z);
         /* 手臂 */
-        drawBillboard(player.x - axX * 0.22, player.z - axZ * 0.22, yb + 0.78, yb + 1.42, 0.07, palette.player, playerAlpha, true, player.x, player.z);
-        drawBillboard(player.x + axX * 0.22, player.z + axZ * 0.22, yb + 0.78, yb + 1.42, 0.07, palette.player, playerAlpha, true, player.x, player.z);
-        /* 头（后脑勺 mark=2：头盔带 + 发带，暗示后方视角） */
-        f0 = faceCount;
-        drawBillboard(player.x, player.z, yb + 1.50, yb + 1.65, 0.16, palette.playerHead, playerAlpha, true, player.x, player.z);
-        if (faceCount > f0) faces[faceCount - 1].mark = 2;
+        drawBillboard(player.x - axX * 0.22, player.z - axZ * 0.22, yb + bodyY(0.78, ct), yb + bodyY(1.42, ct), 0.07, palette.player, playerAlpha, true, player.x, player.z);
+        drawBillboard(player.x + axX * 0.22, player.z + axZ * 0.22, yb + bodyY(0.78, ct), yb + bodyY(1.42, ct), 0.07, palette.player, playerAlpha, true, player.x, player.z);
+        /* 头（盒体；后脑勺 mark=2 由 drawBox 挂在主面上，头盔带 + 发带暗示后方视角） */
+        drawBox(player.x, player.z, yb + bodyY(1.50, ct), yb + bodyY(1.65, ct), 0.16, 0.14,
+            palette.playerHead, palette.headTop, palette.headSide, playerAlpha, true, player.x, player.z, 2);
         /* 竖条枪：右手持，斜前指 */
         drawBillboard(player.x + axX * 0.34, player.z + axZ * 0.34,
-            yb + 0.55, yb + 1.30, 0.05, palette.gunBody, playerAlpha, false, player.x, player.z);
+            yb + bodyY(0.55, ct), yb + bodyY(1.30, ct), 0.05, palette.gunBody, playerAlpha, false, player.x, player.z);
     }
 
     function addLine(x0, z0, x1, z1) {
@@ -762,6 +846,34 @@
         ctx.globalAlpha = 1;
     }
 
+    /* #9 击杀倒地消散：纯 ctx 绘制（不进面池、不改命中）。方块从站立中段高度向地面倒下，
+     * 同时横向压扁+淡出，形成「倒地消散」意象；life 走完即回收。零对象分配（槽位预分配）。 */
+    function drawDeaths(dt) {
+        for (i = 0; i < deaths.length; i++) {
+            var d = deaths[i];
+            if (d.life <= 0) continue;
+            d.life -= dt;
+            if (d.life <= 0) continue;
+            var t = 1 - d.life / d.max;             // 0 刚死 → 1 消散完
+            var bodyY = C.BOT_Y1 * (1 - t) * 0.55 + 0.10;   // 中心高度：约 1.02→0.10（倒地）
+            projectPoint(d.x, bodyY, d.z, proj);
+            if (!proj.ok) continue;
+            var halfW = C.BOT_HALF_W * (1 - t * 0.5);        // 横向压扁
+            ctx.globalAlpha = (1 - t) * 0.75;
+            ctx.fillStyle = palette.botHit;
+            /* 存中心，再用同一高度 x±halfW 两点投影求屏幕宽（随距离/相机正确缩放） */
+            var ccx = proj.sx, ccy = proj.sy;
+            projectPoint(d.x - halfW, bodyY, d.z, proj);
+            var lx = proj.ok ? proj.sx : ccx - 8;
+            projectPoint(d.x + halfW, bodyY, d.z, proj);
+            var rx = proj.ok ? proj.sx : ccx + 8;
+            var w = Math.max(2, rx - lx);
+            var h = Math.max(2, w * 0.45 * (1 - t * 0.6));  // 倒下后变扁
+            ctx.fillRect(ccx - w * 0.5, ccy - h * 0.5, w, h);
+        }
+        ctx.globalAlpha = 1;
+    }
+
     /* ── 特效池：弹孔 32 FIFO / 粒子 64 / 弹壳 8 / 火光 1（全预分配，逐帧零分配）── */
     var holes = [], parts = [], shells = [], hi;
     for (i = 0; i < C.HOLE_MAX; i++) holes.push({ on: false, x: 0, y: 0, z: 0, ax: 0, sg: 1 });
@@ -799,17 +911,11 @@
     }
 
     function drawHoles() {
-        var s = C.HOLE_SIZE * 0.5, off = C.HOLE_OFF, j, h, k, okAll, hb, b2;
+        var s = C.HOLE_SIZE * 0.5, off = C.HOLE_OFF, j, h, k, okAll;
         ctx.fillStyle = palette.hole;
         for (j = 0; j < C.HOLE_MAX; j++) {
             h = holes[j];
             if (!h.on) continue;
-            /* 弹孔属于哪面墙：该墙被相机遮挡淡出时弹孔同步淡出，避免悬浮空中 */
-            hb = 1;
-            for (k = 0; k < W.boxes.length; k++) {
-                b2 = W.boxes[k];
-                if (h.x >= b2.minX && h.x <= b2.maxX && h.z >= b2.minZ && h.z <= b2.maxZ) { hb = wallFade[k]; break; }
-            }
             okAll = true;
             for (k = 0; k < 4; k++) {
                 var sa = (k === 0 || k === 3) ? s : -s;
@@ -821,7 +927,7 @@
                 holeQx[k] = proj.sx; holeQy[k] = proj.sy;
             }
             if (!okAll) continue;
-            ctx.globalAlpha = 0.85 * hb;
+            ctx.globalAlpha = 0.85;
             ctx.beginPath();
             ctx.moveTo(holeQx[0], holeQy[0]);
             ctx.lineTo(holeQx[1], holeQy[1]);
@@ -1070,9 +1176,10 @@
         for (j = 0; j < C.HOLE_MAX; j++) holes[j].on = false;
         for (j = 0; j < C.PARTICLE_MAX; j++) parts[j].life = 0;
         for (j = 0; j < C.SHELL_MAX; j++) shells[j].life = 0;
-        holeIdx = partIdx = shellIdx = 0;
+        holeIdx = partIdx = shellIdx = deathIdx = 0;
+        for (j = 0; j < deaths.length; j++) deaths[j].life = 0;   /* #9 重开清死亡特效 */
         vm.recoil = 0; vm.muzzleT = 0; vm.phase = 0; vm.lagX = 0; vm.lagY = 0; vm.aim = 0;
-        for (j = 0; j < W.boxes.length; j++) wallFade[j] = 1;   /* 相机遮挡淡出复位 */
+        gaitPhase = 0;   /* ADR-58：重开时步态归位，避免腿停在中途摆姿 */
         clearFloats();
     }
 
@@ -1091,7 +1198,7 @@
         drawSkyFloor();
         genWalls();
         genBots(game.bots);
-        if (lastView === 'tps') genPlayer(game.player);
+        if (lastView === 'tps') genPlayer(game);
     }
 
     function drawFacesTex() {
@@ -1153,35 +1260,22 @@
         ctx.globalAlpha = 1;
     }
 
-    /* ── 相机遮挡淡出（X-ray）：仅 TPS。挡在「相机→玩家」线段上的墙、距相机
-     * < XRAY_PROX 的墙（贴围墙时相机被钳到墙前、墙面糊满视野），以及玩家自身
-     * < XRAY_PROX·PLAYER 的墙（玩家卡在墙角/两面墙夹角、身体被夹墙吞没的场景）
-     * 平滑淡到 XRAY_MIN；FPS 不淡出（防透视看墙后作弊）。其余遮挡保持真实近挡远。
-     * 纯视图层：不改 hitscan / LOS / 相机位任何数值。 */
-    function updateWallFade(dt, game) {
-        var mask = 0, k, tgt, tau;
-        if (lastView === 'tps') {
-            mask = W.occluderMask(camX, camZ, game.player.x, game.player.z) |
-                   W.nearBoxes(camX, camZ, C.XRAY_PROX) |
-                   W.nearBoxes(game.player.x, game.player.z, C.XRAY_PROX * C.XRAY_PLAYER_K);
-        }
-        for (k = 0; k < W.boxes.length; k++) {
-            tgt = (mask & (1 << k)) ? C.XRAY_MIN : 1;
-            tau = tgt < wallFade[k] ? C.XRAY_TAU : C.XRAY_REST_TAU;
-            wallFade[k] += (tgt - wallFade[k]) * (1 - Math.exp(-dt / tau));
-            if (wallFade[k] > 0.998) wallFade[k] = 1;
-        }
-    }
-
     /* ── Renderer 接口：endFrame ── */
     function endFrame(dt, game) {
-        updateWallFade(dt, game);
+        /* 步态相位（ADR-58）：按本帧实际移动距离推进。一个完整周期=左右腿各摆一次=2 步，
+         * 每步 FOOTSTRIDE(1.8m) 与 Sfx.footstep 同源，故周期距离 2·FOOTSTRIDE；
+         * dt=0（暂停/菜单）自动冻结，静止或空中时 moveSpeed 不推进相位。 */
+        if (game && game.player.onGround && game.moveSpeed > 0.1) {
+            gaitPhase += dt * game.moveSpeed / (2 * C.FOOTSTRIDE) * (Math.PI * 2);
+            if (gaitPhase > Math.PI * 2) gaitPhase -= Math.PI * 2;
+        }
         gatherScene(game);
         sortFaces();
         if (mode === 0) drawFacesTex(); else drawFacesFlat();
         drawHoles();
         drawParticles(dt);
         drawShells(dt);
+        drawDeaths(dt);
         drawFloats(dt);
         drawViewmodel(dt, game);
     }
@@ -1192,41 +1286,83 @@
         floatIdx = (floatIdx + 1) % floats.length;
     }
 
+    /* #9 登记一次击杀倒地：复用预分配槽（同帧多杀循环覆盖），走 ctx 不占面池 */
+    function addDeath(x, z) {
+        var d = deaths[deathIdx];
+        d.x = x; d.z = z; d.life = C.DEATH_FX_TIME; d.max = C.DEATH_FX_TIME;
+        deathIdx = (deathIdx + 1) % deaths.length;
+    }
+
     function clearFloats() {
         for (i = 0; i < floats.length; i++) floats[i].life = 0;
     }
 
-    /* ── 慢帧自适应：<45fps 或呈现间隔 p90 超刷新预算 1.5× 时，先降内部分辨率一档
-     * （0.8→0.65），仍不达标再降 Renderer2DFlat ──
-     * ADR-50：旧判定 avgFps<FPS_MIN(45) 只覆盖 60Hz——90/120Hz 屏呈现间隔在 11.1/22.2ms
-     * 混跳时平均帧率恰落 60~80（HUD 显示"正常"但体感卡，真机顽疾、桌面 60Hz 复现不了）。
-     * 补抖动判定：处理帧间隔 p90 > 预算×1.5（90Hz≈16.7ms 即已有 >1/3 帧掉到 22.2ms）同样
-     * 触发；60Hz 下 ≈25ms 与旧 <45fps 口径基本重合，行为不变。 */
-    var perfT = 0, perfN = 0;
+    /* ── 慢帧自适应（可逆三级档，ADR-61 修正 ADR-50 的单向降级）──
+     * 档位从实际渲染状态推导（不引入独立变量，避免与外部 useRenderer 漂移）：
+     *   level 0 = tex 设备默认分辨率（scaleOverride=0, mode=0）
+     *   level 1 = tex 内部降分辨率 0.65（scaleOverride=0.65, mode=0）
+     *   level 2 = Flat 轻量渲染（mode=1）
+     * 降级沿用 ADR-50 判据（<FPS_MIN 或呈现 p90 > 预算×1.5），慢窗口立即降一级（快）；
+     * 回升需连续 PERF_RECOVER_SEC 秒 fps>=FPS_RECOVER（高 FPS_MIN 10 的迟滞带）且无抖动，
+     * 才升一级（慢）。任何 slow 或中间态清零回升计时——阈值附近不会抖动式来回跳档。
+     * 注意 perfT/perfN 用 dt（playing 才调 checkPerf，暂停冻结），恢复分辨率走 resize 重算。 */
+    var perfT = 0, perfN = 0, healthyT = 0;
+    function perfLevel() {
+        if (mode !== 0) return 2;
+        return scaleOverride ? 1 : 0;
+    }
     function checkPerf(dt, game) {
         perfT += dt; perfN++;
-        if (perfT >= 1.0) {
-            var slow = perfN / perfT < C.FPS_MIN;
-            if (!slow && game && game.diagCost) {
-                var dg = game.diagCost();
-                if (dg.hz > 0 && dg.deltaP90 > (1000 / dg.hz) * 1.5) slow = true;
+        if (perfT < 1.0) return;
+        var fps = perfN / perfT;
+        var slow = fps < C.FPS_MIN;
+        var jitter = false;
+        if (game && game.diagCost) {
+            var dg = game.diagCost();
+            jitter = dg.hz > 0 && dg.deltaP90 > (1000 / dg.hz) * 1.5;
+            if (jitter) slow = true;
+        }
+        var lv = perfLevel();
+        if (slow) {
+            healthyT = 0;                          // 慢窗口：清回升计时 + 立即降一级
+            if (lv < 2) setPerfLevel(lv + 1);
+        } else if (fps >= C.FPS_RECOVER && !jitter) {
+            healthyT += perfT;                     // 健康窗口累计（用真实窗口时长，非固定 1s）
+            if (healthyT >= C.PERF_RECOVER_SEC && lv > 0) {
+                setPerfLevel(lv - 1);
+                healthyT = 0;                      // 升一级后重新累计，防连续跳级
             }
-            if (slow && mode === 0) {
-                if (!scaleOverride) {
-                    scaleOverride = 0.65;
-                    resize();              // 内部分辨率 300×534 → 244×433（375×667 手机）
-                    if (CS.HUD && CS.HUD.toast) CS.HUD.toast('已降低渲染分辨率以提升流畅度');
-                } else {
-                    useRenderer('flat');
-                }
-            }
-            perfT = 0; perfN = 0;
+        } else {
+            healthyT = 0;                          // 中间态（45~55fps）：不降也不计回升
+        }
+        perfT = 0; perfN = 0;
+    }
+
+    /* 统一档位切换：mode / scaleOverride 是档位的唯一真实来源，这里手动同步二者。
+     * 降级到 flat 时保留 scaleOverride=0.65（内部仍省分辨率），回升到 tex 时恢复设备默认。 */
+    function setPerfLevel(level) {
+        var from = perfLevel();
+        if (level === 2) {
+            scaleOverride = 0.65;
+            if (mode !== 1) useRenderer('flat');
+        } else {
+            scaleOverride = level === 0 ? 0 : 0.65;
+            resize();                              // scaleOverride 变化后重算内部分辨率
+            if (mode !== 0) useRenderer('tex');
+        }
+        if (level !== from && CS.HUD && CS.HUD.toast) {
+            CS.HUD.toast(level > from
+                ? (level === 1 ? '已降低渲染分辨率以提升流畅度' : '已切换轻量渲染以提升流畅度')
+                : (level === 1 ? '已恢复渲染分辨率' : '已恢复完整画质'));
         }
     }
 
     function useRenderer(name) {
+        var prev = mode;
         mode = name === 'flat' ? 1 : 0;
         CS.Renderer = mode ? RFlat : R2D;
+        // 外部手动切换（QA/调试）后同步 perfT/N 与回升计时，避免把外部指令误判为抖动窗口
+        if (prev !== mode) { perfT = 0; perfN = 0; healthyT = 0; }
     }
 
     function makeApi(id) {
@@ -1237,14 +1373,19 @@
             drawBillboard: drawBillboard, drawViewmodel: drawViewmodel,
             endFrame: endFrame,
             addFloat: addFloat, clearFloats: clearFloats,
+            addDeath: addDeath,   /* #9：击杀倒地消散（纯 ctx，不占面池） */
+            get deathFx() {       /* QA：活跃死亡特效数 */
+                var n = 0; for (var k = 0; k < deaths.length; k++) if (deaths[k].life > 0) n++;
+                return n;
+            },
             addBulletHole: addBulletHole, spawnParticles: spawnParticles,
             vmFire: vmFire, clearFx: clearFx, checkPerf: checkPerf,
             get playerAlpha() { return playerAlpha; },
             get camDist() { return camDist; },
-            get wallFade() { return wallFade; },   /* QA：相机遮挡淡出状态 */
             get lastMark() { return lastMark; },   /* QA：脸部标记屏幕几何（top≤y≤bottom 应恒成立） */
             get faceCount() { return faceCount; },
             get renderScale() { return renderScale; },
+            get perfLevel() { return perfLevel(); },   /* ADR-61：0 满 / 1 降分辨率 / 2 flat，QA 可读 */
             get vmAim() { return { cur: vm.aim, geom: vm.aimGeom, target: vm.aimGeom * C.VM_AIM_GAIN }; },  /* QA：枪口朝向射击方向的抬枪角 */
             get debugPatterns() { return [!!activePats[0], !!activePats[1], !!activePats[2], !!activePats[3]]; },
             get debugPatternTest() {

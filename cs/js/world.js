@@ -1,5 +1,6 @@
-/* 反恐突袭 - 场景几何：12 个互不相交、轴对齐、y 恒定(0~WALL_H)的 AABB
- * 提供：墙射线(slab)、视线判定、圆 vs AABB 轴分离滑动碰撞、巡逻/出生点池。 */
+/* 反恐突袭 - 场景几何：12 个互不相交、轴对齐的 AABB（围墙 y∈[0,WALL_H]，内部掩体 y∈[0,COVER_H]）
+ * 提供：墙射线(slab)、视线判定、圆 vs AABB 轴分离滑动碰撞、巡逻/出生点池。
+ * #12：内部掩体用 COVER_H(1.30) 矮墙，蹲眼 1.05 被挡、站眼 1.60 越顶——蹲下掩护/站起反击。 */
 (function (global) {
     'use strict';
     var CS = global.CS || (global.CS = {});
@@ -17,7 +18,10 @@
 
     var boxes = [], i;
     for (i = 0; i < RAW.length; i++) {
-        boxes.push({ minX: RAW[i][0], maxX: RAW[i][1], minZ: RAW[i][2], maxZ: RAW[i][3] });
+        /* #12：前 4 块是外围墙（全高 WALL_H），其余内部掩体为矮墙 COVER_H。
+         * 高度进 box.h，rayWalls/绘制按各自高度取 y 板，碰撞(move)仍与 y 无关。 */
+        boxes.push({ minX: RAW[i][0], maxX: RAW[i][1], minZ: RAW[i][2], maxZ: RAW[i][3],
+            h: i < 4 ? C.WALL_H : C.COVER_H });
     }
 
     var SPAWN_RAW = [
@@ -50,8 +54,9 @@
     function randomWaypoint() { return Math.floor(Math.random() * waypoints.length); }
 
     /* 射线 vs 所有墙，返回最近正 t（无命中返回 maxT）。
-     * y 板对所有盒恒为 [0, WALL_H]，与「y 恒定」约定一致。
-     * v2：附带记录最近命中面的轴向(0=x,1=y,2=z)与法线分量符号，供弹孔贴花定向。 */
+     * #12 y 板按每盒 b.h：外围墙 WALL_H(3.0)，内部掩体 COVER_H(1.30)。
+     * 于是蹲眼 1.05 的射线过不了矮掩体、站眼 1.60 可越顶——LOS 与弹道同时生效。
+     * 附带记录最近命中面的轴向(0=x,1=y,2=z)与法线符号，供弹孔贴花定向。 */
     var EPS = 1e-8;
     var hitAxis = -1, hitSign = 0;
     function rayWalls(ox, oy, oz, dx, dy, dz, maxT) {
@@ -67,9 +72,9 @@
                 if (t1 > ex) ex = t1;
                 if (t2 < tmax) tmax = t2;
             }
-            if (!miss && Math.abs(dy) < EPS) { if (oy < 0 || oy > C.WALL_H) miss = true; }
+            if (!miss && Math.abs(dy) < EPS) { if (oy < 0 || oy > b.h) miss = true; }
             else if (!miss) {
-                t1 = (0 - oy) / dy; t2 = (C.WALL_H - oy) / dy;
+                t1 = (0 - oy) / dy; t2 = (b.h - oy) / dy;
                 if (t1 > t2) { tmp = t1; t1 = t2; t2 = tmp; }
                 if (t1 > ey) ey = t1;
                 if (t2 < tmax) tmax = t2;
@@ -105,43 +110,6 @@
         return rayWalls(ax, ay, az, dx / d, dy / d, dz / d, d) >= d - 0.02;
     }
 
-    /* ── 相机遮挡淡出（X-ray）几何辅助：纯查询，不改任何游戏判定 ──
-     * occluderMask：线段(ax,az)→(bx,bz) 穿过的墙盒位掩码（bit k = boxes[k]）。
-     * nearBoxes：点(px,pz) 到盒 2D 距离 < r 的墙盒位掩码（墙 y 全高，恒覆盖相机高度）。 */
-    function occluderMask(ax, az, bx, bz) {
-        var mask = 0, k, b, dx, dz, t0, t1, u0, u1, tmp;
-        dx = bx - ax; dz = bz - az;
-        for (k = 0; k < boxes.length; k++) {
-            b = boxes[k]; t0 = 0; t1 = 1;
-            if (Math.abs(dx) < EPS) { if (ax < b.minX || ax > b.maxX) continue; }
-            else {
-                u0 = (b.minX - ax) / dx; u1 = (b.maxX - ax) / dx;
-                if (u0 > u1) { tmp = u0; u0 = u1; u1 = tmp; }
-                if (u0 > t0) t0 = u0;
-                if (u1 < t1) t1 = u1;
-            }
-            if (Math.abs(dz) < EPS) { if (az < b.minZ || az > b.maxZ) continue; }
-            else {
-                u0 = (b.minZ - az) / dz; u1 = (b.maxZ - az) / dz;
-                if (u0 > u1) { tmp = u0; u0 = u1; u1 = tmp; }
-                if (u0 > t0) t0 = u0;
-                if (u1 < t1) t1 = u1;
-            }
-            if (t1 > t0 && t1 > 0 && t0 < 1) mask |= (1 << k);
-        }
-        return mask;
-    }
-    function boxDist2D(px, pz, b) {
-        var dx = px < b.minX ? b.minX - px : (px > b.maxX ? px - b.maxX : 0);
-        var dz = pz < b.minZ ? b.minZ - pz : (pz > b.maxZ ? pz - b.maxZ : 0);
-        return Math.sqrt(dx * dx + dz * dz);
-    }
-    function nearBoxes(px, pz, r) {
-        var mask = 0, k;
-        for (k = 0; k < boxes.length; k++) if (boxDist2D(px, pz, boxes[k]) < r) mask |= (1 << k);
-        return mask;
-    }
-
     /* 圆(r=RADIUS) vs AABB：按 x / z 轴分离推出，形成贴墙滑动。直接改写 ent.x / ent.z。 */
     function move(ent, dx, dz) {
         var r = C.RADIUS, k, b, nx = ent.x + dx, nz = ent.z + dz;
@@ -171,7 +139,6 @@
         boxes: boxes, spawns: spawns, waypoints: waypoints,
         pickSpawns: pickSpawns, randomWaypoint: randomWaypoint,
         rayWalls: rayWalls, lineOfSight: lineOfSight, move: move,
-        occluderMask: occluderMask, nearBoxes: nearBoxes,
         get hitAxis() { return hitAxis; },
         get hitSign() { return hitSign; }
     };
